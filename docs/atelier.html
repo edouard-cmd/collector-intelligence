@@ -297,74 +297,46 @@ async function appeler(systeme, contenu, recherche, plafond, modele) {
   return reparer(t);
 }
 
-/* Une réponse coupée en plein vol reste exploitable. On coupe à la dernière valeur
-   complète et on referme les structures restées ouvertes. Mieux vaut un profil
-   partiel qu'un échec sec — surtout que la partie coupée est toujours la fin,
-   c'est-à-dire les requêtes les plus larges, les moins utiles. */
+/* Une réponse coupée en plein vol reste exploitable. Plutôt que de deviner où elle
+   s'est arrêtée, on recule depuis la fin : à chaque structure refermée on tente de
+   recoller et on garde le premier essai qui parse. La partie perdue est toujours la
+   fin, c'est-à-dire les éléments les moins importants. */
 function reparer(t) {
   const d = t.indexOf('{');
-  if (d === -1) throw new Error(`réponse sans JSON : ${t.slice(0, 120)}`);
+  if (d === -1) throw new Error(`réponse sans JSON : ${t.slice(0, 120).replace(/</g, '')}`);
   t = t.slice(d);
 
+  // profondeur de structures ouvertes à chaque position, hors chaînes
+  const attente = [];
   const pile = [];
-  let dansTexte = false, echap = false, sur = 0;
-
+  let texte = false, echap = false;
   for (let i = 0; i < t.length; i++) {
     const c = t[i];
+    attente[i] = null;
     if (echap) { echap = false; continue; }
     if (c === '\\') { echap = true; continue; }
-    if (c === '"') { dansTexte = !dansTexte; if (!dansTexte) sur = i + 1; continue; }
-    if (dansTexte) continue;
-    if (c === '{' || c === '[') pile.push(c === '{' ? '}' : ']');
-    else if (c === '}' || c === ']') { pile.pop(); sur = i + 1; }
-    else if (c === ',' || (/\d/.test(c) && !/[\d.]/.test(t[i + 1] || ''))) sur = i + 1;
+    if (c === '"') { texte = !texte; continue; }
+    if (texte) continue;
+    if (c === '{') pile.push('}');
+    else if (c === '[') pile.push(']');
+    else if (c === '}' || c === ']') {
+      pile.pop();
+      attente[i] = [...pile].reverse().join('');   // ce qu'il resterait à fermer ici
+    }
   }
 
-  let base = t.slice(0, sur).replace(/,\s*$/, '');
-  // une clé sans valeur en fin de coupe rendrait le JSON invalide
-  base = base.replace(/,?\s*"[^"]*"\s*:\s*$/, '');
-
-  for (let i = pile.length - 1; i >= 0; i--) base += pile[i];
-
-  try {
-    const o = JSON.parse(base);
-    o.tronque = true;
-    console.warn("réponse tronquée, recollée :", Object.keys(o));
-    return o;
-  } catch (e) {
-    throw new Error(`réponse tronquée et non recollable (${t.length} car. reçus)`);
+  for (let i = t.length - 1; i >= 0; i--) {
+    if (attente[i] === null) continue;
+    try {
+      const o = JSON.parse(t.slice(0, i + 1) + attente[i]);
+      if (o && typeof o === "object") {
+        o.tronque = true;
+        console.warn("réponse tronquée, recollée :", Object.keys(o).join(", "));
+        return o;
+      }
+    } catch {}
   }
-}
-
-/* Un appel long sans retour visuel passe pour un plantage. On ne peut pas mesurer
-   l'avancement d'un appel unique, alors on montre ce qui se passe et le temps écoulé. */
-function attendre(cible, etapes) {
-  const el = document.querySelector(cible);
-  el.innerHTML = `<div class="attente"><i class="rotor"></i>
-    <span id="att-txt">${etapes[0]}</span><em id="att-t">0 s</em></div>`;
-  const t0 = Date.now();
-  let i = 0;
-  const h = setInterval(() => {
-    const s = Math.round((Date.now() - t0) / 1000);
-    const t = document.getElementById('att-t');
-    if (!t) return clearInterval(h);
-    t.textContent = s + " s";
-    const suivant = Math.min(Math.floor(s / 12), etapes.length - 1);
-    if (suivant !== i) { i = suivant; document.getElementById('att-txt').textContent = etapes[i]; }
-  }, 1000);
-  return () => { clearInterval(h); el.innerHTML = ''; };
-}
-
-/* Coût réel, lu dans la réponse. Tarifs Sonnet en $/M tokens, converti en euros.
-   Le chiffre exact reste celui de la console Anthropic ; celui-ci sert à sentir la dérive. */
-function chiffrer(usage, contenu, modele) {
-  if (!usage) return;
-  const [e, s] = (modele || "").includes("haiku") ? [1, 5] : [3, 15];
-  const recherches = (contenu || []).filter(b => b.type === "server_tool_use").length;
-  cout += ((usage.input_tokens * e + usage.output_tokens * s) / 1e6
-           + recherches * 0.01) * 0.92;
-  const el = $('#cout');
-  if (el) el.textContent = `cumul de la session : ${cout.toFixed(3)} €`;
+  throw new Error(`réponse tronquée et non recollable (${t.length} caractères reçus)`);
 }
 
 /* ---------- bloc 2 et 3 : identité et maille ---------- */
@@ -602,14 +574,36 @@ Ce n'est pas une cote : la cote ne se construira que sur des ventes réellement 
 Format : {"entrees":[{"plateforme":"...","nature":"ventes|annonces",
 "domaine":"exemple.fr",
 "strate":"particuliers|authentifies|encheres",
+"niveau":"exact|modele|famille",
+"terme":"le terme de recherche à employer pour ce niveau",
 "fourchette":{"bas":0,"haut":0,"devise":"EUR"},
 "url_modele":"https://.../?q={q}&page={page}","page_debut":1,"pages_max":20,
 "note":"une phrase, 20 mots maximum",
 "limite":"fenêtre d\'historique ou restriction, 12 mots maximum, ou null"}],
+"ecart_maille":"comment un prix du niveau large se rapporte au niveau exact, une phrase",
 "hors_couverture": null}
 
-Si aucune source publique ne permet de coter cet objet, retourne "entrees":[] et une raison
-dans "hors_couverture".`;
+Tu ne conclus JAMAIS qu'un objet est incotable. Ce n'est pas ton rôle : cette décision se prend
+après la collecte, en comptant les transactions réellement trouvées. Ici tu ne fais que dire où
+chercher. Un "entrees" vide n'est acceptable que si l'objet ne s'échange sur aucune place de
+marché publique au monde, ce qui est très rare.
+
+Si la référence exacte est trop pointue pour avoir un historique propre — une taille rare, un
+coloris de série, un numéro précis — tu n'abandonnes pas : tu élargis la maille de recherche.
+Trois niveaux, du plus étroit au plus large :
+
+  1. exact — la référence précise, taille et coloris compris
+  2. modele — le même modèle toutes tailles et coloris confondus
+  3. famille — la collaboration, la série ou la gamme entière
+
+Une vente du niveau 2 ou 3 reste un comparable exploitable : il suffit d'appliquer la décote ou
+la prime connue entre les niveaux. C'est infiniment plus utile qu'une absence de réponse.
+
+Donne donc, pour chaque point d'entrée, le niveau de maille auquel il doit être interrogé, et
+couvre les trois niveaux dès que le niveau exact risque d'être maigre. Indique dans "ecart_maille"
+comment un prix du niveau large se rapporte au niveau exact pour cet objet.
+
+Rédige toutes tes réponses en français.`;
 
 $('#router').onclick = async () => {
   const b = $('#router');
@@ -660,14 +654,16 @@ const LIB_STRATE = {
 
 function afficherRoutage(d) {
   if (!d.entrees || !d.entrees.length) {
-    $('#sortie2').innerHTML = `<div class="warn">cas 3 — hors couverture.
-      ${d.hors_couverture || "aucune source publique cotable."}
-      Le système ne produira pas de chiffre pour cet objet.</div>`;
+    $('#sortie2').innerHTML = `<div class="warn">aucun point d'entrée proposé.
+      ${d.hors_couverture || ""}
+      Ce n'est pas un verdict : le hors couverture se prononce après la collecte, en comptant
+      les transactions trouvées. Relancer, ou élargir la description de l'objet.</div>`;
     return;
   }
   const ventes = d.entrees.filter(e => e.nature === "ventes").length;
   const annonces = d.entrees.length - ventes;
   const strates = new Set(d.entrees.map(e => e.strate).filter(Boolean));
+  const niveaux = new Set(d.entrees.map(e => e.niveau).filter(Boolean));
 
   let h = `<div class="res">
     ${d.tronque ? `<div class="info">réponse du modèle tronquée : seules les plateformes
@@ -714,6 +710,8 @@ function afficherRoutage(d) {
         <div style="display:flex;align-items:center;gap:8px">
           ${logo(e)}<b>${e.plateforme}</b>
           <span style="font-size:12.5px;color:var(--gris)">${e.nature} · ${e.pages_max} pages</span>
+          ${e.niveau ? `<span class="puce" style="margin:0;font-size:11.5px;background:${
+            e.niveau === 'exact' ? 'var(--data)' : 'var(--clair)'}">${e.niveau}</span>` : ''}
           ${f.haut ? `<span class="puce" style="margin:0 0 0 auto">${f.bas}–${f.haut} ${f.devise || ''}</span>` : ''}
         </div>
         <code style="font-size:12px;word-break:break-all;display:block;margin-top:4px">${e.url_modele}</code>
@@ -729,6 +727,8 @@ function afficherRoutage(d) {
   if (annonces === 0)
     h += `<div class="warn">aucune source d'annonces en cours : la liquidité ne pourra pas
           être mesurée. Rotation, profondeur d'intérêt et écart annonce-cote resteront vides.</div>`;
+  if (d.ecart_maille && niveaux.size > 1)
+    h += `<div class="info"><b>maille élargie :</b> ${d.ecart_maille}</div>`;
   if (strates.size < 3 && ventes > 0)
     h += `<div class="info">${strates.size} strate${strates.size > 1 ? 's' : ''} couverte${
           strates.size > 1 ? 's' : ''} sur 3. La fourchette de sortie sera partielle :
@@ -767,7 +767,7 @@ $('#collecter').onclick = async () => {
   const pages = +$('#profondeur').value;
   // on interroge TOUTES les sources : les annonces prouvent la liquidité et le prix demandé
   const sources = profil.entrees || [];
-  const terme = (profil.requetes || [])[0]?.terme || profil.description;
+  const termeDefaut = (profil.requetes || [])[0]?.terme || profil.description;
   const ventes = [], annonces = [], journal = [];
   const total = sources.length * pages;
   let faites = 0;
@@ -785,7 +785,8 @@ $('#collecter').onclick = async () => {
   for (const e of sources) {
     let lues = 0, vides = 0, trouve = 0;
     for (let n = (e.page_debut || 1); n < (e.page_debut || 1) + pages; n++) {
-      $('#etat3').textContent = `${e.plateforme} · page ${n} — ${faites}/${total}`;
+      $('#etat3').textContent = `${e.plateforme}${e.niveau ? ` (${e.niveau})` : ''} · page ${n} — ${faites}/${total}`;
+      const terme = e.terme || termeDefaut;
       const url = e.url_modele.replace("{q}", encodeURIComponent(terme))
                               .replace("{page}", n);
       const p = await lirePage(url);
@@ -806,7 +807,7 @@ $('#collecter').onclick = async () => {
         const nv = (d.ventes || []).length, na = (d.annonces || []).length;
         trouve += nv + na;
         (d.ventes || []).forEach(v => ventes.push({ ...v, plateforme: e.plateforme,
-                                                   strate: e.strate, domaine: e.domaine }));
+                       strate: e.strate, domaine: e.domaine, niveau: e.niveau || "exact" }));
         (d.annonces || []).forEach(a => annonces.push({ ...a, plateforme: e.plateforme,
                                                        strate: e.strate, domaine: e.domaine }));
         tracer(`${e.plateforme} p${n}`, 'ok',
@@ -876,10 +877,28 @@ function afficherVentes(ventes, annonces, journal) {
     return;
   }
 
+  const exactes = ventes.filter(v => (v.niveau || "exact") === "exact");
+  const cas = exactes.length >= 12 ? 1 : (ventes.length >= 3 ? 2 : 3);
+  profil.cas = cas;
+
+  const LIB_CAS = {
+    1: ["cas 1 — automatisable", "assez de ventes sur la référence exacte pour une cote statistique"],
+    2: ["cas 2 — assisté", "trop peu de ventes exactes : la cote s'établit par comparables, avec la décote de maille"],
+    3: ["cas 3 — hors couverture", "moins de trois transactions tous niveaux confondus : aucune cote défendable"]
+  };
+
   const parPlateforme = {};
   ventes.forEach(v => (parPlateforme[v.plateforme] ||= []).push(v));
 
-  let h = `<div class="res"><h3>${ventes.length} ventes conclues,
+  let h = `<div class="res">
+    <div style="background:${cas === 1 ? 'var(--data)' : cas === 2 ? 'var(--clair)' : 'var(--alerte)'};
+         color:${cas === 3 ? '#fff' : 'var(--sombre)'};padding:11px 14px;margin-bottom:12px;
+         border:3px solid var(--struct)">
+      <b>${LIB_CAS[cas][0]}</b> — ${LIB_CAS[cas][1]}.
+      ${exactes.length} vente${exactes.length > 1 ? 's' : ''} sur la référence exacte,
+      ${ventes.length - exactes.length} par élargissement de maille.
+    </div>
+    <h3>${ventes.length} ventes conclues,
     ${Object.keys(parPlateforme).length} plateformes — chaque prix est cliquable</h3>`;
 
   const meds = [];
@@ -898,6 +917,8 @@ function afficherVentes(ventes, annonces, journal) {
         <a href="${v.url_source}" target="_blank" rel="noopener"
            style="color:var(--ia);font-weight:700">${v.prix} ${v.devise || 'EUR'}</a>
         — ${(v.objet || '').slice(0, 70)}
+        ${v.niveau && v.niveau !== "exact" ? `<span class="puce" style="margin:0 0 0 5px;
+          font-size:11px;padding:0 5px">${v.niveau}</span>` : ''}
         ${v.date_vente ? `<span style="color:var(--gris)"> · ${v.date_vente}</span>` : ''}
         ${v.etat ? `<span style="color:var(--gris)"> · ${v.etat.slice(0, 30)}</span>` : ''}</p>`;
     });
