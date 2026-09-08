@@ -339,6 +339,37 @@ function reparer(t) {
   throw new Error(`réponse tronquée et non recollable (${t.length} caractères reçus)`);
 }
 
+/* Un appel long sans retour visuel passe pour un plantage. On ne peut pas mesurer
+   l'avancement d'un appel unique, alors on montre ce qui se passe et le temps écoulé. */
+function attendre(cible, etapes) {
+  const el = document.querySelector(cible);
+  el.innerHTML = `<div class="attente"><i class="rotor"></i>
+    <span id="att-txt">${etapes[0]}</span><em id="att-t">0 s</em></div>`;
+  const t0 = Date.now();
+  let i = 0;
+  const minuteur = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    const t = document.getElementById('att-t');
+    if (!t) return clearInterval(minuteur);
+    t.textContent = s + " s";
+    const suivant = Math.min(Math.floor(s / 12), etapes.length - 1);
+    if (suivant !== i) { i = suivant; document.getElementById('att-txt').textContent = etapes[i]; }
+  }, 1000);
+  return () => { clearInterval(minuteur); el.innerHTML = ''; };
+}
+
+/* Coût réel, lu dans la réponse. Tarifs en $/M tokens, converti en euros.
+   Le chiffre exact reste celui de la console Anthropic ; celui-ci sert à sentir la dérive. */
+function chiffrer(usage, contenu, modele) {
+  if (!usage) return;
+  const [e, s] = (modele || "").includes("haiku") ? [1, 5] : [3, 15];
+  const recherches = (contenu || []).filter(b => b.type === "server_tool_use").length;
+  cout += ((usage.input_tokens * e + usage.output_tokens * s) / 1e6
+           + recherches * 0.01) * 0.92;
+  const el = $('#cout');
+  if (el) el.textContent = `cumul de la session : ${cout.toFixed(3)} €`;
+}
+
 /* ---------- bloc 2 et 3 : identité et maille ---------- */
 const SYS_ID = `Tu identifies un objet de collection à partir d'une photographie et du contexte
 que sa propriétaire fournit.
