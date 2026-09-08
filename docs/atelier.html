@@ -70,6 +70,19 @@
   .jauge i{display:block;height:100%;background:var(--ia)}
   .warn{background:var(--alerte);color:#fff;padding:10px 13px;font-size:14px;font-weight:700;
     margin-top:12px}
+  .ico{width:20px;height:20px;flex:0 0 20px;border:2px solid var(--struct);background:#fff;
+    object-fit:contain}
+  .pastille{width:20px;height:20px;flex:0 0 20px;border:2px solid var(--struct);
+    background:var(--gris);display:block}
+  .ligne{display:grid;grid-template-columns:190px 1fr 92px;gap:10px;align-items:center;
+    margin-bottom:6px}
+  .etiq{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;
+    overflow:hidden;white-space:nowrap}
+  .etiq span{overflow:hidden;text-overflow:ellipsis}
+  .rail{position:relative;height:17px;border:2px solid var(--struct);background:#fff}
+  .rail i{position:absolute;top:0;bottom:0;background:var(--ia);display:block}
+  .prix{font-size:13px;font-weight:700;text-align:right}
+  @media(max-width:620px){.ligne{grid-template-columns:110px 1fr 76px}}
   .info{background:var(--data);padding:10px 13px;font-size:14px;margin-top:12px}
   pre{background:var(--struct);color:var(--clair);padding:13px;overflow:auto;font-size:12.5px;
     max-height:300px;margin:12px 0 0}
@@ -123,6 +136,13 @@
 </fieldset>
 
 <fieldset>
+  <legend>coût</legend>
+  <p class="aide" style="margin:0">Estimation lue dans les réponses de l'API. Le chiffre
+     facturé fait foi, il est dans la console Anthropic sous Usage.</p>
+  <p id="cout" style="margin:8px 0 0;font-weight:700">cumul de la session : 0.000 €</p>
+</fieldset>
+
+<fieldset>
   <legend>profil</legend>
   <p class="aide">Le profil gravé alimente le moteur de collecte. À déposer dans
      <code>moteur/profils/</code> ou à passer au workflow.</p>
@@ -152,7 +172,7 @@
 
 <script>
 const PASSERELLE = "https://collector-passerelle.edouard-e8b.workers.dev";
-let images = [], profil = {};
+let images = [], profil = {}, cout = 0;
 const MAX_VUES = 5, COTE_MAX = 1568;
 
 const $ = s => document.querySelector(s);
@@ -230,6 +250,7 @@ async function appeler(systeme, contenu, recherche) {
   });
   if (!r.ok) throw new Error((await r.text()).slice(0, 300));
   const d = await r.json();
+  chiffrer(d.usage, d.content);
   let t = d.content.filter(b => b.type === "text").map(b => b.text).join("\n").trim();
   t = t.replace(/^```(?:json)?/m, '').replace(/```$/m, '').trim();
   try { return JSON.parse(t); }
@@ -237,6 +258,17 @@ async function appeler(systeme, contenu, recherche) {
     const a = t.indexOf('{'), z = t.lastIndexOf('}');
     return JSON.parse(t.slice(a, z + 1));
   }
+}
+
+/* Coût réel, lu dans la réponse. Tarifs Sonnet en $/M tokens, converti en euros.
+   Le chiffre exact reste celui de la console Anthropic ; celui-ci sert à sentir la dérive. */
+function chiffrer(usage, contenu) {
+  if (!usage) return;
+  const recherches = (contenu || []).filter(b => b.type === "server_tool_use").length;
+  cout += ((usage.input_tokens * 3 + usage.output_tokens * 15) / 1e6
+           + recherches * 0.01) * 0.92;
+  const el = $('#cout');
+  if (el) el.textContent = `cumul de la session : ${cout.toFixed(3)} €`;
 }
 
 /* ---------- bloc 2 et 3 : identité et maille ---------- */
@@ -247,9 +279,20 @@ Le contexte peut être partiel, approximatif ou faux : traite-le comme un indice
 jamais comme une donnée acquise. S'il contredit ce que montre l'image, dis-le.
 
 Produis, en plus de l'identification, la maille d'échange (l'objet se vend-il à l'unité, en lot,
-en série numérotée, ou scellé) et un niveau de certitude honnête. Un objet mal identifié coûte
-plus cher qu'un objet non identifié : si tu hésites entre deux modèles, dis lesquels et ce qui
-permettrait de trancher.
+en série numérotée, ou scellé) et DEUX notes de certitude distinctes, qui ne mesurent pas la
+même chose :
+
+- certitude_modele : à quel point tu es sûr de la famille d'objet et de son marché. Reconnaître
+  un modèle emblématique d'après sa silhouette et ses finitions justifie une note haute même
+  sans référence lisible.
+- certitude_variante : à quel point tu es sûr de la déclinaison exacte (taille, millésime,
+  coloris, édition). Cette note peut être basse alors que la première est très haute — c'est le
+  cas normal quand seule une mesure physique ou un code interne permet de trancher.
+
+Ne rabaisse jamais certitude_modele à cause d'un doute qui ne porte que sur la déclinaison :
+la collecte reste faisable, il suffit de couvrir les variantes plausibles dans les requêtes.
+
+Si tu hésites entre plusieurs déclinaisons, dis lesquelles et ce qui permettrait de trancher.
 
 La fourchette plausible n'est pas une cote. C'est un garde-fou d'ordre de grandeur destiné à
 écarter les aberrations lors de la collecte.
@@ -258,7 +301,8 @@ Format :
 {"univers":"...","description":"une phrase dense servant de requête mère",
  "marque":"... ou null","modele":"... ou null","reference":"... ou null",
  "etat_apparent":"...","maille":"unite|lot|serie|scelle",
- "certitude":0.0,"hypotheses_concurrentes":["..."],
+ "certitude_modele":0.0,"certitude_variante":0.0,
+ "hypotheses_concurrentes":["..."],
  "leve_de_doute":"ce qu'il faudrait voir ou mesurer pour trancher",
  "fourchette_plausible":{"bas":0,"haut":0,"devise":"EUR"},
  "contexte_retenu":"ce que j'ai gardé du contexte fourni",
@@ -302,8 +346,9 @@ défaut visible sur une vue doit peser sur l'état retenu.`
 };
 
 function afficherIdentite(d) {
-  const c = Math.round((d.certitude || 0) * 100);
-  const faible = c < 60;
+  const cm = Math.round((d.certitude_modele ?? d.certitude ?? 0) * 100);
+  const cv = Math.round((d.certitude_variante ?? d.certitude ?? 0) * 100);
+  const faible = cm < 60;
   const f = d.fourchette_plausible || {};
   let h = `<div class="res">
     <h3>bloc 2 — identité</h3>
@@ -314,7 +359,8 @@ function afficherIdentite(d) {
       <dt>état apparent</dt><dd>${d.etat_apparent || "—"}</dd>
       <dt>maille (bloc 3)</dt><dd>${d.maille || "—"}</dd>
       <dt>fourchette plausible</dt><dd>${f.bas ?? "?"} – ${f.haut ?? "?"} ${f.devise || ""} <em>(garde-fou, pas une cote)</em></dd>
-      <dt>certitude</dt><dd>${c} %<div class="jauge"><i style="width:${c}%"></i></div></dd>
+      <dt>certitude modèle</dt><dd>${cm} %<div class="jauge"><i style="width:${cm}%"></i></div></dd>
+      <dt>certitude variante</dt><dd>${cv} %<div class="jauge"><i style="width:${cv}%"></i></div></dd>
     </dl>`;
 
   if (d.hypotheses_concurrentes && d.hypotheses_concurrentes.length)
@@ -325,8 +371,12 @@ function afficherIdentite(d) {
   if (d.contexte_ecarte)
     h += `<div class="info"><b>contexte écarté :</b> ${d.contexte_ecarte}</div>`;
   if (faible)
-    h += `<div class="warn">certitude sous 60 % — collecte déconseillée en l'état.
+    h += `<div class="warn">certitude modèle sous 60 % — collecte déconseillée en l'état.
           Reprendre une photo ou passer en saisie assistée (trou ouvert n° 2).</div>`;
+  else if (cv < 60)
+    h += `<div class="info">le modèle est sûr, la déclinaison ne l'est pas. La collecte reste
+          faisable : les requêtes couvrent les variantes plausibles, et le tri se fera sur la
+          fourchette de prix. Trancher la variante resserrera la cote.</div>`;
 
   h += `<p style="margin:14px 0 5px;font-size:13px;font-weight:700">signature de recherche
         (${(d.requetes || []).length} variantes)</p>`;
@@ -341,14 +391,44 @@ function afficherIdentite(d) {
 const SYS_ROUTE = `Tu identifies où un objet de collection s'échange réellement, et comment y lire
 les VENTES CONCLUES — pas les annonces en cours.
 
+Un même objet ne se vend pas au même prix selon le canal : un facteur 3 sépare couramment la
+vente entre particuliers du prix d'un revendeur authentifié. Tu dois donc couvrir TROIS strates,
+avec au moins une source dans chacune quand elle existe pour cet objet :
+
+  1. particuliers — places de marché généralistes, prix bas, fort volume
+  2. revendeurs authentifiés — plateformes spécialisées avec expertise, prix hauts
+  3. enchères — résultats adjugés publiés, la donnée la plus fiable pour les pièces rares
+
+Vise SIX points d'entrée au minimum, et inclus AU MOINS UNE source d'annonces en cours : sans
+elle, la liquidité est impossible à mesurer, et la liquidité prime sur le prix. Une annonce à
+500 € sans vente en deux ans n'est pas un prix élevé, c'est une absence de marché.
+
+N'écarte une plateforme majeure de l'univers que si ses pages de résultats sont réellement
+inaccessibles sans compte. L'absence d'API n'est pas un motif d'exclusion : les pages publiques
+de ventes terminées suffisent. Écarte en revanche les espaces communautaires fermés et les
+agrégateurs qui recopient d'autres sources.
+
+Ne retiens pas une maison d'enchères spécialisée dans un autre domaine sous prétexte qu'elle
+vend parfois cet univers : si l'objet est courant, les enchères n'en verront presque aucun.
+
 Pour chaque place de marché, donne le modèle d'URL de recherche qui filtre sur les transactions
 terminées, avec sa pagination. Utilise {q} pour le terme et {page} pour le numéro de page.
+Donne aussi le domaine racine de la plateforme, sans protocole ni chemin.
 
-Écarte les plateformes sans accès public, les espaces communautaires fermés, et les agrégateurs
-qui recopient d'autres sources.
+Donne enfin, pour chaque plateforme, la fourchette dans laquelle CET objet s'y échange
+habituellement. Elle sera différente d'une plateforme à l'autre, et c'est précisément ce qu'on
+cherche à montrer : la même pièce ne vaut pas la même chose entre particuliers et chez un
+revendeur qui l'authentifie et la garantit.
+
+Cette fourchette est un repère de cadrage destiné à écarter les aberrations pendant la collecte.
+Ce n'est pas une cote : la cote ne se construira que sur des ventes réellement conclues.
 
 Format : {"entrees":[{"plateforme":"...","nature":"ventes|annonces",
-"url_modele":"https://.../?q={q}&page={page}","page_debut":1,"pages_max":20,"note":"..."}],
+"domaine":"exemple.fr",
+"strate":"particuliers|authentifies|encheres",
+"fourchette":{"bas":0,"haut":0,"devise":"EUR"},
+"url_modele":"https://.../?q={q}&page={page}","page_debut":1,"pages_max":20,
+"note":"...","limite":"fenêtre d\'historique ou restriction connue, ou null"}],
 "hors_couverture": null}
 
 Si aucune source publique ne permet de coter cet objet, retourne "entrees":[] et une raison
@@ -375,6 +455,22 @@ $('#router').onclick = async () => {
   b.disabled = false;
 };
 
+/* Logo de la plateforme : on passe par le favicon du domaine, ce qui évite
+   d'embarquer une image par place de marché — et donc de coder par plateforme. */
+function logo(e) {
+  const dom = (e.domaine || "").replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  if (!dom) return `<i class="pastille"></i>`;
+  return `<img class="ico" src="https://www.google.com/s2/favicons?domain=${dom}&sz=64"
+          alt="" onerror="this.replaceWith(Object.assign(document.createElement('i'),
+          {className:'pastille'}))">`;
+}
+
+const LIB_STRATE = {
+  particuliers: "entre particuliers",
+  authentifies: "revendeurs authentifiés",
+  encheres: "enchères"
+};
+
 function afficherRoutage(d) {
   if (!d.entrees || !d.entrees.length) {
     $('#sortie2').innerHTML = `<div class="warn">cas 3 — hors couverture.
@@ -383,18 +479,70 @@ function afficherRoutage(d) {
     return;
   }
   const ventes = d.entrees.filter(e => e.nature === "ventes").length;
+  const annonces = d.entrees.length - ventes;
+  const strates = new Set(d.entrees.map(e => e.strate).filter(Boolean));
+
   let h = `<div class="res"><h3>${d.entrees.length} points d'entrée
-    — ${ventes} en ventes conclues, ${d.entrees.length - ventes} en annonces</h3>`;
-  d.entrees.forEach(e => {
-    h += `<p style="margin:9px 0;font-size:14px;border-left:4px solid ${
-      e.nature === 'ventes' ? 'var(--data)' : 'var(--gris)'};padding-left:9px">
-      <b>${e.plateforme}</b> — ${e.nature}, ${e.pages_max} pages max<br>
-      <code style="font-size:12px;word-break:break-all">${e.url_modele}</code>
-      ${e.note ? `<br><em style="font-size:12.5px">${e.note}</em>` : ''}</p>`;
+    — ${ventes} en ventes conclues, ${annonces} en annonces
+    — ${strates.size} strate${strates.size > 1 ? 's' : ''} sur 3</h3>`;
+
+  // ---- comparateur : une échelle commune, une barre par plateforme ----
+  const chiffrees = d.entrees.filter(e => e.fourchette && e.fourchette.haut > 0);
+  if (chiffrees.length > 1) {
+    const bas = Math.min(...chiffrees.map(e => e.fourchette.bas));
+    const haut = Math.max(...chiffrees.map(e => e.fourchette.haut));
+    const dev = chiffrees[0].fourchette.devise || "EUR";
+    const pos = v => ((v - bas) / (haut - bas || 1)) * 100;
+
+    h += `<p style="margin:14px 0 3px;font-size:13px;font-weight:700">écart entre canaux</p>
+      <p class="aide" style="margin:0 0 10px">Repères de cadrage, pas des cotes. Le rapport
+      entre le canal le moins cher et le plus cher est de
+      <b>${(haut / (bas || 1)).toFixed(1)}×</b> — c'est pourquoi la sortie du système est une
+      fourchette avec son canal, jamais un chiffre unique.</p>`;
+
+    chiffrees.sort((a, b) => a.fourchette.bas - b.fourchette.bas).forEach(e => {
+      h += `<div class="ligne">
+        <div class="etiq">${logo(e)}<span>${e.plateforme}</span></div>
+        <div class="rail"><i style="left:${pos(e.fourchette.bas)}%;
+             width:${Math.max(pos(e.fourchette.haut) - pos(e.fourchette.bas), 1.5)}%"></i></div>
+        <div class="prix">${e.fourchette.bas}–${e.fourchette.haut}</div>
+      </div>`;
+    });
+    h += `<p class="aide" style="margin:6px 0 0;text-align:right">en ${dev}</p>`;
+  }
+
+  // ---- détail par strate ----
+  ['particuliers', 'authentifies', 'encheres', undefined].forEach(s => {
+    const lot = d.entrees.filter(e => e.strate === s);
+    if (!lot.length) return;
+    h += `<p style="margin:18px 0 6px;font-size:12.5px;font-weight:700;color:var(--gris)">
+          ${LIB_STRATE[s] || "non classé"}</p>`;
+    lot.forEach(e => {
+      const f = e.fourchette || {};
+      h += `<div style="margin:10px 0;border-left:4px solid ${
+        e.nature === 'ventes' ? 'var(--data)' : 'var(--ia)'};padding-left:10px;font-size:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          ${logo(e)}<b>${e.plateforme}</b>
+          <span style="font-size:12.5px;color:var(--gris)">${e.nature} · ${e.pages_max} pages</span>
+          ${f.haut ? `<span class="puce" style="margin:0 0 0 auto">${f.bas}–${f.haut} ${f.devise || ''}</span>` : ''}
+        </div>
+        <code style="font-size:12px;word-break:break-all;display:block;margin-top:4px">${e.url_modele}</code>
+        ${e.note ? `<em style="font-size:12.5px;display:block;margin-top:3px">${e.note}</em>` : ''}
+        ${e.limite ? `<em style="font-size:12.5px;color:var(--alerte);display:block">limite : ${e.limite}</em>` : ''}
+      </div>`;
+    });
   });
+
   if (ventes === 0)
     h += `<div class="warn">aucune source de ventes conclues : cet objet ira en tension
           de l'offre (bloc 8c), pas en cote.</div>`;
+  if (annonces === 0)
+    h += `<div class="warn">aucune source d'annonces en cours : la liquidité ne pourra pas
+          être mesurée. Rotation, profondeur d'intérêt et écart annonce-cote resteront vides.</div>`;
+  if (strates.size < 3 && ventes > 0)
+    h += `<div class="info">${strates.size} strate${strates.size > 1 ? 's' : ''} couverte${
+          strates.size > 1 ? 's' : ''} sur 3. La fourchette de sortie sera partielle :
+          un facteur 3 sépare le prix entre particuliers du prix marchand.</div>`;
   $('#sortie2').innerHTML = h + `</div>`;
 }
 
