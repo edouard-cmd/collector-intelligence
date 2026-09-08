@@ -7,9 +7,12 @@ Lancement du moteur.
     python run.py passer musette-tango
 """
 import json
+import os
 import sys
 
 from moteur import ouvrir, passer
+
+BUDGET = float(os.environ.get("BUDGET_EUR", "8"))
 
 
 def main():
@@ -22,7 +25,7 @@ def main():
         if len(sys.argv) < 4:
             print("il manque la description de l'objet")
             sys.exit(1)
-        p = ouvrir(objet_id, sys.argv[3])
+        p = ouvrir(objet_id, sys.argv[3], budget_eur=BUDGET)
     elif action == "passer":
         p = passer(objet_id)
     else:
