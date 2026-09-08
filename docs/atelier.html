@@ -97,7 +97,12 @@
   #journal b{min-width:150px}
   #journal em{color:var(--gris);font-style:normal}
   .ok{color:var(--ia);font-weight:700}
+  .bloc{color:#b26a00;font-weight:700}
   .ko{color:var(--alerte);font-weight:700}
+  #journal .vide{opacity:.55}
+  .bilan{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:13.5px;
+    border-top:2px solid var(--filet);padding-top:9px}
+  .bilan b{font-variant-numeric:tabular-nums}
   @media(max-width:620px){.ligne{grid-template-columns:110px 1fr 76px}}
   .info{background:var(--data);padding:10px 13px;font-size:14px;margin-top:12px}
   pre{background:var(--struct);color:var(--clair);padding:13px;overflow:auto;font-size:12.5px;
@@ -164,6 +169,8 @@
   </select>
   <div style="margin-top:14px">
     <button id="collecter" class="second" disabled>collecter les ventes</button>
+    <button id="stop" class="second" style="display:none;border-color:var(--alerte);
+      color:var(--alerte)">arrêter</button>
     <span class="etat" id="etat3"></span>
   </div>
   <div id="avance" style="display:none;margin-top:12px">
@@ -770,6 +777,21 @@ function afficherRoutage(d) {
 /* ---------- bloc 6 : collecte réelle, via la passerelle ---------- */
 const SYS_EXTRACT = `Tu extrais des transactions depuis le texte brut d'une page de place de marché.
 
+AVANT TOUT, un filtre de pertinence. Une page de résultats contient presque toujours des articles
+qui ne correspondent PAS à l'objet recherché : autres modèles de la marque, suggestions, articles
+sponsorisés, "vous aimerez aussi". Tu ne retiens QUE les lignes qui décrivent réellement l'objet
+décrit ci-dessous.
+
+Pour chaque ligne retenue, tu indiques dans "correspondance" à quel point elle colle :
+  "exacte"   — même modèle, même déclinaison (taille, coloris, édition)
+  "modele"   — même modèle, déclinaison différente
+  "famille"  — même gamme ou même collaboration, modèle différent
+N'invente pas la correspondance : si le libellé ne permet pas de trancher, mets "famille".
+
+Écarte purement et simplement tout ce qui n'entre dans aucun de ces trois cas. Une page qui ne
+contient rien de pertinent doit rendre des listes vides — c'est une réponse correcte et utile,
+bien plus qu'une moyenne calculée sur des articles sans rapport.
+
 Ne retiens comme VENTE que ce qui est explicitement conclu : vendu, adjugé, sold, transaction
 terminée avec un prix effectif. Un prix affiché sur une offre en cours n'est PAS une vente.
 Ne retiens comme ANNONCE que les offres en cours : elles servent à mesurer la liquidité.
@@ -779,9 +801,15 @@ Utilise-les pour renseigner url_source. Une ligne sans url_source est inutilisab
 produis pas. N'invente aucun prix, aucune date. Un champ absent vaut null.
 
 Format : {"ventes":[{"objet":"...","prix":0,"devise":"EUR","date_vente":"AAAA-MM-JJ|null",
-"url_source":"...","etat":"...|null"}],
+"url_source":"...","etat":"...|null","correspondance":"exacte|modele|famille"}],
 "annonces":[{"objet":"...","prix_demande":0,"devise":"EUR","url_source":"...",
-"jours_en_ligne":null,"exemplaires_vendus":null,"suiveurs":null}]}`;
+"correspondance":"exacte|modele|famille","neuf":true,
+"jours_en_ligne":null,"exemplaires_vendus":null,"suiveurs":null}],
+"ecartes":0}
+
+"neuf" vaut true si l'article est vendu à l'état neuf par un marchand ou la marque elle-même,
+false s'il s'agit d'occasion entre particuliers ou en dépôt-vente.
+"ecartes" compte les articles présents sur la page que tu as écartés comme non pertinents.`;
 
 async function lirePage(url) {
   const r = await fetch(PASSERELLE, {
@@ -801,21 +829,42 @@ $('#collecter').onclick = async () => {
   const termeDefaut = (profil.requetes || [])[0]?.terme || profil.description;
   const ventes = [], annonces = [], journal = [];
   const total = sources.length * pages;
-  let faites = 0;
+  let faites = 0, arret = false, ecartes = 0;
+  const bloquees = new Set();
+  const vusPage = new Set();
 
   $('#avance').style.display = 'block';
   $('#journal').innerHTML = '';
+  $('#stop').style.display = 'inline-block';
+  $('#stop').onclick = () => { arret = true; $('#etat3').textContent = "arrêt demandé…"; };
 
+  // Une source protégée n'est pas une panne : c'est un fait de marché à documenter.
+  // Les confondre ferait conclure à tort qu'un objet ne se vend nulle part.
+  const lisible = (p) => {
+    if (p.motif === "mur anti-robot") return ["bloc", "protégée contre les robots"];
+    if (p.statut === 403 || p.statut === 401) return ["bloc", "accès refusé aux robots"];
+    if (p.statut === 429) return ["bloc", "trop de requêtes, à réessayer plus tard"];
+    if (p.motif && p.motif.startsWith("page rendue")) return ["bloc", "page construite en javascript"];
+    if (p.motif === "recherche sans résultat") return ["vide", "aucun résultat pour ce terme"];
+    if (p.statut === 404) return ["vide", "page inexistante"];
+    if (p.statut === 0) return ["ko", "injoignable"];
+    if (p.motif) return ["vide", p.motif];
+    return ["vide", `page trop courte (${p.octets_texte || 0} car.)`];
+  };
+
+  const SIGNE = { ok: "✓", bloc: "⊘", vide: "–", ko: "×" };
   const tracer = (nom, etat, detail) => {
     $('#journal').insertAdjacentHTML('beforeend',
-      `<div><b>${nom}</b><span class="${etat === 'ok' ? 'ok' : 'ko'}">
-       ${etat === 'ok' ? '✓' : '×'}</span><em>${detail}</em></div>`);
+      `<div class="${etat === 'vide' ? 'vide' : ''}"><b>${nom}</b>
+       <span class="${etat}">${SIGNE[etat] || '·'}</span><em>${detail}</em></div>`);
     $('#journal').scrollTop = 1e6;
   };
 
   for (const e of sources) {
+    if (arret) break;
     let lues = 0, vides = 0, trouve = 0;
     for (let n = (e.page_debut || 1); n < (e.page_debut || 1) + pages; n++) {
+      if (arret) break;
       $('#etat3').textContent = `${e.plateforme}${e.niveau ? ` (${e.niveau})` : ''} · page ${n} — ${faites}/${total}`;
       const terme = e.terme || termeDefaut;
       const url = e.url_modele.replace("{q}", encodeURIComponent(terme))
@@ -825,46 +874,79 @@ $('#collecter').onclick = async () => {
       $('#barre').style.width = Math.round(faites / total * 100) + '%';
 
       if (!p.texte || p.texte.length < 500) {
-        tracer(`${e.plateforme} p${n}`, 'ko',
-               p.motif || `HTTP ${p.statut || '?'} · ${p.octets_texte || 0} car.`);
+        const [etat, texte] = lisible(p);
+        tracer(`${e.plateforme} p${n}`, etat, texte);
+        if (etat === "bloc") { bloquees.add(e.plateforme); break; }  // inutile d'insister
         if (++vides >= 2) break;
         continue;
+      }
+      // Certaines plateformes ignorent le paramètre de page et resservent la même
+      // liste : sans ce garde-fou, on compterait quatre fois les mêmes annonces.
+      const sceau = e.plateforme + "|" + p.texte.length + "|" + p.texte.slice(0, 400);
+      if (vusPage.has(sceau)) {
+        tracer(`${e.plateforme} p${n}`, 'vide', "page identique à la précédente, pagination sans effet");
+        break;
       }
       lues++;
       try {
         const d = await appeler(SYS_EXTRACT,
+          `OBJET RECHERCHÉ : ${profil.description}\n` +
+          `marque : ${profil.marque || '?'} · modèle : ${profil.modele || '?'} · ` +
+          `référence : ${profil.reference || '?'}\n` +
+          `niveau de maille demandé : ${e.niveau || 'exact'}\n\n` +
           `plateforme : ${e.plateforme}\nnature attendue : ${e.nature}\nurl : ${url}\n\n${p.texte.slice(0, 16000)}`,
           false, 6000, "claude-haiku-4-5-20251001");
         const nv = (d.ventes || []).length, na = (d.annonces || []).length;
         trouve += nv + na;
+        vusPage.add(sceau);
         (d.ventes || []).forEach(v => ventes.push({ ...v, plateforme: e.plateforme,
-                       strate: e.strate, domaine: e.domaine, niveau: e.niveau || "exact" }));
+                       strate: e.strate, domaine: e.domaine,
+                       niveau: v.correspondance || e.niveau || "exact" }));
         (d.annonces || []).forEach(a => annonces.push({ ...a, plateforme: e.plateforme,
-                                                       strate: e.strate, domaine: e.domaine }));
+                       strate: e.strate, domaine: e.domaine,
+                       niveau: a.correspondance || e.niveau || "exact" }));
+        ecartes += (d.ecartes || 0);
         tracer(`${e.plateforme} p${n}`, 'ok',
-               `${p.octets_texte} car. — ${nv} vente(s), ${na} annonce(s)`);
+               `${nv} vente(s), ${na} annonce(s)` +
+               (d.ecartes ? ` · ${d.ecartes} écarté(s)` : ''));
       } catch (err) {
         tracer(`${e.plateforme} p${n}`, 'ko', 'extraction illisible');
       }
     }
-    journal.push({ plateforme: e.plateforme, pages: lues, trouve, bloque: lues === 0 });
+    journal.push({ plateforme: e.plateforme, pages: lues, trouve,
+                   bloque: lues === 0, protegee: bloquees.has(e.plateforme) });
   }
 
   $('#barre').style.width = '100%';
+  $('#stop').style.display = 'none';
   $('#etat3').textContent = "";
+
+  const lues = journal.filter(j => j.pages > 0).length;
+  $('#journal').insertAdjacentHTML('beforeend',
+    `<div class="bilan">
+       <span><b>${lues}</b> source${lues > 1 ? 's' : ''} lue${lues > 1 ? 's' : ''}</span>
+       <span class="bloc"><b>${bloquees.size}</b> protégée${bloquees.size > 1 ? 's' : ''}</span>
+       <span><b>${faites}</b> page${faites > 1 ? 's' : ''} interrogée${faites > 1 ? 's' : ''}</span>
+       ${ecartes ? `<span><b>${ecartes}</b> article${ecartes > 1 ? 's' : ''} écarté${
+          ecartes > 1 ? 's' : ''} comme non pertinent${ecartes > 1 ? 's' : ''}</span>` : ''}
+       ${arret ? '<span class="ko">collecte interrompue</span>' : ''}
+     </div>`);
   profil.ventes = dedoublonner(ventes);
-  profil.annonces = annonces;
+  profil.annonces = dedoublonner(annonces, "prix_demande");
+  profil.ecartes_non_pertinents = ecartes;
   profil.journal_collecte = journal;
   afficherVentes(profil.ventes, annonces, journal);
   allume(9);
   b.disabled = false;
 };
 
-function dedoublonner(v) {
+function dedoublonner(liste, champ = "prix") {
   const vus = new Set();
-  return v.filter(x => {
-    const c = (x.url_source || "").split("?")[0] + "|" + x.prix;
-    if (!x.url_source || !x.prix || vus.has(c)) return false;
+  return liste.filter(x => {
+    const p = x[champ];
+    // À défaut d'URL propre, le couple libellé + prix suffit à repérer un doublon.
+    const c = ((x.url_source || "").split("?")[0] || (x.objet || "").slice(0, 60)) + "|" + p;
+    if (!p || vus.has(c)) return false;
     vus.add(c); return true;
   });
 }
@@ -877,16 +959,19 @@ function mediane(t) {
 
 function afficherVentes(ventes, annonces, journal) {
   if (!ventes.length && !annonces.length) {
+    const prot = journal.filter(j => j.protegee).map(j => j.plateforme);
     $('#sortie4').innerHTML = `<div class="warn">aucune donnée récupérée.
-      Le journal ci-dessus dit pourquoi source par source : un mur anti-robot ou une page
-      rendue en JavaScript n'est pas une absence de marché, c'est une source inaccessible.
-      Il faut le distinguer avant de conclure au hors couverture.</div>`;
+      ${prot.length ? `${prot.join(", ")} refuse${prot.length > 1 ? 'nt' : ''} les robots : ` : ''}
+      une source inaccessible n'est pas une absence de marché. Le journal dit laquelle est
+      dans quel cas — il faut les distinguer avant de conclure au hors couverture.</div>`;
     return;
   }
   if (!ventes.length) {
+    const exa = annonces.filter(a => (a.niveau || "exacte") === "exacte").length;
     $('#sortie4').innerHTML = `<div class="warn">aucune vente conclue, mais
-      ${annonces.length} annonces en cours. Sans transaction sourcée, pas de cote :
-      cet objet reste en tension de l'offre (bloc 8c).</div>`
+      ${annonces.length} annonces en cours${exa ? `, dont ${exa} sur la référence exacte` :
+      ` — <b>aucune sur la référence exacte</b>, ce ne sont que des voisins de gamme`}.
+      Sans transaction sourcée, pas de cote : cet objet reste en tension de l'offre (bloc 8c).</div>`
       + `<div class="res">${(() => { let x = ''; const pa = {};
          annonces.forEach(a => (pa[a.plateforme] ||= []).push(a));
          Object.entries(pa).forEach(([p, lot]) => {
@@ -968,16 +1053,23 @@ function afficherVentes(ventes, annonces, journal) {
   if (annonces.length) {
     const pa = {};
     annonces.forEach(a => (pa[a.plateforme] ||= []).push(a));
+    const neuves = annonces.filter(a => a.neuf).length;
     h += `<p style="margin:20px 0 6px;font-size:13.5px;font-weight:700">
           ${annonces.length} annonces en cours — prix demandés, jamais une cote</p>`;
+    if (neuves)
+      h += `<p class="aide" style="margin:0 0 8px">${neuves} sur ${annonces.length} sont du
+            neuf vendu par un marchand : c'est un prix catalogue, pas un prix de marché
+            secondaire. À ne pas confondre avec une cote d'occasion.</p>`;
     Object.entries(pa).forEach(([p, lot]) => {
       const prix = lot.map(a => +a.prix_demande).filter(Boolean).sort((x, y) => x - y);
       if (!prix.length) return;
       const bas = lot.find(a => +a.prix_demande === prix[0]);
       const haut = lot.find(a => +a.prix_demande === prix[prix.length - 1]);
+      const nx = lot.filter(a => (a.niveau || "exacte") === "exacte").length;
       h += `<p style="margin:9px 0 3px;font-size:13.5px;font-weight:700;display:flex;
             gap:8px;align-items:center">${logo(lot[0])}${p}
-            <span style="color:var(--gris);font-weight:400">${prix.length} annonces</span></p>
+            <span style="color:var(--gris);font-weight:400">${prix.length} annonces
+            ${nx ? `· ${nx} sur la référence exacte` : '· aucune sur la référence exacte'}</span></p>
         <p style="margin:0 0 0 10px;font-size:13.5px;border-left:3px solid var(--ia);
            padding-left:10px">
           moins cher <a href="${bas.url_source}" target="_blank" rel="noopener"
@@ -999,10 +1091,11 @@ function afficherVentes(ventes, annonces, journal) {
           mais sans compteur de ventes ni ancienneté exploitable sur ces pages.</div>`;
   }
 
-  const bloquees = journal.filter(j => j.bloque);
-  if (bloquees.length)
-    h += `<div class="warn">${bloquees.map(j => j.plateforme).join(", ")} —
-          aucune page lisible. Protection anti-robot ou structure inattendue.</div>`;
+  const prot = journal.filter(j => j.protegee).map(j => j.plateforme);
+  if (prot.length)
+    h += `<div class="info"><b>sources protégées :</b> ${prot.join(", ")}. Ces plateformes
+          refusent les robots. Ce n'est pas une absence de marché — c'est une limite de
+          couverture, à documenter côté client plutôt qu'à interpréter comme un vide.</div>`;
 
   $('#sortie4').innerHTML = h + `</div>`;
 }
