@@ -1,0 +1,95 @@
+name: Moteur
+
+# Deux façons de partir :
+#   - à la main, depuis l'onglet Actions (bouton "Run workflow")
+#   - automatiquement, le 1er de chaque mois à 6h UTC
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "ouvrir (passe profonde) ou passer (passe mensuelle)"
+        type: choice
+        options: [ouvrir, passer]
+        default: ouvrir
+        required: true
+      objet_id:
+        description: "identifiant court, sans espace ni accent (ex: musette-tango)"
+        type: string
+        required: true
+      description:
+        description: "description de l'objet — requis pour ouvrir, inutile pour passer"
+        type: string
+        required: false
+      budget_eur:
+        description: "plafond de dépense pour cette exécution"
+        type: string
+        default: "8"
+        required: false
+  schedule:
+    - cron: "0 6 1 * *"
+
+jobs:
+  lancer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les dépendances
+        working-directory: moteur
+        run: pip install -r requirements.txt
+
+      - name: Récupérer les profils déjà gravés
+        uses: actions/cache@v4
+        with:
+          path: moteur/profils
+          key: profils-${{ github.run_id }}
+          restore-keys: profils-
+
+      - name: Lancer le moteur
+        working-directory: moteur
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BUDGET_EUR: ${{ inputs.budget_eur || '8' }}
+        run: |
+          set -o pipefail
+          if [ "${{ inputs.action }}" = "passer" ]; then
+            python run.py passer "${{ inputs.objet_id }}" 2>&1 | tee sortie.txt
+          elif [ -n "${{ inputs.objet_id }}" ]; then
+            python run.py ouvrir "${{ inputs.objet_id }}" "${{ inputs.description }}" 2>&1 | tee sortie.txt
+          else
+            # déclenchement mensuel automatique : on repasse sur tous les profils gravés
+            for f in profils/*.json; do
+              [ -e "$f" ] || continue
+              id=$(basename "$f" .json)
+              echo "=== $id ==="
+              python run.py passer "$id" 2>&1 | tee -a sortie.txt
+            done
+          fi
+
+      - name: Résumé lisible
+        if: always()
+        working-directory: moteur
+        run: |
+          {
+            echo '## Résultat'
+            echo '```'
+            tail -20 sortie.txt 2>/dev/null || echo "aucune sortie"
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Récupérer les profils
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: profils-${{ inputs.objet_id || 'mensuel' }}
+          path: |
+            moteur/profils/*.json
+            moteur/sortie.txt
+          if-no-files-found: warn
+          retention-days: 30
