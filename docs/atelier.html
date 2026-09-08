@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collector Intelligence — atelier</title>
+<style>
+  :root{
+    --struct:#191922; --ia:#6c2bff; --data:#2ad3e6; --alerte:#ff2e7a;
+    --fond:#e6eaee; --clair:#f4f2ec; --gris:#6b7178;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fond);color:var(--struct);
+    font:16px/1.5 Archivo,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  .wrap{max-width:1120px;margin:0 auto;padding:22px 18px 80px;
+    display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:26px;align-items:start}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+
+  h1{font-size:26px;margin:0;letter-spacing:-.02em}
+  header{background:var(--struct);color:var(--clair);padding:16px 20px;
+    box-shadow:0 5px 0 var(--alerte);margin-bottom:24px}
+  header p{margin:4px 0 0;font-size:14px;opacity:.75}
+
+  fieldset{border:3px solid var(--struct);background:var(--clair);margin:0 0 20px;padding:16px 18px}
+  legend{background:var(--struct);color:var(--clair);padding:4px 12px;font-weight:700;font-size:14px}
+  label{display:block;font-weight:700;font-size:13px;margin:12px 0 5px}
+  .aide{font-weight:400;color:var(--gris);font-size:12.5px;margin:0 0 6px}
+  input[type=text],input[type=password],textarea,select{
+    width:100%;padding:9px 11px;border:2px solid var(--struct);background:#fff;
+    font:inherit;font-size:15px}
+  textarea{min-height:92px;resize:vertical}
+  button{font:inherit;font-weight:700;background:var(--struct);color:var(--clair);
+    border:3px solid var(--struct);padding:11px 20px;cursor:pointer}
+  button.second{background:var(--clair);color:var(--struct)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+
+  #zone{border:3px dashed var(--struct);padding:26px;text-align:center;cursor:pointer;
+    background:#fff}
+  #zone.over{background:#ded9ff;border-color:var(--ia)}
+  #apercu{max-width:100%;max-height:230px;display:none;margin-top:12px;
+    border:3px solid var(--struct)}
+
+  /* chaîne du schéma, colonne de droite */
+  .chaine{position:sticky;top:22px}
+  .b{border:3px solid var(--struct);background:var(--clair);padding:9px 12px;margin-bottom:7px;
+    opacity:.38;display:flex;gap:10px;align-items:baseline}
+  .b.on{opacity:1}
+  .b.on.ia{background:var(--ia);color:#fff;border-color:var(--struct)}
+  .b.on.data{background:var(--data)}
+  .b.on.fin{background:var(--alerte);color:#fff}
+  .b b{font-size:12px;min-width:16px}
+  .b span{font-size:13.5px;font-weight:700;line-height:1.15}
+
+  .res{background:#fff;border:3px solid var(--struct);padding:14px 16px;margin-top:14px}
+  .res h3{margin:0 0 8px;font-size:14px;text-transform:none}
+  .kv{display:grid;grid-template-columns:150px 1fr;gap:5px 12px;font-size:14.5px}
+  .kv dt{font-weight:700;color:var(--gris)}
+  .kv dd{margin:0}
+  .puce{display:inline-block;padding:2px 9px;border:2px solid var(--struct);font-size:12.5px;
+    font-weight:700;margin:0 5px 5px 0;background:var(--clair)}
+  .puce.large{opacity:.6}
+  .jauge{height:16px;border:2px solid var(--struct);background:#fff;margin-top:4px}
+  .jauge i{display:block;height:100%;background:var(--ia)}
+  .warn{background:var(--alerte);color:#fff;padding:10px 13px;font-size:14px;font-weight:700;
+    margin-top:12px}
+  .info{background:var(--data);padding:10px 13px;font-size:14px;margin-top:12px}
+  pre{background:var(--struct);color:var(--clair);padding:13px;overflow:auto;font-size:12.5px;
+    max-height:300px;margin:12px 0 0}
+  .etat{font-size:13.5px;color:var(--gris);margin-top:10px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Collector Intelligence — atelier</h1>
+  <p>blocs 1 à 5 du schéma : entrée, identité, maille, veille, routeur. La collecte se fait ensuite côté moteur.</p>
+</header>
+
+<div class="wrap">
+<div>
+
+<fieldset>
+  <legend>bloc 1 — objet photographié</legend>
+  <div id="zone">
+    <div id="zonetxt">déposer une photo, ou cliquer pour choisir</div>
+    <img id="apercu" alt="aperçu de l'objet">
+  </div>
+  <input type="file" id="fichier" accept="image/*" hidden>
+
+  <label for="contexte">fenêtre de contexte</label>
+  <p class="aide">Tout ce que la collectionneuse sait déjà et qui aiguille l'identification :
+     provenance, date et prix d'achat, ce qui est écrit dessus, papiers, réparations, ce dont
+     elle n'est pas sûre. Laisser vide si rien n'est connu.</p>
+  <textarea id="contexte" placeholder="acheté 300 € à Drouot en 2019, pas de facture, doublure remplacée, code date illisible…"></textarea>
+
+  <label for="complement">précision libre</label>
+  <p class="aide">Optionnel. Ce que vous voyez et que la photo rend mal : dimensions, matière, odeur du cuir, poids.</p>
+  <input type="text" id="complement" placeholder="environ 25 cm de large, cuir très patiné">
+
+  <div style="margin-top:16px">
+    <button id="identifier" disabled>identifier l'objet</button>
+    <span class="etat" id="etat1"></span>
+  </div>
+  <div id="sortie1"></div>
+</fieldset>
+
+<fieldset>
+  <legend>bloc 5 — routeur d'univers</legend>
+  <p class="aide">Cherche où cet objet s'échange réellement et comment y lire les ventes conclues.
+     Ne s'active qu'une fois l'identification faite.</p>
+  <button id="router" class="second" disabled>découvrir les sources</button>
+  <span class="etat" id="etat2"></span>
+  <div id="sortie2"></div>
+</fieldset>
+
+<fieldset>
+  <legend>profil</legend>
+  <p class="aide">Le profil gravé alimente le moteur de collecte. À déposer dans
+     <code>moteur/profils/</code> ou à passer au workflow.</p>
+  <button id="export" class="second" disabled>télécharger le profil JSON</button>
+  <div id="sortie3"></div>
+</fieldset>
+
+</div>
+
+<!-- chaîne du schéma -->
+<div class="chaine">
+  <div class="b" data-b="1"><b>1</b><span>objet photographié</span></div>
+  <div class="b ia" data-b="2"><b>2</b><span>antenne identité</span></div>
+  <div class="b ia" data-b="3"><b>3</b><span>maille de cotation</span></div>
+  <div class="b" data-b="4"><b>4</b><span>intensité de veille</span></div>
+  <div class="b" data-b="5"><b>5</b><span>routeur d'univers</span></div>
+  <div class="b data" data-b="6"><b>6</b><span>antenne marché</span></div>
+  <div class="b" data-b="7"><b>7</b><span>routeur de densité</span></div>
+  <div class="b data" data-b="8"><b>8</b><span>cote / tension / hors couverture</span></div>
+  <div class="b data" data-b="9"><b>9</b><span>détection de rythme</span></div>
+  <div class="b ia" data-b="10"><b>10</b><span>antenne contexte</span></div>
+  <div class="b fin" data-b="11"><b>11</b><span>restitution</span></div>
+  <p class="etat">Les blocs 6 à 11 s'exécutent côté moteur, pas dans cette page.</p>
+</div>
+
+</div>
+
+<script>
+const PASSERELLE = "https://collector-passerelle.edouard-e8b.workers.dev";
+let image = null, profil = {};
+
+const $ = s => document.querySelector(s);
+const allume = n => document.querySelectorAll('.b').forEach(b => {
+  if (+b.dataset.b <= n) b.classList.add('on');
+});
+
+/* ---------- dépôt de la photo ---------- */
+const zone = $('#zone'), fichier = $('#fichier');
+zone.onclick = () => fichier.click();
+zone.ondragover = e => { e.preventDefault(); zone.classList.add('over'); };
+zone.ondragleave = () => zone.classList.remove('over');
+zone.ondrop = e => {
+  e.preventDefault(); zone.classList.remove('over');
+  if (e.dataTransfer.files[0]) charger(e.dataTransfer.files[0]);
+};
+fichier.onchange = e => e.target.files[0] && charger(e.target.files[0]);
+
+function charger(f) {
+  const r = new FileReader();
+  r.onload = () => {
+    image = { media_type: f.type, data: r.result.split(',')[1] };
+    $('#apercu').src = r.result;
+    $('#apercu').style.display = 'block';
+    $('#zonetxt').textContent = f.name;
+    $('#identifier').disabled = false;
+    allume(1);
+  };
+  r.readAsDataURL(f);
+}
+
+/* ---------- appel API ---------- */
+async function appeler(systeme, contenu, recherche) {
+  const corps = {
+    model: "claude-sonnet-5",
+    max_tokens: 4000,
+    system: systeme + "\n\nRéponds uniquement par du JSON valide, sans préambule ni balises de code.",
+    messages: [{ role: "user", content: contenu }]
+  };
+  if (recherche) corps.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 8 }];
+
+  const r = await fetch(PASSERELLE, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(corps)
+  });
+  if (!r.ok) throw new Error((await r.text()).slice(0, 300));
+  const d = await r.json();
+  let t = d.content.filter(b => b.type === "text").map(b => b.text).join("\n").trim();
+  t = t.replace(/^```(?:json)?/m, '').replace(/```$/m, '').trim();
+  try { return JSON.parse(t); }
+  catch { 
+    const a = t.indexOf('{'), z = t.lastIndexOf('}');
+    return JSON.parse(t.slice(a, z + 1));
+  }
+}
+
+/* ---------- bloc 2 et 3 : identité et maille ---------- */
+const SYS_ID = `Tu identifies un objet de collection à partir d'une photographie et du contexte
+que sa propriétaire fournit.
+
+Le contexte peut être partiel, approximatif ou faux : traite-le comme un indice à vérifier,
+jamais comme une donnée acquise. S'il contredit ce que montre l'image, dis-le.
+
+Produis, en plus de l'identification, la maille d'échange (l'objet se vend-il à l'unité, en lot,
+en série numérotée, ou scellé) et un niveau de certitude honnête. Un objet mal identifié coûte
+plus cher qu'un objet non identifié : si tu hésites entre deux modèles, dis lesquels et ce qui
+permettrait de trancher.
+
+La fourchette plausible n'est pas une cote. C'est un garde-fou d'ordre de grandeur destiné à
+écarter les aberrations lors de la collecte.
+
+Format :
+{"univers":"...","description":"une phrase dense servant de requête mère",
+ "marque":"... ou null","modele":"... ou null","reference":"... ou null",
+ "etat_apparent":"...","maille":"unite|lot|serie|scelle",
+ "certitude":0.0,"hypotheses_concurrentes":["..."],
+ "leve_de_doute":"ce qu'il faudrait voir ou mesurer pour trancher",
+ "fourchette_plausible":{"bas":0,"haut":0,"devise":"EUR"},
+ "contexte_retenu":"ce que j'ai gardé du contexte fourni",
+ "contexte_ecarte":"ce que j'ai écarté et pourquoi, ou null",
+ "requetes":[{"terme":"...","langue":"fr","precision":"exacte|large"}]}
+
+Entre 15 et 30 requêtes, de la plus précise à la plus large, dans les langues des marchés où
+cet objet s'échange réellement.`;
+
+$('#identifier').onclick = async () => {
+  const b = $('#identifier');
+  b.disabled = true; $('#etat1').textContent = "identification en cours…";
+  try {
+    let texte = "Identifie cet objet de collection.";
+    const ctx = $('#contexte').value.trim(), comp = $('#complement').value.trim();
+    if (ctx) texte += "\n\nContexte donné par la propriétaire :\n" + ctx;
+    if (comp) texte += "\n\nPrécisions visuelles :\n" + comp;
+    if (!ctx && !comp) texte += "\n\nAucun contexte fourni : l'image est le seul élément.";
+
+    const d = await appeler(SYS_ID, [
+      { type: "image", source: { type: "base64", media_type: image.media_type, data: image.data } },
+      { type: "text", text: texte }
+    ], true);
+
+    profil = Object.assign(profil, d);
+    afficherIdentite(d);
+    allume(4);
+    $('#router').disabled = false;
+    $('#etat1').textContent = "";
+  } catch (e) {
+    $('#sortie1').innerHTML = `<div class="warn">échec : ${e.message}</div>`;
+    $('#etat1').textContent = "";
+  }
+  b.disabled = false;
+};
+
+function afficherIdentite(d) {
+  const c = Math.round((d.certitude || 0) * 100);
+  const faible = c < 60;
+  const f = d.fourchette_plausible || {};
+  let h = `<div class="res">
+    <h3>bloc 2 — identité</h3>
+    <dl class="kv">
+      <dt>univers</dt><dd>${d.univers || "—"}</dd>
+      <dt>objet</dt><dd>${d.description || "—"}</dd>
+      <dt>référence</dt><dd>${d.reference || "non lisible"}</dd>
+      <dt>état apparent</dt><dd>${d.etat_apparent || "—"}</dd>
+      <dt>maille (bloc 3)</dt><dd>${d.maille || "—"}</dd>
+      <dt>fourchette plausible</dt><dd>${f.bas ?? "?"} – ${f.haut ?? "?"} ${f.devise || ""} <em>(garde-fou, pas une cote)</em></dd>
+      <dt>certitude</dt><dd>${c} %<div class="jauge"><i style="width:${c}%"></i></div></dd>
+    </dl>`;
+
+  if (d.hypotheses_concurrentes && d.hypotheses_concurrentes.length)
+    h += `<p style="margin:12px 0 0;font-size:14px"><b>hypothèses concurrentes :</b>
+          ${d.hypotheses_concurrentes.join(" · ")}</p>`;
+  if (d.leve_de_doute)
+    h += `<p style="margin:6px 0 0;font-size:14px"><b>pour trancher :</b> ${d.leve_de_doute}</p>`;
+  if (d.contexte_ecarte)
+    h += `<div class="info"><b>contexte écarté :</b> ${d.contexte_ecarte}</div>`;
+  if (faible)
+    h += `<div class="warn">certitude sous 60 % — collecte déconseillée en l'état.
+          Reprendre une photo ou passer en saisie assistée (trou ouvert n° 2).</div>`;
+
+  h += `<p style="margin:14px 0 5px;font-size:13px;font-weight:700">signature de recherche
+        (${(d.requetes || []).length} variantes)</p>`;
+  (d.requetes || []).forEach(r =>
+    h += `<span class="puce ${r.precision === 'large' ? 'large' : ''}">${r.terme}
+          <small>${r.langue}</small></span>`);
+  h += `</div>`;
+  $('#sortie1').innerHTML = h;
+}
+
+/* ---------- bloc 5 : routeur ---------- */
+const SYS_ROUTE = `Tu identifies où un objet de collection s'échange réellement, et comment y lire
+les VENTES CONCLUES — pas les annonces en cours.
+
+Pour chaque place de marché, donne le modèle d'URL de recherche qui filtre sur les transactions
+terminées, avec sa pagination. Utilise {q} pour le terme et {page} pour le numéro de page.
+
+Écarte les plateformes sans accès public, les espaces communautaires fermés, et les agrégateurs
+qui recopient d'autres sources.
+
+Format : {"entrees":[{"plateforme":"...","nature":"ventes|annonces",
+"url_modele":"https://.../?q={q}&page={page}","page_debut":1,"pages_max":20,"note":"..."}],
+"hors_couverture": null}
+
+Si aucune source publique ne permet de coter cet objet, retourne "entrees":[] et une raison
+dans "hors_couverture".`;
+
+$('#router').onclick = async () => {
+  const b = $('#router');
+  b.disabled = true; $('#etat2').textContent = "recherche des places de marché…";
+  try {
+    const d = await appeler(SYS_ROUTE,
+      `Objet : ${profil.description}\nUnivers : ${profil.univers}\nMaille : ${profil.maille}\n` +
+      `Termes retenus : ${(profil.requetes || []).slice(0, 8).map(r => r.terme).join(", ")}`,
+      true);
+    profil.entrees = d.entrees || [];
+    profil.hors_couverture = d.hors_couverture || null;
+    afficherRoutage(d);
+    allume(5);
+    $('#export').disabled = false;
+    $('#etat2').textContent = "";
+  } catch (e) {
+    $('#sortie2').innerHTML = `<div class="warn">échec : ${e.message}</div>`;
+    $('#etat2').textContent = "";
+  }
+  b.disabled = false;
+};
+
+function afficherRoutage(d) {
+  if (!d.entrees || !d.entrees.length) {
+    $('#sortie2').innerHTML = `<div class="warn">cas 3 — hors couverture.
+      ${d.hors_couverture || "aucune source publique cotable."}
+      Le système ne produira pas de chiffre pour cet objet.</div>`;
+    return;
+  }
+  const ventes = d.entrees.filter(e => e.nature === "ventes").length;
+  let h = `<div class="res"><h3>${d.entrees.length} points d'entrée
+    — ${ventes} en ventes conclues, ${d.entrees.length - ventes} en annonces</h3>`;
+  d.entrees.forEach(e => {
+    h += `<p style="margin:9px 0;font-size:14px;border-left:4px solid ${
+      e.nature === 'ventes' ? 'var(--data)' : 'var(--gris)'};padding-left:9px">
+      <b>${e.plateforme}</b> — ${e.nature}, ${e.pages_max} pages max<br>
+      <code style="font-size:12px;word-break:break-all">${e.url_modele}</code>
+      ${e.note ? `<br><em style="font-size:12.5px">${e.note}</em>` : ''}</p>`;
+  });
+  if (ventes === 0)
+    h += `<div class="warn">aucune source de ventes conclues : cet objet ira en tension
+          de l'offre (bloc 8c), pas en cote.</div>`;
+  $('#sortie2').innerHTML = h + `</div>`;
+}
+
+/* ---------- export ---------- */
+$('#export').onclick = () => {
+  profil.cree_le = new Date().toISOString().slice(0, 10);
+  profil.contexte_fourni = $('#contexte').value.trim() || null;
+  const nom = (profil.modele || profil.univers || "objet")
+    .toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const blob = new Blob([JSON.stringify(profil, null, 1)], { type: "application/json" });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nom + ".json";
+  a.click();
+  $('#sortie3').innerHTML = `<div class="info">profil <b>${nom}.json</b> téléchargé.
+    À déposer dans <code>moteur/profils/</code>, puis lancer la collecte
+    (<code>passer ${nom}</code> dans le workflow).</div>`;
+};
+</script>
+</body>
+</html>
