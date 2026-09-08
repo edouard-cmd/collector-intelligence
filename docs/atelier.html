@@ -136,6 +136,24 @@
 </fieldset>
 
 <fieldset>
+  <legend>bloc 6 — antenne marché</legend>
+  <p class="aide">Pagine réellement les plateformes retenues et extrait les ventes conclues.
+     Chaque prix affiché ici renvoie à sa transaction : c'est ce qui distingue une cote d'une
+     estimation.</p>
+  <label for="profondeur">profondeur</label>
+  <select id="profondeur">
+    <option value="2">2 pages par source — rapide, ~0,15 €</option>
+    <option value="4" selected>4 pages par source — équilibré, ~0,30 €</option>
+    <option value="8">8 pages par source — profond, ~0,60 €</option>
+  </select>
+  <div style="margin-top:14px">
+    <button id="collecter" class="second" disabled>collecter les ventes</button>
+    <span class="etat" id="etat3"></span>
+  </div>
+  <div id="sortie4"></div>
+</fieldset>
+
+<fieldset>
   <legend>coût</legend>
   <p class="aide" style="margin:0">Estimation lue dans les réponses de l'API. Le chiffre
      facturé fait foi, il est dans la console Anthropic sous Usage.</p>
@@ -234,14 +252,14 @@ function peindre() {
 }
 
 /* ---------- appel API ---------- */
-async function appeler(systeme, contenu, recherche, plafond) {
+async function appeler(systeme, contenu, recherche, plafond, modele) {
   const corps = {
-    model: "claude-sonnet-5",
+    model: modele || "claude-sonnet-5",
     max_tokens: plafond || 4000,
     system: systeme + "\n\nRéponds uniquement par du JSON valide, sans préambule ni balises de code.",
     messages: [{ role: "user", content: contenu }]
   };
-  if (recherche) corps.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 8 }];
+  if (recherche) corps.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }];
 
   const r = await fetch(PASSERELLE, {
     method: "POST",
@@ -250,7 +268,7 @@ async function appeler(systeme, contenu, recherche, plafond) {
   });
   if (!r.ok) throw new Error((await r.text()).slice(0, 300));
   const d = await r.json();
-  chiffrer(d.usage, d.content);
+  chiffrer(d.usage, d.content, corps.model);
   let t = d.content.filter(b => b.type === "text").map(b => b.text).join("\n").trim();
   t = t.replace(/^```(?:json)?/m, '').replace(/```$/m, '').trim();
   try { return JSON.parse(t); } catch {}
@@ -279,10 +297,11 @@ function reparer(t) {
 
 /* Coût réel, lu dans la réponse. Tarifs Sonnet en $/M tokens, converti en euros.
    Le chiffre exact reste celui de la console Anthropic ; celui-ci sert à sentir la dérive. */
-function chiffrer(usage, contenu) {
+function chiffrer(usage, contenu, modele) {
   if (!usage) return;
+  const [e, s] = (modele || "").includes("haiku") ? [1, 5] : [3, 15];
   const recherches = (contenu || []).filter(b => b.type === "server_tool_use").length;
-  cout += ((usage.input_tokens * 3 + usage.output_tokens * 15) / 1e6
+  cout += ((usage.input_tokens * e + usage.output_tokens * s) / 1e6
            + recherches * 0.01) * 0.92;
   const el = $('#cout');
   if (el) el.textContent = `cumul de la session : ${cout.toFixed(3)} €`;
@@ -311,6 +330,15 @@ la collecte reste faisable, il suffit de couvrir les variantes plausibles dans l
 
 Si tu hésites entre plusieurs déclinaisons, dis lesquelles et ce qui permettrait de trancher.
 
+Liste ensuite les vues qui manquent pour lever le doute, en indiquant précisément OÙ chercher
+sur l'objet — pas "une photo de meilleure qualité", mais par exemple "la patte de cuir cousue
+dans la poche intérieure droite, où figure le code atelier". La propriétaire doit pouvoir aller
+photographier l'endroit exact sans chercher.
+
+Liste enfin les documents qui, s'ils existent, changeraient la valeur : un objet accompagné de
+sa facture, de son certificat ou de son emballage d'origine se vend nettement plus cher que le
+même objet nu, et sa cote est bien moins discutée.
+
 La fourchette plausible n'est pas une cote. C'est un garde-fou d'ordre de grandeur destiné à
 écarter les aberrations lors de la collecte.
 
@@ -321,6 +349,9 @@ Format :
  "certitude_modele":0.0,"certitude_variante":0.0,
  "hypotheses_concurrentes":["..."],
  "leve_de_doute":"ce qu'il faudrait voir ou mesurer pour trancher",
+ "vues_manquantes":[{"quoi":"nom de l'élément","ou":"où le trouver précisément sur l'objet",
+   "apporte":"ce que ça permettrait de trancher"}],
+ "documents_utiles":["facture","certificat","boîte d'origine","..."],
  "fourchette_plausible":{"bas":0,"haut":0,"devise":"EUR"},
  "contexte_retenu":"ce que j'ai gardé du contexte fourni",
  "contexte_ecarte":"ce que j'ai écarté et pourquoi, ou null",
@@ -385,6 +416,19 @@ function afficherIdentite(d) {
           ${d.hypotheses_concurrentes.join(" · ")}</p>`;
   if (d.leve_de_doute)
     h += `<p style="margin:6px 0 0;font-size:14px"><b>pour trancher :</b> ${d.leve_de_doute}</p>`;
+
+  if (d.vues_manquantes && d.vues_manquantes.length) {
+    h += `<div class="info"><b>vues complémentaires à prendre</b>`;
+    d.vues_manquantes.forEach(v =>
+      h += `<p style="margin:7px 0 0;font-size:14px">• <b>${v.quoi}</b> — ${v.ou}
+            <em style="display:block;font-size:12.5px">${v.apporte}</em></p>`);
+    h += `<p style="margin:9px 0 0;font-size:13.5px">Ajoute-les ci-dessus et relance
+          l'identification : la certitude variante montera et la cote se resserrera.</p></div>`;
+  }
+  if (d.documents_utiles && d.documents_utiles.length)
+    h += `<div class="info"><b>documents qui augmentent la valeur :</b>
+          ${d.documents_utiles.join(" · ")}. Un objet accompagné de son dossier se vend
+          nettement mieux et voit sa cote moins discutée.</div>`;
   if (d.contexte_ecarte)
     h += `<div class="info"><b>contexte écarté :</b> ${d.contexte_ecarte}</div>`;
   if (faible)
@@ -459,12 +503,13 @@ $('#router').onclick = async () => {
     const d = await appeler(SYS_ROUTE,
       `Objet : ${profil.description}\nUnivers : ${profil.univers}\nMaille : ${profil.maille}\n` +
       `Termes retenus : ${(profil.requetes || []).slice(0, 8).map(r => r.terme).join(", ")}`,
-      true, 8000);
+      true, 8000, "claude-haiku-4-5-20251001");
     profil.entrees = d.entrees || [];
     profil.hors_couverture = d.hors_couverture || null;
     afficherRoutage(d);
     allume(5);
     $('#export').disabled = false;
+    $('#collecter').disabled = !(d.entrees || []).some(e => e.nature === "ventes");
     $('#etat2').textContent = "";
   } catch (e) {
     $('#sortie2').innerHTML = `<div class="warn">échec : ${e.message}</div>`;
@@ -565,6 +610,147 @@ function afficherRoutage(d) {
           strates.size > 1 ? 's' : ''} sur 3. La fourchette de sortie sera partielle :
           un facteur 3 sépare le prix entre particuliers du prix marchand.</div>`;
   $('#sortie2').innerHTML = h + `</div>`;
+}
+
+/* ---------- bloc 6 : collecte réelle, via la passerelle ---------- */
+const SYS_EXTRACT = `Tu extrais des transactions depuis le texte brut d'une page de place de marché.
+
+Ne retiens comme VENTE que ce qui est explicitement conclu : vendu, adjugé, sold, transaction
+terminée avec un prix effectif. Un prix affiché sur une offre en cours n'est PAS une vente.
+Ne retiens comme ANNONCE que les offres en cours : elles servent à mesurer la liquidité.
+
+Les liens de la page apparaissent sous la forme [[url]] juste avant le texte qu'ils portent.
+Utilise-les pour renseigner url_source. Une ligne sans url_source est inutilisable : ne la
+produis pas. N'invente aucun prix, aucune date. Un champ absent vaut null.
+
+Format : {"ventes":[{"objet":"...","prix":0,"devise":"EUR","date_vente":"AAAA-MM-JJ|null",
+"url_source":"...","etat":"...|null"}],
+"annonces":[{"objet":"...","prix_demande":0,"devise":"EUR","url_source":"...",
+"jours_en_ligne":null,"exemplaires_vendus":null,"suiveurs":null}]}`;
+
+async function lirePage(url) {
+  const r = await fetch(PASSERELLE, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ url })
+  });
+  return r.ok ? r.json() : { texte: "", statut: 0 };
+}
+
+$('#collecter').onclick = async () => {
+  const b = $('#collecter');
+  b.disabled = true;
+  const pages = +$('#profondeur').value;
+  const sources = (profil.entrees || []).filter(e => e.nature === "ventes");
+  const terme = (profil.requetes || [])[0]?.terme || profil.description;
+  const ventes = [], annonces = [], journal = [];
+
+  for (const e of sources) {
+    let lues = 0, vides = 0;
+    for (let n = (e.page_debut || 1); n < (e.page_debut || 1) + pages; n++) {
+      $('#etat3').textContent = `${e.plateforme} — page ${lues + 1}/${pages}…`;
+      const url = e.url_modele.replace("{q}", encodeURIComponent(terme))
+                              .replace("{page}", n);
+      const p = await lirePage(url);
+      if (!p.texte || p.texte.length < 500) { vides++; if (vides >= 2) break; continue; }
+      lues++;
+      try {
+        const d = await appeler(SYS_EXTRACT,
+          `plateforme : ${e.plateforme}\nurl : ${url}\n\n${p.texte.slice(0, 16000)}`,
+          false, 6000, "claude-haiku-4-5-20251001");
+        (d.ventes || []).forEach(v => ventes.push({ ...v, plateforme: e.plateforme,
+                                                   strate: e.strate, domaine: e.domaine }));
+        (d.annonces || []).forEach(a => annonces.push({ ...a, plateforme: e.plateforme }));
+      } catch {}
+    }
+    journal.push({ plateforme: e.plateforme, pages: lues, bloque: lues === 0 });
+  }
+
+  $('#etat3').textContent = "";
+  profil.ventes = dedoublonner(ventes);
+  profil.annonces = annonces;
+  profil.journal_collecte = journal;
+  afficherVentes(profil.ventes, annonces, journal);
+  allume(9);
+  b.disabled = false;
+};
+
+function dedoublonner(v) {
+  const vus = new Set();
+  return v.filter(x => {
+    const c = (x.url_source || "").split("?")[0] + "|" + x.prix;
+    if (!x.url_source || !x.prix || vus.has(c)) return false;
+    vus.add(c); return true;
+  });
+}
+
+function mediane(t) {
+  if (!t.length) return null;
+  const s = [...t].sort((a, b) => a - b), m = s.length >> 1;
+  return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
+}
+
+function afficherVentes(ventes, annonces, journal) {
+  if (!ventes.length) {
+    $('#sortie4').innerHTML = `<div class="warn">aucune vente conclue récupérée.
+      ${journal.filter(j => j.bloque).map(j => j.plateforme).join(", ") || "—"} n'a rien rendu.
+      Sans transaction sourcée, pas de cote : cet objet reste en tension de l'offre (bloc 8c).</div>`;
+    return;
+  }
+
+  const parPlateforme = {};
+  ventes.forEach(v => (parPlateforme[v.plateforme] ||= []).push(v));
+
+  let h = `<div class="res"><h3>${ventes.length} ventes conclues,
+    ${Object.keys(parPlateforme).length} plateformes — chaque prix est cliquable</h3>`;
+
+  const meds = [];
+  Object.entries(parPlateforme).forEach(([p, lot]) => {
+    const prix = lot.map(v => +v.prix).filter(Boolean);
+    const med = mediane(prix);
+    meds.push({ p, med, n: lot.length, dom: lot[0].domaine });
+    h += `<p style="margin:16px 0 5px;font-size:13.5px;font-weight:700;display:flex;
+          align-items:center;gap:8px">${logo(lot[0])}${p}
+          <span style="color:var(--gris);font-weight:400">${lot.length} ventes ·
+          médiane ${med} ${lot[0].devise || 'EUR'} ·
+          ${Math.min(...prix)}–${Math.max(...prix)}</span></p>`;
+    lot.sort((a, b) => a.prix - b.prix).slice(0, 12).forEach(v => {
+      h += `<p style="margin:3px 0;font-size:13.5px;padding-left:10px;
+            border-left:3px solid var(--data)">
+        <a href="${v.url_source}" target="_blank" rel="noopener"
+           style="color:var(--ia);font-weight:700">${v.prix} ${v.devise || 'EUR'}</a>
+        — ${(v.objet || '').slice(0, 70)}
+        ${v.date_vente ? `<span style="color:var(--gris)"> · ${v.date_vente}</span>` : ''}
+        ${v.etat ? `<span style="color:var(--gris)"> · ${v.etat.slice(0, 30)}</span>` : ''}</p>`;
+    });
+    if (lot.length > 12)
+      h += `<p style="margin:3px 0 0;font-size:12.5px;color:var(--gris);padding-left:13px">
+            + ${lot.length - 12} autres dans le profil JSON</p>`;
+  });
+
+  if (meds.length > 1) {
+    const bas = Math.min(...meds.map(m => m.med)), haut = Math.max(...meds.map(m => m.med));
+    h += `<div class="info"><b>écart réel entre canaux : ${(haut / (bas || 1)).toFixed(1)}×</b>
+      — médiane de ${bas} sur ${meds.find(m => m.med === bas).p}, ${haut} sur
+      ${meds.find(m => m.med === haut).p}. Cet écart est mesuré sur des transactions, pas estimé.</div>`;
+  }
+
+  const liq = annonces.filter(a => a.jours_en_ligne && a.exemplaires_vendus !== null);
+  if (liq.length) {
+    const rot = mediane(liq.map(a => a.exemplaires_vendus / a.jours_en_ligne * 30));
+    h += `<div class="info"><b>liquidité :</b> ${annonces.length} annonces actives,
+          rotation médiane ${rot} vente(s) par mois et par annonce.</div>`;
+  } else if (annonces.length) {
+    h += `<div class="info"><b>liquidité :</b> ${annonces.length} annonces actives relevées,
+          mais sans compteur de ventes ni ancienneté exploitable sur ces pages.</div>`;
+  }
+
+  const bloquees = journal.filter(j => j.bloque);
+  if (bloquees.length)
+    h += `<div class="warn">${bloquees.map(j => j.plateforme).join(", ")} —
+          aucune page lisible. Protection anti-robot ou structure inattendue.</div>`;
+
+  $('#sortie4').innerHTML = h + `</div>`;
 }
 
 /* ---------- export ---------- */
