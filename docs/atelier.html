@@ -37,8 +37,15 @@
   #zone{border:3px dashed var(--struct);padding:26px;text-align:center;cursor:pointer;
     background:#fff}
   #zone.over{background:#ded9ff;border-color:var(--ia)}
-  #apercu{max-width:100%;max-height:230px;display:none;margin-top:12px;
-    border:3px solid var(--struct)}
+  #galerie{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:center}
+  .vig{position:relative;width:104px;height:104px;border:3px solid var(--struct);
+    background:#fff;overflow:hidden}
+  .vig img{width:100%;height:100%;object-fit:cover;display:block}
+  .vig button{position:absolute;top:0;right:0;width:24px;height:24px;padding:0;
+    border:0;border-left:2px solid var(--struct);border-bottom:2px solid var(--struct);
+    background:var(--alerte);color:#fff;font-size:15px;line-height:1;cursor:pointer}
+  .vig span{position:absolute;bottom:0;left:0;background:var(--struct);color:var(--clair);
+    font-size:10px;padding:1px 5px}
 
   /* chaîne du schéma, colonne de droite */
   .chaine{position:sticky;top:22px}
@@ -82,10 +89,12 @@
 <fieldset>
   <legend>bloc 1 — objet photographié</legend>
   <div id="zone">
-    <div id="zonetxt">déposer une photo, ou cliquer pour choisir</div>
-    <img id="apercu" alt="aperçu de l'objet">
+    <div id="zonetxt">déposer une ou plusieurs photos, ou cliquer pour choisir</div>
+    <p class="aide" style="margin:6px 0 0">Jusqu'à 5 vues du même objet : ensemble, dessous,
+       marquages, étiquette, défauts. Plus il y a d'angles, plus la certitude monte.</p>
+    <div id="galerie"></div>
   </div>
-  <input type="file" id="fichier" accept="image/*" hidden>
+  <input type="file" id="fichier" accept="image/*" multiple hidden>
 
   <label for="contexte">fenêtre de contexte</label>
   <p class="aide">Tout ce que la collectionneuse sait déjà et qui aiguille l'identification :
@@ -143,7 +152,8 @@
 
 <script>
 const PASSERELLE = "https://collector-passerelle.edouard-e8b.workers.dev";
-let image = null, profil = {};
+let images = [], profil = {};
+const MAX_VUES = 5, COTE_MAX = 1568;
 
 const $ = s => document.querySelector(s);
 const allume = n => document.querySelectorAll('.b').forEach(b => {
@@ -157,21 +167,50 @@ zone.ondragover = e => { e.preventDefault(); zone.classList.add('over'); };
 zone.ondragleave = () => zone.classList.remove('over');
 zone.ondrop = e => {
   e.preventDefault(); zone.classList.remove('over');
-  if (e.dataTransfer.files[0]) charger(e.dataTransfer.files[0]);
+  charger([...e.dataTransfer.files]);
 };
-fichier.onchange = e => e.target.files[0] && charger(e.target.files[0]);
+fichier.onchange = e => charger([...e.target.files]);
 
-function charger(f) {
-  const r = new FileReader();
-  r.onload = () => {
-    image = { media_type: f.type, data: r.result.split(',')[1] };
-    $('#apercu').src = r.result;
-    $('#apercu').style.display = 'block';
-    $('#zonetxt').textContent = f.name;
-    $('#identifier').disabled = false;
-    allume(1);
-  };
-  r.readAsDataURL(f);
+/* Redimensionne avant envoi : une photo de téléphone pèse 4 Mo, l'API n'exploite
+   rien au-delà de 1568 px, et cinq images brutes feraient exploser la requête. */
+function reduire(f) {
+  return new Promise((ok, ko) => {
+    const img = new Image();
+    img.onload = () => {
+      const e = Math.min(1, COTE_MAX / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * e);
+      c.height = Math.round(img.height * e);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      const url = c.toDataURL('image/jpeg', 0.85);
+      ok({ nom: f.name, url, media_type: 'image/jpeg', data: url.split(',')[1] });
+    };
+    img.onerror = ko;
+    img.src = URL.createObjectURL(f);
+  });
+}
+
+async function charger(liste) {
+  const place = MAX_VUES - images.length;
+  const retenues = liste.filter(f => f.type.startsWith('image/')).slice(0, place);
+  for (const f of retenues) {
+    try { images.push(await reduire(f)); } catch { /* fichier illisible, on saute */ }
+  }
+  peindre();
+}
+
+function peindre() {
+  $('#galerie').innerHTML = images.map((im, i) =>
+    `<div class="vig"><img src="${im.url}" alt="vue ${i + 1}">
+     <button data-i="${i}" title="retirer">×</button><span>vue ${i + 1}</span></div>`).join('');
+  document.querySelectorAll('.vig button').forEach(b =>
+    b.onclick = () => { images.splice(+b.dataset.i, 1); peindre(); });
+
+  $('#zonetxt').textContent = images.length
+    ? `${images.length} vue${images.length > 1 ? 's' : ''}${images.length >= MAX_VUES ? ' — maximum atteint' : ' — en ajouter'}`
+    : 'déposer une ou plusieurs photos, ou cliquer pour choisir';
+  $('#identifier').disabled = images.length === 0;
+  if (images.length) allume(1);
 }
 
 /* ---------- appel API ---------- */
@@ -231,18 +270,24 @@ cet objet s'échange réellement.`;
 
 $('#identifier').onclick = async () => {
   const b = $('#identifier');
-  b.disabled = true; $('#etat1').textContent = "identification en cours…";
+  b.disabled = true; $('#etat1').textContent = `identification sur ${images.length} vue${images.length>1?"s":""}…`;
   try {
-    let texte = "Identifie cet objet de collection.";
+    let texte = images.length > 1
+      ? `Identifie cet objet de collection. ${images.length} vues du MÊME objet te sont fournies,
+dans l'ordre. Croise-les : un marquage lisible sur une seule vue vaut pour l'ensemble, et un
+défaut visible sur une vue doit peser sur l'état retenu.`
+      : "Identifie cet objet de collection.";
     const ctx = $('#contexte').value.trim(), comp = $('#complement').value.trim();
     if (ctx) texte += "\n\nContexte donné par la propriétaire :\n" + ctx;
     if (comp) texte += "\n\nPrécisions visuelles :\n" + comp;
     if (!ctx && !comp) texte += "\n\nAucun contexte fourni : l'image est le seul élément.";
 
-    const d = await appeler(SYS_ID, [
-      { type: "image", source: { type: "base64", media_type: image.media_type, data: image.data } },
-      { type: "text", text: texte }
-    ], true);
+    const contenu = images.map(im => ({
+      type: "image",
+      source: { type: "base64", media_type: im.media_type, data: im.data }
+    }));
+    contenu.push({ type: "text", text: texte });
+    const d = await appeler(SYS_ID, contenu, true);
 
     profil = Object.assign(profil, d);
     afficherIdentite(d);
@@ -356,6 +401,7 @@ function afficherRoutage(d) {
 /* ---------- export ---------- */
 $('#export').onclick = () => {
   profil.cree_le = new Date().toISOString().slice(0, 10);
+  profil.vues = images.length;
   profil.contexte_fourni = $('#contexte').value.trim() || null;
   const nom = (profil.modele || profil.univers || "objet")
     .toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
