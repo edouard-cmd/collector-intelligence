@@ -1,1 +1,426 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collector Intelligence — schéma d'architecture v5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --papier:#F6F6F3;
+    --encre:#15181C;
+    --bleu:#1B3D57;
+    --oxyde:#96291D;
+    --gris:#6B7178;
+    --filet:#D6D8D4;
+    --serif:"Source Serif 4", Charter, "Iowan Old Style", Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--papier); color:var(--encre);
+    font-family:var(--serif); font-size:17px; line-height:1.55;
+    font-variant-numeric:oldstyle-nums;
+  }
+  .page{max-width:860px; margin:0 auto; padding:64px 28px 120px}
 
+  /* ---------- en-tête ---------- */
+  .tete{border-bottom:2px solid var(--encre); padding-bottom:28px; margin-bottom:12px}
+  h1{font-size:40px; line-height:1.05; font-weight:700; letter-spacing:-.02em; margin:0 0 10px}
+  .tete p{margin:0; max-width:60ch; color:var(--gris)}
+  .etat{display:flex; gap:28px; flex-wrap:wrap; margin-top:22px; font-size:14.5px; color:var(--gris)}
+  .etat b{color:var(--encre); font-weight:600}
+
+  /* ---------- sommaire ---------- */
+  nav.sommaire{margin:28px 0 64px; font-size:15.5px}
+  nav.sommaire a{color:var(--bleu); text-decoration:none; border-bottom:1px solid var(--filet)}
+  nav.sommaire a:hover{border-bottom-color:var(--bleu)}
+  nav.sommaire ol{list-style:none; margin:0; padding:0; columns:2; column-gap:44px}
+  nav.sommaire li{margin-bottom:7px; break-inside:avoid}
+
+  h2{font-size:15px; font-weight:600; letter-spacing:.04em; color:var(--bleu);
+     margin:72px 0 6px; padding-bottom:8px; border-bottom:1px solid var(--filet)}
+  h2 + .chapo{margin:0 0 34px; color:var(--gris); max-width:62ch; font-size:16px}
+
+  /* ---------- chaîne ---------- */
+  .chaine{position:relative; margin:0; padding:0 0 0 68px; list-style:none}
+  .chaine::before{content:""; position:absolute; left:21px; top:12px; bottom:34px;
+     width:2px; background:var(--filet)}
+  .bloc{position:relative; margin-bottom:38px; break-inside:avoid}
+  .num{position:absolute; left:-68px; top:-2px; width:44px; height:44px;
+     border:2px solid var(--encre); border-radius:50%; background:var(--papier);
+     display:grid; place-items:center; font-weight:700; font-size:18px;
+     font-variant-numeric:lining-nums}
+  .bloc h3{margin:0; font-size:23px; font-weight:600; letter-spacing:-.01em; line-height:1.2}
+  .fam{font-size:13.5px; font-weight:400; color:var(--gris); margin-left:10px;
+     white-space:nowrap}
+  .sub{margin:3px 0 9px; color:var(--bleu); font-size:16.5px}
+  .desc{margin:0; max-width:64ch}
+  .neuf{margin:12px 0 0; padding:12px 16px; border-left:3px solid var(--oxyde);
+     background:rgba(150,41,29,.035); max-width:64ch; font-size:16px}
+  .neuf b{color:var(--oxyde); font-weight:600}
+
+  /* sorties parallèles */
+  .sorties{list-style:none; margin:0 0 38px; padding:0 0 0 34px; position:relative}
+  .sorties::before{content:""; position:absolute; left:0; top:6px; bottom:18px;
+     width:2px; border-left:2px dashed var(--filet)}
+  .sorties .bloc{margin-bottom:26px}
+  .sorties .num{left:-34px; top:0; width:34px; height:34px; font-size:14px; border-width:1.5px}
+  .sorties h3{font-size:20px}
+
+  /* boucle */
+  .boucle{margin:0 0 8px; padding:14px 0 0 68px; border-top:1px solid var(--filet);
+     color:var(--bleu); font-size:16px; max-width:70ch}
+
+  /* ---------- grappes ---------- */
+  .grappe{list-style:none; margin:0; padding:0;
+     display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:1px;
+     background:var(--filet); border:1px solid var(--filet)}
+  .grappe li{background:var(--papier); padding:18px 20px}
+  .grappe h4{margin:0 0 2px; font-size:17.5px; font-weight:600; line-height:1.25}
+  .grappe .ref{color:var(--gris); font-weight:400; font-size:14px; margin-right:7px;
+     font-variant-numeric:lining-nums}
+  .grappe .s{color:var(--bleu); font-size:15px; margin:0 0 7px}
+  .grappe p{margin:0; font-size:15.5px; line-height:1.45}
+
+  /* ---------- règles ---------- */
+  .regles{list-style:none; margin:0; padding:0}
+  .regles li{padding:16px 0; border-bottom:1px solid var(--filet); max-width:68ch}
+  .regles li:first-child{border-top:1px solid var(--filet)}
+  .regles b{font-weight:600}
+
+  /* ---------- trous ---------- */
+  .trous{list-style:none; margin:0; padding:0; counter-reset:t}
+  .trous li{position:relative; padding:16px 0 16px 40px; border-bottom:1px solid var(--filet);
+     max-width:68ch}
+  .trous li:first-child{border-top:1px solid var(--filet)}
+  .trous li::before{counter-increment:t; content:counter(t); position:absolute; left:0; top:16px;
+     color:var(--oxyde); font-weight:700; font-variant-numeric:lining-nums}
+  .trous b{font-weight:600; display:block}
+
+  /* ---------- journal ---------- */
+  table{border-collapse:collapse; width:100%; font-size:15.5px}
+  th,td{text-align:left; vertical-align:top; padding:11px 14px 11px 0;
+     border-bottom:1px solid var(--filet)}
+  th{font-weight:600; color:var(--gris); font-size:14px; border-bottom:1px solid var(--encre)}
+  td:first-child{white-space:nowrap; color:var(--bleu); font-variant-numeric:lining-nums;
+     width:1%; padding-right:26px}
+
+  footer{margin-top:80px; padding-top:20px; border-top:2px solid var(--encre);
+     color:var(--gris); font-size:14.5px}
+
+  @media (max-width:620px){
+    .page{padding:40px 20px 80px}
+    h1{font-size:31px}
+    nav.sommaire ol{columns:1}
+    .chaine{padding-left:52px}
+    .chaine::before{left:16px}
+    .num{left:-52px; width:34px; height:34px; font-size:15px}
+    .boucle{padding-left:52px}
+  }
+  @media print{
+    body{background:#fff} .page{max-width:none} nav.sommaire{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="tete">
+  <h1>Collector Intelligence</h1>
+  <p>Schéma d'architecture. Source unique de vérité. Onze blocs de chaîne principale,
+     deux grappes de détail, les règles structurantes, les trous ouverts.</p>
+  <div class="etat">
+    <span>Version <b>5</b></span>
+    <span>Mission <b>Cobound</b></span>
+    <span>Phase <b>Bloc 1 — faisabilité des sources et cadrage</b></span>
+  </div>
+</header>
+
+<nav class="sommaire">
+  <ol>
+    <li><a href="#chaine">Chaîne principale</a></li>
+    <li><a href="#grappeA">Grappe A — apprentissage du routeur</a></li>
+    <li><a href="#grappeC">Grappe C — catalogue et adaptateurs</a></li>
+    <li><a href="#regles">Règles structurantes</a></li>
+    <li><a href="#trous">Trous ouverts</a></li>
+    <li><a href="#journal">Journal des versions</a></li>
+  </ol>
+</nav>
+
+<!-- ============ CHAÎNE PRINCIPALE ============ -->
+<h2 id="chaine">Chaîne principale</h2>
+<p class="chapo">De la photographie à l'alerte expliquée. Chaque bloc est désigné par son
+   numéro ; les sorties parallèles sont suffixées 8a, 8b, 8c.</p>
+
+<ol class="chaine">
+
+<!-- B1 -->
+<li class="bloc">
+  <span class="num">1</span>
+  <h3>Objet photographié<span class="fam">— entrée</span></h3>
+  <p class="sub">Photo prise au téléphone</p>
+  <p class="desc">La collectionneuse photographie l'objet avec son téléphone. Aucune référence,
+     aucun numéro de série, aucune saisie : l'image est le seul point d'entrée de la chaîne.</p>
+</li>
+
+<!-- B2 -->
+<li class="bloc">
+  <span class="num">2</span>
+  <h3>Antenne identité<span class="fam">— IA</span></h3>
+  <p class="sub">Signature de recherche · fourchette de prix plausible · niveau de certitude</p>
+  <p class="desc">L'image est identifiée. Le bloc produit trois choses : la signature de recherche,
+     c'est-à-dire les termes exacts avec lesquels cet objet se retrouve en vente ; une fourchette
+     de prix plausible qui sert de garde-fou à tout ce qui suit ; et le niveau de certitude de
+     l'identification, qui est un signal indépendant de la disponibilité des données de prix.</p>
+  <p class="neuf"><b>v5.</b> Le prix catalogue d'origine est une plage déclarative, jamais un nombre.
+     Sur un modèle arrêté, les revendeurs annoncent des valeurs qui divergent d'un facteur 1,7 pour
+     le même objet. Il sert d'ancrage à la fourchette plausible, il n'entre pas dans la cote.</p>
+</li>
+
+<!-- B3 -->
+<li class="bloc">
+  <span class="num">3</span>
+  <h3>Maille de cotation<span class="fam">— IA</span></h3>
+  <p class="sub">À l'unité, en lot ou en série</p>
+  <p class="desc">Tous les objets ne s'échangent pas à la même granularité. Un sac se vend à l'unité,
+     des pogs par lots, une série limitée par numéro. La maille fixe l'unité de comparaison de la cote,
+     et se détermine avant tout branchement de capteur.</p>
+  <p class="neuf"><b>v5.</b> Un contenant scellé n'est pas la somme de son contenu : c'est une option
+     sur une distribution de raretés inconnue. Sceller ou ouvrir change la nature de l'actif, donc la
+     maille. Le scellé et l'unitaire sont deux mailles distinctes du même objet nominal.</p>
+</li>
+
+<!-- B4 -->
+<li class="bloc">
+  <span class="num">4</span>
+  <h3>Intensité de veille<span class="fam">— décision</span></h3>
+  <p class="sub">Valeur de l'objet contre coût de sa surveillance</p>
+  <p class="desc">Surveiller coûte. Le bloc arbitre entre la valeur estimée de l'objet et le prix de
+     sa veille : quotidienne pour une pièce rare, plus lâche pour un modèle courant.</p>
+</li>
+
+<!-- B5 -->
+<li class="bloc">
+  <span class="num">5</span>
+  <h3>Routeur d'univers<span class="fam">— décision</span></h3>
+  <p class="sub">Quels capteurs de données brancher</p>
+  <p class="desc">Chaque univers a ses places de marché. Le routeur décide quels capteurs brancher
+     pour cet objet précis, en routant sur des propriétés d'objet — référence normalisée, unicité,
+     maille, fourchette, géographie — et non sur des noms d'univers. La grappe A explique comment
+     ce choix s'apprend. Deux régimes distincts : découverte une fois par profil, puis régime établi.</p>
+  <p class="neuf"><b>v5.</b> Cran de sécurité obligatoire. Reconnaître le format d'un objet ne suffit
+     pas à le router : un blister de cartes hors des bases de cotation référencées renvoie zéro sur
+     les capteurs standards. Le routeur doit vérifier l'existence de l'objet dans au moins une source
+     de cote avant de conclure, sinon il produit une absence qu'il prend pour un vide de marché.</p>
+</li>
+
+<!-- B6 -->
+<li class="bloc">
+  <span class="num">6</span>
+  <h3>Antenne marché<span class="fam">— données</span></h3>
+  <p class="sub">Collecte des ventes conclues</p>
+  <p class="desc">Collecte des ventes réellement conclues. Les prix d'annonce n'entrent jamais dans
+     la cote ; ils sont conservés à part pour mesurer la tension de l'offre.</p>
+  <p class="neuf"><b>v5 — capteur de liquidité.</b> Trois champs relevés en même temps que le prix,
+     tous disponibles sans accès payant : la <b>rotation</b> (exemplaires vendus rapportés aux jours
+     d'exposition), la <b>profondeur d'intérêt</b> (nombre de suiveurs sur l'annonce), et l'<b>écart
+     annonce/cote</b> (prix demandé rapporté à la référence catalogue). C'est le meilleur détecteur
+     d'anomalie du système, avant l'écart de prix : une annonce à 500 € sans vente en deux ans n'est
+     pas un prix élevé, c'est une absence de marché.</p>
+</li>
+
+<!-- B7 -->
+<li class="bloc">
+  <span class="num">7</span>
+  <h3>Routeur de densité<span class="fam">— décision</span></h3>
+  <p class="sub">Assez de ventes pour coter ?</p>
+  <p class="desc">Compte les transactions utilisables sur la fenêtre retenue et choisit la méthode de
+     cotation. C'est ce comptage qui décide de la sortie, pas la catégorie de l'objet.</p>
+</li>
+</ol>
+
+<ol class="sorties">
+<!-- B8A -->
+<li class="bloc">
+  <span class="num">8a</span>
+  <h3>Cote statistique<span class="fam">— données</span></h3>
+  <p class="sub">Marché dense</p>
+  <p class="desc">La cote est la distribution des prix conclus : médiane, dispersion, tendance sur
+     la fenêtre retenue.</p>
+</li>
+<!-- B8B -->
+<li class="bloc">
+  <span class="num">8b</span>
+  <h3>Cote par comparables<span class="fam">— IA</span></h3>
+  <p class="sub">Marché clairsemé</p>
+  <p class="desc">Quelques ventes proches suffisent, ajustées état par état et complétude par
+     complétude.</p>
+</li>
+<!-- B8C -->
+<li class="bloc">
+  <span class="num">8c</span>
+  <h3>Tension de l'offre<span class="fam">— données</span></h3>
+  <p class="sub">Objet non cotable</p>
+  <p class="desc">À défaut de prix, la plateforme mesure la pression du marché : volume d'annonces,
+     durée d'écoulement, retraits.</p>
+  <p class="neuf"><b>v5 — cas 3, hors couverture.</b> Sortie terminale distincte de la tension.
+     Quand aucune source ne permet une cote défendable, le système dit qu'il ne sait pas et bascule
+     en veille d'annonces. Il n'affiche pas de chiffre. Trois cas au total : 1 automatisable,
+     2 assisté, 3 hors couverture.</p>
+</li>
+</ol>
+
+<ol class="chaine" start="9">
+<!-- B9 -->
+<li class="bloc">
+  <span class="num">9</span>
+  <h3>Détection de rythme<span class="fam">— données</span></h3>
+  <p class="sub">Écart au rythme de transaction habituel</p>
+  <p class="desc">Compare la cadence et le niveau des transactions à leur régime habituel. C'est
+     l'écart, pas le prix absolu, qui déclenche une alerte.</p>
+</li>
+
+<!-- B10 -->
+<li class="bloc">
+  <span class="num">10</span>
+  <h3>Antenne contexte<span class="fam">— IA</span></h3>
+  <p class="sub">Pourquoi ça bouge · déclenchée sur anomalie</p>
+  <p class="desc">Cherche l'explication de l'écart : sortie de collaboration, film, revente médiatisée,
+     rupture d'approvisionnement. Ne se déclenche que sur anomalie, pour ne pas payer de contexte inutile.</p>
+  <p class="neuf"><b>v5 — surveillance de l'émetteur.</b> Pour les objets dont la valeur repose sur la
+     promesse d'un tiers vivant — cartes adossées à une contrepartie, éditions d'artiste avec rachat
+     garanti, objets sous certificat privé — le risque principal est la modification unilatérale de la
+     promesse, pas la baisse du marché. Un objet peut aller à zéro sans qu'aucun prix ne bouge. C'est
+     du texte sur une page produit, invisible pour un capteur de prix, lisible par un LLM.</p>
+</li>
+
+<!-- B11 -->
+<li class="bloc">
+  <span class="num">11</span>
+  <h3>Restitution<span class="fam">— sortie</span></h3>
+  <p class="sub">Alerte expliquée</p>
+  <p class="desc">Une alerte, un chiffre, une raison. La sortie n'est jamais une valeur unique mais
+     une fourchette ajustée à la liquidité, avec le canal auquel elle correspond : un facteur 3 sépare
+     le prix entre particuliers du prix marchand pour le même objet. Deux indicateurs distincts
+     accompagnent la fourchette : certitude d'identification et disponibilité des données de prix.</p>
+</li>
+</ol>
+
+<p class="boucle">Boucle de correction. Si l'identification était fausse, la correction de la
+   collectionneuse remonte du bloc 11 vers le bloc 2 et change la signature de recherche.</p>
+
+<!-- ============ GRAPPE A ============ -->
+<h2 id="grappeA">Grappe A — comment le routeur d'univers apprend</h2>
+<p class="chapo">Détail du bloc 5. Régime de découverte, exécuté une fois par profil d'objet.</p>
+<ul class="grappe">
+  <li><h4><span class="ref">A1</span>Profil d'objet</h4><p class="s">Ce que l'objet est</p>
+      <p>Attributs déduits de l'image : univers, marque, modèle, état, complétude. C'est l'entrée
+         de l'appariement.</p></li>
+  <li><h4><span class="ref">A2</span>Registre des connecteurs</h4><p class="s">Capteurs disponibles</p>
+      <p>La liste des capteurs branchables, avec leur couverture et leur coût. Le registre se met à
+         jour avec les rendements observés.</p></li>
+  <li><h4><span class="ref">A3</span>Appariement</h4><p class="s">Profil croisé au registre</p>
+      <p>Croise le profil de l'objet et le registre pour proposer un jeu de capteurs candidats.</p></li>
+  <li><h4><span class="ref">A4</span>Scan multi-capteurs</h4><p class="s">Essai en parallèle</p>
+      <p>Les capteurs candidats sont essayés en parallèle sur une période courte.</p></li>
+  <li><h4><span class="ref">A5</span>Mesure du rendement</h4><p class="s">Ventes utiles par requête</p>
+      <p>Un capteur est jugé sur les ventes conclues exploitables qu'il rapporte, pas sur son volume
+         de résultats.</p></li>
+  <li><h4><span class="ref">A6</span>Capteurs retenus</h4><p class="s">Branchés durablement</p>
+      <p>Les capteurs qui produisent sont conservés pour cet univers ; les autres sont désactivés.</p></li>
+</ul>
+
+<!-- ============ GRAPPE C ============ -->
+<h2 id="grappeC">Grappe C — catalogue et adaptateurs</h2>
+<p class="chapo">Détail du bloc 6. Comment les sources hétérogènes deviennent une donnée unique.</p>
+<ul class="grappe">
+  <li><h4><span class="ref">C1</span>Catalogue de plateformes</h4><p class="s">Où ça s'échange</p>
+      <p>L'inventaire des places de marché par univers, avec leur mode d'accès.</p></li>
+  <li><h4><span class="ref">C2</span>API officielle</h4><p class="s">Accès direct</p>
+      <p>Quand la plateforme expose ses transactions, elles sont lues à la source.</p></li>
+  <li><h4><span class="ref">C3</span>Archives d'enchères</h4><p class="s">Résultats publiés</p>
+      <p>Les maisons de vente publient leurs résultats adjugés : la source la plus fiable pour les
+         pièces rares.</p></li>
+  <li><h4><span class="ref">C4</span>Scraping tiers</h4><p class="s">Pages publiques</p>
+      <p>Pour les plateformes sans accès programmatique, lecture des pages de ventes terminées.</p></li>
+  <li><h4><span class="ref">C5</span>Saisie assistée</h4><p class="s">Apport humain</p>
+      <p>Ventes de gré à gré, salons et clubs : saisies à la main puis contrôlées. Également la voie
+         d'entrée des objets sans marché secondaire, comme l'œuvre d'un artiste vivant non coté.</p></li>
+  <li><h4><span class="ref">C6</span>Format pivot</h4><p class="s">Un schéma unique</p>
+      <p>Toutes les sources sont ramenées au même schéma : objet, prix, date, état, devise,
+         plateforme, et depuis la v5 les trois champs de liquidité.</p></li>
+  <li><h4><span class="ref">C7</span>Ventes conclues</h4><p class="s">Entrent dans la cote</p>
+      <p>La seule branche qui alimente la cotation.</p></li>
+  <li><h4><span class="ref">C8</span>Annonces actives</h4><p class="s">Alimentent la tension</p>
+      <p>Jamais utilisées comme prix. Elles servent uniquement à mesurer la pression de l'offre.</p></li>
+</ul>
+
+<!-- ============ RÈGLES ============ -->
+<h2 id="regles">Règles structurantes</h2>
+<p class="chapo">Ce qui ne se renégocie pas d'une version à l'autre.</p>
+<ul class="regles">
+  <li><b>L'IA sert à trouver où chercher et à expliquer ce qu'on a trouvé, jamais à produire un
+      chiffre entrant dans la cote.</b> Les recherches de prix neuf et les explorations de
+      marketplaces par IA ont des usages légitimes en amont — ancrage de la fourchette plausible au
+      bloc 2, découverte assistée de plateformes au bloc 5 — mais aucune de leurs sorties n'alimente
+      la valorisation.</li>
+  <li><b>Seules les ventes conclues cotent.</b> Les prix d'annonce mesurent la tension, jamais la
+      valeur.</li>
+  <li><b>La maille se détermine avant tout branchement de capteur.</b> Sans unité d'échange fixée,
+      la collecte produit du bruit d'appariement.</li>
+  <li><b>Le routeur route sur des propriétés d'objet, pas sur des noms d'univers.</b> C'est ce qui
+      permet d'accueillir un univers nouveau sans refonte.</li>
+  <li><b>La sortie est une fourchette avec son canal, jamais une valeur unique.</b> Un système qui
+      affiche un nombre unique sur un marché à trois canaux ment.</li>
+  <li><b>Identification et disponibilité des prix sont deux signaux indépendants.</b> Bien identifier
+      un objet ne garantit pas qu'on puisse le coter, et inversement.</li>
+</ul>
+
+<!-- ============ TROUS ============ -->
+<h2 id="trous">Trous ouverts</h2>
+<p class="chapo">Points non résolus. Le schéma évolue à chaque faille identifiée.</p>
+<ol class="trous">
+  <li><b>Plafond budgétaire de la collection</b>
+      Environ 20 objets surveillables en quotidien sur un budget de 700 €/an. Que fait le système
+      au-delà ? Dégradation de la fréquence, sélection par valeur, ou refus d'ajout.</li>
+  <li><b>Profil d'objet incertain</b>
+      Comportement quand l'antenne identité rend un niveau de certitude bas : demander une photo
+      complémentaire, proposer plusieurs profils candidats, ou passer en saisie assistée.</li>
+  <li><b>Axe état de l'objet</b>
+      L'état pilote une large part de la valeur et n'est pas déductible de façon fiable d'une photo.
+      Échelle à définir, et effet sur la fourchette à modéliser.</li>
+  <li><b>Espaces communautaires fermés</b>
+      Discord et groupes Facebook privés sont structurellement non explorables. Pour les univers
+      dont le marché vit dans ces espaces, le signal ne se capte que sur les traces publiques.
+      Trou de couverture assumé en V1, à documenter côté client.</li>
+  <li><b>Trous 5 à 7 de la v4</b>
+      Non repris dans cette reconstruction. À recompléter depuis les notes de la session
+      du 2 septembre.</li>
+</ol>
+
+<!-- ============ JOURNAL ============ -->
+<h2 id="journal">Journal des versions</h2>
+<table>
+  <thead><tr><th>Version</th><th>Modification</th></tr></thead>
+  <tbody>
+    <tr><td>v5</td><td>Reconstruction depuis le contenu du canevas. Capteur de liquidité au bloc 6.
+        Cas 3 hors couverture au bloc 8c. Surveillance de l'émetteur au bloc 10. Prix neuf déclaratif
+        au bloc 2. Maille du scellé au bloc 3. Cran de sécurité du routeur au bloc 5. Sortie en
+        fourchette avec canal au bloc 11. Deux trous ouverts ajoutés.</td></tr>
+    <tr><td>v4</td><td>Onze blocs, zooms blocs 2 et 5, catalogue des capteurs. Bloc 5 séparé en deux
+        régimes. Antenne identité portée à trois sorties.</td></tr>
+  </tbody>
+</table>
+
+<footer>
+  Document de travail interne. Le canevas destiné à la cliente est maintenu séparément
+  dans <code>docs/canevas.html</code>. Les modifications se font par remplacement de bloc :
+  chaque bloc est repérable par son commentaire HTML.
+</footer>
+
+</div>
+</body>
+</html>
