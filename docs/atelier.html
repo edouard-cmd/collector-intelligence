@@ -83,6 +83,15 @@
   .rail i{position:absolute;top:0;bottom:0;background:var(--ia);display:block}
   .prix{font-size:13px;font-weight:700;text-align:right}
   #barre{transition:width .25s}
+  .attente{display:flex;align-items:center;gap:11px;margin-top:12px;
+    border:3px solid var(--struct);background:#fff;padding:11px 14px}
+  .rotor{width:19px;height:19px;flex:0 0 19px;border:3px solid var(--struct);
+    border-top-color:var(--ia);border-radius:50%;animation:tourne .8s linear infinite}
+  @keyframes tourne{to{transform:rotate(360deg)}}
+  .attente span{font-size:14px;font-weight:700}
+  .attente em{font-size:13px;color:var(--gris);font-style:normal;margin-left:auto;
+    font-variant-numeric:tabular-nums}
+  @media(prefers-reduced-motion:reduce){.rotor{animation:none}}
   #journal{font-size:13px;margin-top:8px;max-height:190px;overflow:auto}
   #journal div{display:flex;gap:8px;align-items:center;padding:2px 0}
   #journal b{min-width:150px}
@@ -288,22 +297,62 @@ async function appeler(systeme, contenu, recherche, plafond, modele) {
   return reparer(t);
 }
 
-/* Une réponse coupée en plein vol reste exploitable : on retient les éléments
-   complets du tableau et on referme la structure. Mieux vaut six plateformes
-   sur huit qu'un échec sec. */
+/* Une réponse coupée en plein vol reste exploitable. On coupe à la dernière valeur
+   complète et on referme les structures restées ouvertes. Mieux vaut un profil
+   partiel qu'un échec sec — surtout que la partie coupée est toujours la fin,
+   c'est-à-dire les requêtes les plus larges, les moins utiles. */
 function reparer(t) {
-  const cle = t.match(/"(entrees|requetes)"\s*:\s*\[/);
-  if (!cle) throw new Error("réponse illisible et non réparable");
-  const debut = t.indexOf('[', cle.index);
-  let prof = 0, fin = -1;
-  for (let i = debut; i < t.length; i++) {
-    if (t[i] === '{') prof++;
-    else if (t[i] === '}') { prof--; if (prof === 0) fin = i; }
+  const d = t.indexOf('{');
+  if (d === -1) throw new Error(`réponse sans JSON : ${t.slice(0, 120)}`);
+  t = t.slice(d);
+
+  const pile = [];
+  let dansTexte = false, echap = false, sur = 0;
+
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (echap) { echap = false; continue; }
+    if (c === '\\') { echap = true; continue; }
+    if (c === '"') { dansTexte = !dansTexte; if (!dansTexte) sur = i + 1; continue; }
+    if (dansTexte) continue;
+    if (c === '{' || c === '[') pile.push(c === '{' ? '}' : ']');
+    else if (c === '}' || c === ']') { pile.pop(); sur = i + 1; }
+    else if (c === ',' || (/\d/.test(c) && !/[\d.]/.test(t[i + 1] || ''))) sur = i + 1;
   }
-  if (fin === -1) throw new Error("réponse tronquée trop tôt");
-  const objets = JSON.parse(t.slice(debut, fin + 1) + ']');
-  console.warn(`réponse tronquée : ${objets.length} éléments récupérés`);
-  return { [cle[1]]: objets, tronque: true };
+
+  let base = t.slice(0, sur).replace(/,\s*$/, '');
+  // une clé sans valeur en fin de coupe rendrait le JSON invalide
+  base = base.replace(/,?\s*"[^"]*"\s*:\s*$/, '');
+
+  for (let i = pile.length - 1; i >= 0; i--) base += pile[i];
+
+  try {
+    const o = JSON.parse(base);
+    o.tronque = true;
+    console.warn("réponse tronquée, recollée :", Object.keys(o));
+    return o;
+  } catch (e) {
+    throw new Error(`réponse tronquée et non recollable (${t.length} car. reçus)`);
+  }
+}
+
+/* Un appel long sans retour visuel passe pour un plantage. On ne peut pas mesurer
+   l'avancement d'un appel unique, alors on montre ce qui se passe et le temps écoulé. */
+function attendre(cible, etapes) {
+  const el = document.querySelector(cible);
+  el.innerHTML = `<div class="attente"><i class="rotor"></i>
+    <span id="att-txt">${etapes[0]}</span><em id="att-t">0 s</em></div>`;
+  const t0 = Date.now();
+  let i = 0;
+  const h = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    const t = document.getElementById('att-t');
+    if (!t) return clearInterval(h);
+    t.textContent = s + " s";
+    const suivant = Math.min(Math.floor(s / 12), etapes.length - 1);
+    if (suivant !== i) { i = suivant; document.getElementById('att-txt').textContent = etapes[i]; }
+  }, 1000);
+  return () => { clearInterval(h); el.innerHTML = ''; };
 }
 
 /* Coût réel, lu dans la réponse. Tarifs Sonnet en $/M tokens, converti en euros.
@@ -378,7 +427,16 @@ cet objet s'échange réellement.`;
 
 $('#identifier').onclick = async () => {
   const b = $('#identifier');
-  b.disabled = true; $('#etat1').textContent = `identification sur ${images.length} vue${images.length>1?"s":""}…`;
+  b.disabled = true;
+  $('#etat1').textContent = "";
+  const fin1 = attendre('#sortie1', [
+    `lecture des ${images.length} vue${images.length > 1 ? 's' : ''}`,
+    "recherche des références du modèle",
+    "vérification des variantes possibles",
+    "construction de la signature de recherche",
+    "estimation de la fourchette et des facteurs de valeur",
+    "encore un instant, la recherche web est en cours"
+  ]);
   try {
     let texte = images.length > 1
       ? `Identifie cet objet de collection. ${images.length} vues du MÊME objet te sont fournies,
@@ -395,26 +453,30 @@ défaut visible sur une vue doit peser sur l'état retenu.`
       source: { type: "base64", media_type: im.media_type, data: im.data }
     }));
     contenu.push({ type: "text", text: texte });
-    const d = await appeler(SYS_ID, contenu, true);
+    const d = await appeler(SYS_ID, contenu, true, 8000);
 
+    fin1();
     profil = Object.assign(profil, d);
     afficherIdentite(d);
     allume(4);
     $('#router').disabled = false;
     $('#etat1').textContent = "";
   } catch (e) {
+    fin1();
     $('#sortie1').innerHTML = `<div class="warn">échec : ${e.message}</div>`;
-    $('#etat1').textContent = "";
   }
   b.disabled = false;
 };
 
 function afficherIdentite(d) {
+  if (d.tronque) console.warn("identité partielle");
   const cm = Math.round((d.certitude_modele ?? d.certitude ?? 0) * 100);
   const cv = Math.round((d.certitude_variante ?? d.certitude ?? 0) * 100);
   const faible = cm < 60;
   const f = d.fourchette_plausible || {};
   let h = `<div class="res">
+    ${d.tronque ? `<div class="info">réponse du modèle tronquée : les derniers champs
+      manquent. Relancer pour la version complète.</div>` : ''}
     <h3>bloc 2 — identité</h3>
     <dl class="kv">
       <dt>univers</dt><dd>${d.univers || "—"}</dd>
@@ -551,13 +613,22 @@ dans "hors_couverture".`;
 
 $('#router').onclick = async () => {
   const b = $('#router');
-  b.disabled = true; $('#etat2').textContent = "recherche des places de marché…";
+  b.disabled = true;
+  $('#etat2').textContent = "";
+  const fin2 = attendre('#sortie2', [
+    "inventaire des places de marché de cet univers",
+    "recherche des pages de ventes conclues",
+    "vérification des URL et de la pagination",
+    "classement par strate et cadrage des fourchettes",
+    "encore un instant"
+  ]);
   try {
     const d = await appeler(SYS_ROUTE,
       `Objet : ${profil.description}\nUnivers : ${profil.univers}\nMaille : ${profil.maille}\n` +
       `Termes retenus : ${(profil.requetes || []).slice(0, 8).map(r => r.terme).join(", ")}`,
       true, 8000, "claude-haiku-4-5-20251001");
     profil.entrees = d.entrees || [];
+    fin2();
     profil.hors_couverture = d.hors_couverture || null;
     afficherRoutage(d);
     allume(5);
@@ -565,8 +636,8 @@ $('#router').onclick = async () => {
     $('#collecter').disabled = !(d.entrees || []).some(e => e.nature === "ventes");
     $('#etat2').textContent = "";
   } catch (e) {
+    fin2();
     $('#sortie2').innerHTML = `<div class="warn">échec : ${e.message}</div>`;
-    $('#etat2').textContent = "";
   }
   b.disabled = false;
 };
