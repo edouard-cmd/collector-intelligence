@@ -234,10 +234,10 @@ function peindre() {
 }
 
 /* ---------- appel API ---------- */
-async function appeler(systeme, contenu, recherche) {
+async function appeler(systeme, contenu, recherche, plafond) {
   const corps = {
     model: "claude-sonnet-5",
-    max_tokens: 4000,
+    max_tokens: plafond || 4000,
     system: systeme + "\n\nRéponds uniquement par du JSON valide, sans préambule ni balises de code.",
     messages: [{ role: "user", content: contenu }]
   };
@@ -253,11 +253,28 @@ async function appeler(systeme, contenu, recherche) {
   chiffrer(d.usage, d.content);
   let t = d.content.filter(b => b.type === "text").map(b => b.text).join("\n").trim();
   t = t.replace(/^```(?:json)?/m, '').replace(/```$/m, '').trim();
-  try { return JSON.parse(t); }
-  catch { 
-    const a = t.indexOf('{'), z = t.lastIndexOf('}');
-    return JSON.parse(t.slice(a, z + 1));
+  try { return JSON.parse(t); } catch {}
+  const a = t.indexOf('{'), z = t.lastIndexOf('}');
+  if (a !== -1 && z > a) { try { return JSON.parse(t.slice(a, z + 1)); } catch {} }
+  return reparer(t);
+}
+
+/* Une réponse coupée en plein vol reste exploitable : on retient les éléments
+   complets du tableau et on referme la structure. Mieux vaut six plateformes
+   sur huit qu'un échec sec. */
+function reparer(t) {
+  const cle = t.match(/"(entrees|requetes)"\s*:\s*\[/);
+  if (!cle) throw new Error("réponse illisible et non réparable");
+  const debut = t.indexOf('[', cle.index);
+  let prof = 0, fin = -1;
+  for (let i = debut; i < t.length; i++) {
+    if (t[i] === '{') prof++;
+    else if (t[i] === '}') { prof--; if (prof === 0) fin = i; }
   }
+  if (fin === -1) throw new Error("réponse tronquée trop tôt");
+  const objets = JSON.parse(t.slice(debut, fin + 1) + ']');
+  console.warn(`réponse tronquée : ${objets.length} éléments récupérés`);
+  return { [cle[1]]: objets, tronque: true };
 }
 
 /* Coût réel, lu dans la réponse. Tarifs Sonnet en $/M tokens, converti en euros.
@@ -428,7 +445,8 @@ Format : {"entrees":[{"plateforme":"...","nature":"ventes|annonces",
 "strate":"particuliers|authentifies|encheres",
 "fourchette":{"bas":0,"haut":0,"devise":"EUR"},
 "url_modele":"https://.../?q={q}&page={page}","page_debut":1,"pages_max":20,
-"note":"...","limite":"fenêtre d\'historique ou restriction connue, ou null"}],
+"note":"une phrase, 20 mots maximum",
+"limite":"fenêtre d\'historique ou restriction, 12 mots maximum, ou null"}],
 "hors_couverture": null}
 
 Si aucune source publique ne permet de coter cet objet, retourne "entrees":[] et une raison
@@ -441,7 +459,7 @@ $('#router').onclick = async () => {
     const d = await appeler(SYS_ROUTE,
       `Objet : ${profil.description}\nUnivers : ${profil.univers}\nMaille : ${profil.maille}\n` +
       `Termes retenus : ${(profil.requetes || []).slice(0, 8).map(r => r.terme).join(", ")}`,
-      true);
+      true, 8000);
     profil.entrees = d.entrees || [];
     profil.hors_couverture = d.hors_couverture || null;
     afficherRoutage(d);
@@ -482,7 +500,10 @@ function afficherRoutage(d) {
   const annonces = d.entrees.length - ventes;
   const strates = new Set(d.entrees.map(e => e.strate).filter(Boolean));
 
-  let h = `<div class="res"><h3>${d.entrees.length} points d'entrée
+  let h = `<div class="res">
+    ${d.tronque ? `<div class="info">réponse du modèle tronquée : seules les plateformes
+      complètes ont été retenues. Relancer pour la liste entière.</div>` : ''}
+    <h3>${d.entrees.length} points d'entrée
     — ${ventes} en ventes conclues, ${annonces} en annonces
     — ${strates.size} strate${strates.size > 1 ? 's' : ''} sur 3</h3>`;
 
