@@ -293,7 +293,7 @@
 
 <script>
 const PASSERELLE = "https://collector-passerelle.edouard-e8b.workers.dev";
-let images = [], profil = {}, cout = 0, dernierBrut = null;
+let images = [], profil = {}, cout = 0, dernierBrut = null, suivi = null;
 const MAX_VUES = 8, COTE_MAX = 1568;
 
 const $ = s => document.querySelector(s);
@@ -376,14 +376,15 @@ async function appeler(systeme, contenu, recherche, plafond, modele, opts = {}) 
     corps.tools = [outil];
   }
 
+  corps.stream = true;
   const envoyer = async () => {
     const r = await fetch(PASSERELLE, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(corps)
     });
-    if (!r.ok) throw new Error((await r.text()).slice(0, 300));
-    const x = await r.json();
+    if (!r.ok) throw new Error(messageErreur(r.status, (await r.text()).slice(0, 300)));
+    const x = await lireFlux(r);
     chiffrer(x.usage, x.content, corps.model);
     return x;
   };
@@ -404,6 +405,84 @@ async function appeler(systeme, contenu, recherche, plafond, modele, opts = {}) 
   const a = t.indexOf('{'), z = t.lastIndexOf('}');
   if (a !== -1 && z > a) { try { return JSON.parse(t.slice(a, z + 1)); } catch {} }
   return reparer(t);
+}
+
+/* Lecture du flux de l'API (événements SSE). On reconstruit le message complet tel que
+   l'aurait rendu un appel classique — blocs de texte, recherches web et leurs résultats,
+   usage, motif d'arrêt — pour que tout le reste du code reste inchangé. En chemin, on
+   tient l'écran d'attente informé : recherches effectuées, texte reçu. */
+async function lireFlux(r) {
+  const lecteur = r.body.getReader();
+  const dec = new TextDecoder();
+  const msg = { content: [], usage: {}, stop_reason: null };
+  const blocs = [];
+  let tampon = "", recherches = 0, recu = 0;
+
+  const traiter = (ev) => {
+    switch (ev.type) {
+      case "message_start":
+        Object.assign(msg.usage, ev.message?.usage || {});
+        break;
+      case "content_block_start": {
+        const b = { ...ev.content_block };
+        if (b.type === "text") b.text = b.text || "";
+        if (b.type === "server_tool_use") { b._json = ""; recherches++; }
+        blocs[ev.index] = b;
+        break;
+      }
+      case "content_block_delta": {
+        const b = blocs[ev.index];
+        if (!b) break;
+        if (ev.delta.type === "text_delta") { b.text += ev.delta.text; recu += ev.delta.text.length; }
+        else if (ev.delta.type === "input_json_delta") b._json += ev.delta.partial_json || "";
+        break;
+      }
+      case "content_block_stop": {
+        const b = blocs[ev.index];
+        if (b && b._json !== undefined) {
+          try { b.input = JSON.parse(b._json || "{}"); } catch {}
+          delete b._json;
+        }
+        break;
+      }
+      case "message_delta":
+        if (ev.delta?.stop_reason) msg.stop_reason = ev.delta.stop_reason;
+        Object.assign(msg.usage, ev.usage || {});
+        break;
+      case "error":
+        throw new Error(messageErreur(0, ev.error?.message || "erreur dans le flux"));
+    }
+    if (suivi) suivi({ recherches, recu });
+  };
+
+  for (;;) {
+    const { done, value } = await lecteur.read();
+    if (done) break;
+    tampon += dec.decode(value, { stream: true });
+    let i;
+    while ((i = tampon.indexOf("\n\n")) !== -1) {
+      const bloc = tampon.slice(0, i);
+      tampon = tampon.slice(i + 2);
+      const donnees = bloc.split("\n").filter(l => l.startsWith("data:"))
+                          .map(l => l.slice(5).trim()).join("");
+      if (!donnees) continue;
+      let ev;
+      try { ev = JSON.parse(donnees); } catch { continue; }
+      traiter(ev);
+    }
+  }
+  msg.content = blocs.filter(Boolean);
+  return msg;
+}
+
+function messageErreur(statut, texte) {
+  if (statut === 524 || /\b524\b/.test(texte))
+    return "délai dépassé (524) : l'appel a duré plus de 100 secondes sans réponse. Relancer ; si ça se répète, décocher la recherche approfondie.";
+  if (statut === 529 || /overloaded/i.test(texte))
+    return "l'API est surchargée pour le moment. Relancer dans une minute.";
+  if (statut === 429 || /rate.?limit/i.test(texte))
+    return "trop d'appels rapprochés. Attendre une minute avant de relancer.";
+  return texte;
 }
 
 /* Une réponse coupée en plein vol reste exploitable. Plutôt que de deviner où elle
@@ -453,7 +532,13 @@ function reparer(t) {
 function attendre(cible, etapes) {
   const el = document.querySelector(cible);
   el.innerHTML = `<div class="attente"><i class="rotor"></i>
-    <span id="att-txt">${etapes[0]}</span><em id="att-t">0 s</em></div>`;
+    <span id="att-txt">${etapes[0]}</span><em id="att-t">0 s</em></div>
+    <p class="etat" id="att-flux" style="margin:6px 0 0"></p>`;
+  suivi = ({ recherches, recu }) => {
+    const f = document.getElementById('att-flux');
+    if (f) f.textContent = `${recherches} recherche${recherches > 1 ? 's' : ''} web effectuée${
+      recherches > 1 ? 's' : ''} · ${recu.toLocaleString('fr-FR')} caractères de réponse reçus`;
+  };
   const t0 = Date.now();
   let i = 0;
   const minuteur = setInterval(() => {
@@ -464,7 +549,7 @@ function attendre(cible, etapes) {
     const suivant = Math.min(Math.floor(s / 12), etapes.length - 1);
     if (suivant !== i) { i = suivant; document.getElementById('att-txt').textContent = etapes[i]; }
   }, 1000);
-  return () => { clearInterval(minuteur); el.innerHTML = ''; };
+  return () => { clearInterval(minuteur); suivi = null; el.innerHTML = ''; };
 }
 
 /* Coût réel, lu dans la réponse. Tarifs en $/M tokens, converti en euros.
