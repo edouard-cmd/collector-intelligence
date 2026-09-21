@@ -1142,8 +1142,17 @@ vente ou vendues sur les places de marché : annonce, fiche produit, lot d'ench�
 
 Méthode : choisis les places de marché propres à cet univers, sur les trois strates — entre
 particuliers, revendeurs authentifiés, enchères — et interroge-les avec l'opérateur site:
-(par exemple  site:exemple.com  suivi du nom de l'objet). Varie les formulations et les langues
-des marchés où cet objet circule.
+(par exemple  site:exemple.com  suivi du nom de l'objet).
+
+Tes requêtes vont du plus précis au plus large, jamais l'inverse :
+  1. d'abord le modèle AVEC ses attributs distinctifs — ceux qui le séparent des autres pièces de
+     la marque : couleur, matière, référence, taille, édition. Tire-les de la description. Écris-les
+     comme les vendeurs les écrivent, dans la langue du site : doré, gold, or, golden…
+  2. ensuite le modèle seul, sans attribut
+  3. enfin, seulement si ça ne suffit pas, la marque avec le type d'objet et les attributs
+Pars des termes de la signature de recherche qu'on te fournit : ils ont été établis à
+l'identification. Une requête sans attribut distinctif ramène toutes les pièces de la marque et
+noie l'objet ; c'est la première cause de hors-sujet.
 
 Ne retiens QUE des pages consacrées à UN article précis. Jamais une page de résultats, de
 catégorie, de marque ou d'article de blog. L'URL doit être exactement celle d'un résultat de ta
@@ -1153,10 +1162,14 @@ Pour chaque fiche :
 - le prix tel qu'il apparaît sur la page ; null s'il n'y figure pas. N'estime jamais un prix.
 - statut : "vendu" si la page indique une vente conclue ou une adjudication, "en_vente" si
   l'article est proposé, "inconnu" sinon
-- correspondance avec l'objet recherché : "exacte" (même modèle, même déclinaison), "modele"
-  (même modèle, déclinaison différente), "famille" (même gamme ou collaboration),
-  "comparable" (autre marque ou autre modèle, mais même classe d'objet — voir plus bas).
-  Écarte tout le reste sans le mentionner.
+- correspondance avec l'objet recherché, à juger sur le NOM DU MODÈLE avant tout :
+  "exacte"     — même nom de modèle ET mêmes attributs distinctifs (couleur, matière…)
+  "modele"     — même nom de modèle mais un attribut différent (autre couleur), OU l'un des
+                 modèles alternatifs plausibles qu'on te fournit
+  "famille"    — même marque, AUTRE nom de modèle. Une fiche qui porte un nom de modèle
+                 différent n'est jamais "modele", même si elle lui ressemble.
+  "comparable" — autre marque, même classe d'objet (voir plus bas)
+  Dans le doute entre deux niveaux, choisis le plus éloigné. Écarte tout le reste.
 - neuf : true si vendu neuf par un marchand ou la marque, false si occasion
 
 Vise entre 10 et 30 fiches pertinentes. Moins vaut mieux que du hors-sujet.
@@ -1228,9 +1241,13 @@ async function lancerMarche() {
       `univers : ${profil.univers || '?'} · marque : ${profil.marque || '?'} · ` +
       `modèle : ${profil.modele || '?'} · référence : ${profil.reference || '?'}\n` +
       (profil.hypotheses_concurrentes?.length
-        ? `déclinaisons possibles : ${profil.hypotheses_concurrentes.join(' ; ')}\n` : '') +
-      `termes de recherche éprouvés : ` +
-      (profil.requetes || []).slice(0, 8).map(r => r.terme).join(' | '),
+        ? `modèles alternatifs plausibles : ${profil.hypotheses_concurrentes.join(' ; ')}\n` : '') +
+      `signature de recherche, termes précis : ` +
+      (profil.requetes || []).filter(r => r.precision !== 'large').slice(0, 14)
+        .map(r => r.terme).join(' | ') + `\n` +
+      `signature de recherche, termes larges : ` +
+      (profil.requetes || []).filter(r => r.precision === 'large').slice(0, 6)
+        .map(r => r.terme).join(' | '),
       profond ? 10 : 6, 7000,
       profond ? "claude-sonnet-5" : "claude-haiku-4-5-20251001",
       { pays: "FR" });
@@ -1325,7 +1342,11 @@ function rendreMarche() {
            l'objet ni d'un comparable. Pour une marque absente du web, c'est une réponse vraie :
            la cote devra passer par la saisie assistée ou une expertise.`
         : `Des fiches ont été proposées, mais aucune adresse ne figurait parmi les pages réellement
-           consultées : elles ont été écartées par précaution. Relancer peut suffire.`}</p></div>`;
+           consultées : elles ont été écartées par précaution. Relancer peut suffire.`}</p>
+      ${!$('#approfondi').checked ? `<div style="margin-top:12px"><button id="elargir">élargir la
+        recherche</button> <span class="etat">Sonnet, 10 recherches, environ 0,25 €</span></div>` : ''}
+      </div>`;
+    brancherElargir();
     return;
   }
 
@@ -1362,6 +1383,11 @@ function rendreMarche() {
   else if (comps.length >= 3) { cas = '8b'; libelle = "cote par comparables — objets de même classe, pas cet objet"; fond = 'var(--clair)'; }
   else { cas = 3; libelle = "cas 3 — trop peu de fiches pour une cote défendable"; fond = 'var(--alerte)'; }
   profil.cas = cas;
+  const mince = (cas === 3 || cas === '8c') && !$('#approfondi').checked;
+  const boutonElargir = mince ? `<div style="margin:12px 0 0;display:flex;gap:10px;align-items:center;
+      flex-wrap:wrap"><button id="elargir">élargir la recherche</button>
+      <span class="etat">Sonnet, 10 recherches, environ 0,25 € — avant de conclure à un manque
+      de données, c'est souvent la recherche qui était trop courte.</span></div>` : '';
 
   const tally = {};
   fiches.forEach(f => { const c = niveau(f).cle; tally[c] = (tally[c] || 0) + 1; });
@@ -1376,6 +1402,7 @@ function rendreMarche() {
       ${vendues.length} vente${vendues.length > 1 ? 's' : ''} conclue${vendues.length > 1 ? 's' : ''} et
       ${offertes.length} annonce${offertes.length > 1 ? 's' : ''} d'occasion retenues
       ${strict ? '<b>(prix confirmés aujourd\'hui uniquement)</b>' : ''}.</div>
+    ${boutonElargir}
 
     ${classe && comps.length ? `<div class="info" style="margin:10px 0 0"><b>classe de comparables
       retenue :</b> ${classe}. Ces objets ne sont pas le tien : ils situent un ordre de grandeur,
@@ -1464,8 +1491,14 @@ function rendreMarche() {
   </div>`;
 
   $('#sortie-marche').innerHTML = h + `</div>`;
+  brancherElargir();
   const s = $('#strict');
   if (s && s.addEventListener) s.addEventListener('change', rendreMarche);
+}
+
+function brancherElargir() {
+  const b = document.getElementById('elargir');
+  if (b) b.onclick = () => { $('#approfondi').checked = true; lancerMarche(); };
 }
 
 /* Contrôle de chaque fiche par la passerelle : aucun appel à Claude, donc aucun coût. */
@@ -1644,11 +1677,12 @@ function afficherRoutage(d) {
     const dev = chiffrees[0].fourchette.devise || "EUR";
     const pos = v => ((v - bas) / (haut - bas || 1)) * 100;
 
-    h += `<p style="margin:14px 0 3px;font-size:13px;font-weight:700">écart entre canaux</p>
-      <p class="aide" style="margin:0 0 10px">Repères de cadrage, pas des cotes. Le rapport
-      entre le canal le moins cher et le plus cher est de
-      <b>${(haut / (bas || 1)).toFixed(1)}×</b> — c'est pourquoi la sortie du système est une
-      fourchette avec son canal, jamais un chiffre unique.</p>`;
+    h += `<p style="margin:14px 0 3px;font-size:13px;font-weight:700">fourchettes estimées par le
+      modèle — non mesurées</p>
+      <p class="aide" style="margin:0 0 10px">Ces barres viennent des connaissances générales du
+      modèle et d'extraits de recherche, pas de prix constatés. Elles servent seulement à écarter
+      les aberrations pendant la collecte. Les prix mesurés, fiche par fiche, sont dans le bloc
+      marché.</p>`;
 
     chiffrees.sort((a, b) => a.fourchette.bas - b.fourchette.bas).forEach(e => {
       h += `<div class="ligne">
@@ -1676,7 +1710,7 @@ function afficherRoutage(d) {
           <span style="font-size:12.5px;color:var(--gris)">${e.nature} · ${e.pages_max} pages</span>
           ${e.niveau ? `<span class="puce" style="margin:0;font-size:11.5px;background:${
             e.niveau === 'exact' ? 'var(--data)' : 'var(--clair)'}">${e.niveau}</span>` : ''}
-          ${f.haut ? `<span class="puce" style="margin:0 0 0 auto">${f.bas}–${f.haut} ${f.devise || ''}</span>` : ''}
+          ${f.haut ? `<span class="puce" style="margin:0 0 0 auto;border-style:dashed">${f.bas}–${f.haut} ${f.devise || ''} · estimé</span>` : ''}
         </div>
         <a href="${ouvrable(e)}" target="_blank" rel="noopener"
            style="font-size:12.5px;display:inline-block;margin-top:4px;color:var(--ia)">ouvrir cette
@@ -1710,10 +1744,12 @@ qui ne correspondent PAS à l'objet recherché : autres modèles de la marque, s
 sponsorisés, "vous aimerez aussi". Tu ne retiens QUE les lignes qui décrivent réellement l'objet
 décrit ci-dessous.
 
-Pour chaque ligne retenue, tu indiques dans "correspondance" à quel point elle colle :
-  "exacte"   — même modèle, même déclinaison (taille, coloris, édition)
-  "modele"   — même modèle, déclinaison différente
-  "famille"  — même gamme ou même collaboration, modèle différent
+Pour chaque ligne retenue, tu indiques dans "correspondance" à quel point elle colle, en
+jugeant sur le NOM DU MODÈLE avant tout :
+  "exacte"   — même nom de modèle ET mêmes attributs distinctifs (couleur, matière, édition)
+  "modele"   — même nom de modèle avec un attribut différent, ou un modèle alternatif plausible
+  "famille"  — même marque, AUTRE nom de modèle. Une ligne qui porte un autre nom de modèle
+               n'est jamais "modele", même si elle lui ressemble.
 N'invente pas la correspondance : si le libellé ne permet pas de trancher, mets "famille".
 
 Écarte purement et simplement tout ce qui n'entre dans aucun de ces trois cas. Une page qui ne
@@ -1821,6 +1857,8 @@ $('#collecter').onclick = async () => {
           `OBJET RECHERCHÉ : ${profil.description}\n` +
           `marque : ${profil.marque || '?'} · modèle : ${profil.modele || '?'} · ` +
           `référence : ${profil.reference || '?'}\n` +
+          (profil.hypotheses_concurrentes?.length
+            ? `modèles alternatifs plausibles : ${profil.hypotheses_concurrentes.join(' ; ')}\n` : '') +
           `niveau de maille demandé : ${e.niveau || 'exact'}\n\n` +
           `plateforme : ${e.plateforme}\nnature attendue : ${e.nature}\nurl : ${url}\n\n${p.texte.slice(0, 16000)}`,
           false, 6000, "claude-haiku-4-5-20251001");
@@ -1829,10 +1867,10 @@ $('#collecter').onclick = async () => {
         vusPage.add(sceau);
         (d.ventes || []).forEach(v => ventes.push({ ...v, plateforme: e.plateforme,
                        strate: e.strate, domaine: e.domaine,
-                       niveau: v.correspondance || e.niveau || "exact" }));
+                       niveau: normNiveau(v.correspondance || e.niveau) }));
         (d.annonces || []).forEach(a => annonces.push({ ...a, plateforme: e.plateforme,
                        strate: e.strate, domaine: e.domaine,
-                       niveau: a.correspondance || e.niveau || "exact" }));
+                       niveau: normNiveau(a.correspondance || e.niveau) }));
         ecartes += (d.ecartes || 0);
         tracer(`${e.plateforme} p${n}`, 'ok',
                `${nv} vente(s), ${na} annonce(s)` +
@@ -1868,6 +1906,11 @@ $('#collecter').onclick = async () => {
   b.disabled = false;
 };
 
+/* "exact" vient du routeur, "exacte" de l'extraction : même sens, un seul mot. */
+const normNiveau = n => !n || n === 'exact' ? 'exacte' : n;
+/* Un autre modèle de la marque peut s'afficher pour le contexte, jamais entrer dans un prix. */
+const horsFamille = x => !['famille', 'comparable'].includes(normNiveau(x.niveau || x.correspondance));
+
 function dedoublonner(liste, champ = "prix") {
   const vus = new Set();
   return liste.filter(x => {
@@ -1895,7 +1938,7 @@ function afficherVentes(ventes, annonces, journal) {
     return;
   }
   if (!ventes.length) {
-    const exa = annonces.filter(a => (a.niveau || "exacte") === "exacte").length;
+    const exa = annonces.filter(a => normNiveau(a.niveau) === "exacte").length;
     $('#sortie4').innerHTML = `<div class="warn">aucune vente conclue, mais
       ${annonces.length} annonces en cours${exa ? `, dont ${exa} sur la référence exacte` :
       ` — <b>aucune sur la référence exacte</b>, ce ne sont que des voisins de gamme`}.
@@ -1903,10 +1946,10 @@ function afficherVentes(ventes, annonces, journal) {
       + `<div class="res">${(() => { let x = ''; const pa = {};
          annonces.forEach(a => (pa[a.plateforme] ||= []).push(a));
          Object.entries(pa).forEach(([p, lot]) => {
-           const prix = lot.map(a => +a.prix_demande).filter(Boolean).sort((u, v) => u - v);
+           const prix = lot.filter(horsFamille).map(a => +a.prix_demande).filter(Boolean).sort((u, v) => u - v);
            if (!prix.length) return;
-           const bas = lot.find(a => +a.prix_demande === prix[0]);
-           const haut = lot.find(a => +a.prix_demande === prix[prix.length - 1]);
+           const bas = lot.filter(horsFamille).find(a => +a.prix_demande === prix[0]);
+           const haut = lot.filter(horsFamille).find(a => +a.prix_demande === prix[prix.length - 1]);
            x += `<p style="margin:9px 0 3px;font-weight:700;display:flex;gap:8px;
                  align-items:center;font-size:13.5px">${logo(lot[0])}${p}
                  <span style="color:var(--gris);font-weight:400">${prix.length} annonces</span></p>
@@ -1921,8 +1964,8 @@ function afficherVentes(ventes, annonces, journal) {
     return;
   }
 
-  const exactes = ventes.filter(v => (v.niveau || "exact") === "exact");
-  const cas = exactes.length >= 12 ? 1 : (ventes.length >= 3 ? 2 : 3);
+  const exactes = ventes.filter(v => normNiveau(v.niveau) === "exacte");
+  const cas = exactes.length >= 12 ? 1 : (ventes.filter(horsFamille).length >= 3 ? 2 : 3);
   profil.cas = cas;
 
   const LIB_CAS = {
@@ -1947,17 +1990,25 @@ function afficherVentes(ventes, annonces, journal) {
 
   const meds = [];
   Object.entries(parPlateforme).forEach(([p, lot]) => {
-    const prix = lot.map(v => +v.prix).filter(Boolean);
+    const prix = lot.filter(horsFamille).map(v => +v.prix).filter(Boolean);
+    const autres = lot.length - lot.filter(horsFamille).length;
+    if (!prix.length) {
+      h += `<p style="margin:16px 0 5px;font-size:13.5px;font-weight:700;display:flex;
+            align-items:center;gap:8px;opacity:.6">${logo(lot[0])}${p}
+            <span style="font-weight:400">${lot.length} vente${lot.length > 1 ? 's' : ''},
+            toutes d'autres modèles — hors calcul</span></p>`;
+      return;
+    }
     const med = mediane(prix);
-    meds.push({ p, med, n: lot.length, dom: lot[0].domaine });
+    meds.push({ p, med, n: prix.length, dom: lot[0].domaine });
     h += `<p style="margin:16px 0 5px;font-size:13.5px;font-weight:700;display:flex;
           align-items:center;gap:8px">${logo(lot[0])}${p}
-          <span style="color:var(--gris);font-weight:400">${lot.length} ventes ·
-          médiane ${med} ${lot[0].devise || 'EUR'} ·
-          ${Math.min(...prix)}–${Math.max(...prix)}</span></p>`;
+          <span style="color:var(--gris);font-weight:400">${prix.length} vente${prix.length > 1 ? 's' : ''}
+          de ce modèle · médiane ${med} ${lot[0].devise || 'EUR'} ·
+          ${Math.min(...prix)}–${Math.max(...prix)}${autres ? ` · ${autres} d'autres modèles, hors calcul` : ''}</span></p>`;
     lot.sort((a, b) => a.prix - b.prix).slice(0, 12).forEach(v => {
       h += `<p style="margin:3px 0;font-size:13.5px;padding-left:10px;
-            border-left:3px solid var(--data)">
+            border-left:3px solid var(--data);${horsFamille(v) ? '' : 'opacity:.45'}">
         <a href="${v.url_source}" target="_blank" rel="noopener"
            style="color:var(--ia);font-weight:700">${v.prix} ${v.devise || 'EUR'}</a>
         — ${(v.objet || '').slice(0, 70)}
@@ -1989,11 +2040,11 @@ function afficherVentes(ventes, annonces, journal) {
             neuf vendu par un marchand : c'est un prix catalogue, pas un prix de marché
             secondaire. À ne pas confondre avec une cote d'occasion.</p>`;
     Object.entries(pa).forEach(([p, lot]) => {
-      const prix = lot.map(a => +a.prix_demande).filter(Boolean).sort((x, y) => x - y);
+      const prix = lot.filter(horsFamille).map(a => +a.prix_demande).filter(Boolean).sort((x, y) => x - y);
       if (!prix.length) return;
-      const bas = lot.find(a => +a.prix_demande === prix[0]);
-      const haut = lot.find(a => +a.prix_demande === prix[prix.length - 1]);
-      const nx = lot.filter(a => (a.niveau || "exacte") === "exacte").length;
+      const bas = lot.filter(horsFamille).find(a => +a.prix_demande === prix[0]);
+      const haut = lot.filter(horsFamille).find(a => +a.prix_demande === prix[prix.length - 1]);
+      const nx = lot.filter(a => normNiveau(a.niveau) === "exacte").length;
       h += `<p style="margin:9px 0 3px;font-size:13.5px;font-weight:700;display:flex;
             gap:8px;align-items:center">${logo(lot[0])}${p}
             <span style="color:var(--gris);font-weight:400">${prix.length} annonces
