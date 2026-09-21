@@ -121,6 +121,12 @@
     .non-imprime{display:none}
   }
   .reco{border:3px solid var(--struct);padding:14px 16px;box-shadow:6px 6px 0 rgba(25,25,34,.75)}
+  .avis{border:3px solid var(--struct);border-left:10px solid var(--ia);background:#fff;padding:16px 18px;
+    margin-top:18px;font-size:14.5px;line-height:1.55;box-shadow:6px 6px 0 rgba(25,25,34,.75)}
+  .avis>span{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--ia)}
+  .avis>b{display:block;font-size:26px;letter-spacing:-.02em;margin:2px 0 6px;text-transform:uppercase}
+  .avis p{margin:0 0 8px}
+  .avis-phrase{font-weight:700;font-size:15.5px}
   .reco span{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;opacity:.75}
   .reco b{display:block;font-size:24px;letter-spacing:-.02em;margin:2px 0 4px;text-transform:uppercase}
   .reco small{display:block;font-size:12.5px;opacity:.85}
@@ -231,9 +237,9 @@
       <option value="encheres">enchères</option>
       <option value="neuf">neuf, en boutique</option>
     </select>
-    <p class="aide" style="margin-top:8px">Ce prix n'est jamais transmis au modèle : il ne peut pas
-       orienter la recherche. Il sert uniquement au verdict final, calculé par le code sur les
-       prix trouvés.</p>
+    <p class="aide" style="margin-top:8px">Ce prix n'est pas transmis au modèle pendant
+       l'identification et la recherche : il ne peut pas les orienter. Il ne lui est communiqué qu'à
+       la toute fin, pour l'avis de l'expert, une fois les prix du marché établis.</p>
   </div>
 
   <div style="margin-top:16px">
@@ -275,13 +281,14 @@
 
 <fieldset id="synthese">
   <legend>synthèse</legend>
-  <p class="aide">Tout ce qu'il faut retenir, au même endroit : l'objet, les prix observés, ton prix et
-     l'aide à la décision. Assemblée à partir de l'analyse déjà faite, sans nouvelle requête ni coût.
-     Tous les chiffres sont calculés par le code sur les fiches trouvées.</p>
+  <p class="aide">Tout ce qu'il faut retenir, au même endroit : l'objet, les prix observés, ton prix
+     face au marché, puis l'avis de l'expert. Tous les chiffres sont calculés par le code sur les
+     fiches trouvées ; l'avis de l'expert, rédigé par l'IA, les interprète sans en inventer.</p>
   <div id="synthese-objet"></div>
   <div id="synthese-prix"></div>
   <div id="sortie-verdict"><p class="aide">Indique ta situation et un prix dans le bloc 1 ;
      le verdict apparaîtra après la recherche sur le marché.</p></div>
+  <div id="synthese-avis"></div>
   <div class="non-imprime" style="margin-top:16px">
     <button id="imprimer" class="second">imprimer ou enregistrer la synthèse en PDF</button></div>
 </fieldset>
@@ -1483,11 +1490,29 @@ function rendreMarche() {
     return t && t.taux ? Math.round(f.prix * t.taux) : null;
   };
 
+  // Garde-fou contre les erreurs de lecture (prix en centimes, virgule perdue) : un prix quatre
+  // fois au-dessus ou en dessous de la médiane des autres n'est pas un prix de marché.
+  const candidats = fiches.filter(f => f.prix && px(f) !== null &&
+    !['famille', 'comparable'].includes(f.correspondance)).map(px);
+  const med0 = candidats.length >= 3 ? mediane(candidats) : null;
+  const fp = profil.fourchette_plausible || {};
+  const aberrant = f => {
+    const v = px(f);
+    if (v === null) return null;
+    if (med0 && (v > 4 * med0 || v < med0 / 4))
+      return `prix aberrant, ${v > med0 ? Math.round(v / med0) + ' fois' : 'très en dessous de'} la médiane : probable erreur de lecture`;
+    if (!med0 && fp.haut && fp.bas && (v > fp.haut * 8 || v < fp.bas / 8))
+      return "prix aberrant au regard de l'objet : probable erreur de lecture";
+    return null;
+  };
+
   // Chaque exclusion a une raison, affichée sur la ligne : rien n'est grisé sans explication.
   const defaut = f => {
     if (!f.prix) return "prix absent de la fiche";
     if (px(f) === null) return tauxCache[(f.devise || 'EUR') + dev] === false
       ? `taux ${f.devise} vers ${dev} indisponible` : "conversion en cours";
+    const ab = aberrant(f);
+    if (ab) return ab;
     const n = niveau(f);
     if (n.cle === 'disparue' && f.statut !== 'vendu') return "page disparue";
     // un article neuf « épuisé » garde son prix catalogue ; une annonce d'occasion vendue, non
@@ -1672,6 +1697,83 @@ async function obtenirTaux(de, vers) {
   return (tauxCache[cle] = false);
 }
 
+let verdictCtx = null;
+
+/* Quand aucune occasion n'a été trouvée, le prix neuf devient la référence. Les seuils sont des
+   repères d'usage, pas des mesures : ils sont écrits en clair sous le résultat. */
+function rendreVerdictNeuf({ el, s, base, M, D, P, source, confiance, noteConv, taux }) {
+  const r = x => Math.round(x);
+  const vals = (base.vals || []).map(v => v * taux);
+  const bas = r(base.min * taux), haut = r(base.max * taux);
+  const cartes = (extra = '') => `<div class="synth">
+      <div><span>prix neuf chez les marchands, médiane</span><b>${M} ${D}</b>
+        <span>${base.n} fiches, basse ${bas}, haute ${haut}</span></div>${extra}</div>`;
+  if (P === null || isNaN(P)) {
+    el.innerHTML = `<div class="res">${cartes()}${barreNeuf(M, vals, null, D)}
+      <p class="aide" style="margin:0">Aucune vente ni annonce d'occasion trouvée : la référence est le
+      prix neuf. Saisis ${s.mode === 'achat' ? 'le prix demandé' : 'le prix payé'} dans le bloc 1.</p></div>`;
+    verdictCtx = null;
+    return;
+  }
+  const ratio = P / M, pct = Math.round(ratio * 100);
+  let titre, fond, reco, fondReco, regle, texte = [];
+  if (s.mode === 'achat') {
+    if (ratio < 0.15) {
+      titre = `${pct} % du prix neuf : très en dessous`; fond = '#f5c26b';
+      reco = "vérifier avant d'acheter"; fondReco = '#f5c26b';
+      regle = "prix inférieur à 15 % du prix neuf médian";
+      texte.push(`À ce niveau, pour une marque recherchée, le premier risque est la contrefaçon, le
+        second un défaut qui ne se voit pas en photo. Si l'authenticité est confirmée, c'est une trouvaille.`);
+    } else if (ratio < 0.5) {
+      titre = `${pct} % du prix neuf : bonne affaire probable`; fond = 'var(--data)';
+      reco = "acheter si authentique"; fondReco = 'var(--data)';
+      regle = "prix entre 15 et 50 % du prix neuf médian";
+    } else if (ratio < 0.8) {
+      titre = `${pct} % du prix neuf`; fond = 'var(--clair)';
+      reco = "négocier"; fondReco = '#f5c26b';
+      regle = "prix entre 50 et 80 % du prix neuf : pour de l'occasion, l'écart avec le neuf est faible";
+    } else if (ratio <= 1) {
+      titre = `${pct} % du prix neuf : presque le prix du neuf`; fond = '#f5c26b';
+      reco = "passer, ou acheter neuf"; fondReco = '#f5c26b';
+      regle = "prix entre 80 et 100 % du prix neuf : autant acheter neuf, avec la garantie";
+    } else {
+      titre = `plus cher que le neuf (${pct} %)`; fond = 'var(--alerte)';
+      reco = "passer"; fondReco = 'var(--alerte)';
+      regle = "prix supérieur au prix neuf médian";
+    }
+  } else {
+    titre = `tu l'as payé ${pct} % du prix neuf`; fond = ratio < 0.5 ? 'var(--data)' : 'var(--clair)';
+    reco = ratio < 0.5 ? "conserver, bel achat" : "conserver"; fondReco = 'var(--clair)';
+    regle = "aucune vente d'occasion trouvée : la valeur de revente ne peut pas être calculée, seulement comparée au neuf";
+    texte.push(`Pour l'assurance, la valeur de remplacement est le prix neuf : ${M} ${D}.`);
+    if (ratio < 0.15) texte.push(`À ce prix d'achat, fais authentifier la pièce : c'est elle qui porte toute la valeur.`);
+  }
+  texte.push(`Aucune vente ni annonce d'occasion de cet objet n'a été trouvée : la comparaison se fait
+    avec le prix neuf. Un objet d'occasion vaut normalement moins que neuf ; les seuils ci-dessus sont
+    des repères d'usage, pas des mesures du marché de seconde main.`);
+  if (confiance === 'faible') regle += ", base fragile, à confirmer";
+
+  verdictCtx = { mode: s.mode, canal: s.canal, prix: P, devise: D, source, n: base.n, confiance,
+    mediane: M, basse: bas, haute: haut, ratio_neuf: pct, position: titre, repere: reco, regle };
+  profil.verdict = { mode: s.mode, prix: P, devise: D, titre, recommandation: reco, regle,
+    prix_neuf_median: M, ratio_prix_neuf: pct, base: source, fiches: base.n, confiance,
+    date: new Date().toISOString().slice(0, 10) };
+
+  el.innerHTML = `<div class="res">
+    <div class="reco" style="background:${fondReco};color:${fondReco === 'var(--alerte)' ? '#fff' : 'var(--sombre)'}">
+      <span>repère calculé</span><b>${reco}</b><small>règle appliquée : ${regle}</small></div>
+    <div style="background:${fond};color:${fond === 'var(--alerte)' ? '#fff' : 'var(--sombre)'};
+         padding:11px 15px;border:3px solid var(--struct);margin-top:10px">
+      <b style="font-size:16px">${titre}</b></div>
+    ${barreNeuf(M, vals, P, D)}
+    ${cartes(`<div><span>${s.mode === 'achat' ? 'prix demandé' : 'prix payé'}</span><b>${P} ${D}</b>
+        <span>${s.canal ? LIB_CANAL[s.canal] : '&nbsp;'}</span></div>
+      <div><span>rapport au neuf</span><b>${pct} %</b><span>ton prix face au neuf</span></div>`)}
+    ${texte.map(t => `<p style="margin:0 0 8px;font-size:14.5px;line-height:1.5">${t}</p>`).join('')}
+    <p class="etat" style="margin-top:10px"><b>base :</b> médiane de ${base.n} ${source}, confiance ${confiance}. ${noteConv}</p>
+  </div>`;
+}
+
 function rendreVerdict() {
   const el = $('#sortie-verdict');
   if (!el) return;
@@ -1704,21 +1806,26 @@ function rendreVerdict() {
     confiance = so.n >= 5 ? 'moyenne' : 'faible';
   } else if (sc && sc.n >= 3) {
     base = sc; source = "objets comparables, pas le tien"; nature = 'comparable'; confiance = 'faible';
+  } else if (sn && sn.n >= 3) {
+    base = sn; source = "prix neufs chez les marchands, aucune occasion trouvée"; nature = 'neuf_ref';
+    confiance = sn.n >= 5 ? 'moyenne' : 'faible';
   } else {
     const n = (sv?.n || 0) + (so?.n || 0);
     el.innerHTML = `<div class="warn">pas assez de prix trouvés pour trancher${n ? ` :
       seulement ${n} prix de cet objet` : ''}.</div>
       <p class="aide">Un verdict sur une ou deux fiches serait une opinion déguisée en chiffre :
       il en faut au moins trois. Élargir la recherche, ou passer par une expertise.</p>`;
+    verdictCtx = { mode: s.mode, canal: s.canal, prix: s.prix, devise: s.devise, source: 'aucune base suffisante',
+      position: "pas assez de prix de cet objet pour situer le tien", repere: 'attendre' };
     profil.verdict = { mode: s.mode, verdict: 'indecidable',
       recommandation: s.mode === 'achat' ? "attendre, pas assez de données" : "maintenir, pas assez de données" };
-    el.innerHTML = `<div class="reco" style="background:var(--clair)"><span>recommandation</span>
+    el.innerHTML = `<div class="reco" style="background:var(--clair)"><span>repère calculé</span>
       <b>${profil.verdict.recommandation}</b>
       <small>règle appliquée : moins de trois prix de cet objet trouvés sur le marché</small></div>` + el.innerHTML;
     return;
   }
 
-  const kk = nature === 'neuf' ? 1 : k;   // l'état ne module pas un prix neuf
+  const kk = nature === 'neuf' || nature === 'neuf_ref' ? 1 : k;   // l'état ne module pas un prix neuf
   let med = base.med * kk;
   let q1 = (base.q1 ?? base.med * 0.85) * kk;
   let q3 = (base.q3 ?? base.med * 1.15) * kk;
@@ -1743,6 +1850,9 @@ function rendreVerdict() {
   }
   const r = x => Math.round(x);
   const M = r(med), Q1 = r(q1), Q3 = r(q3), D = s.devise, P = s.prix;
+  const taux = s.devise !== dev && tauxCache[dev + s.devise] ? tauxCache[dev + s.devise].taux : 1;
+  if (nature === 'neuf_ref')
+    return rendreVerdictNeuf({ el, s, base, M, D, P, source, confiance, noteConv, taux });
 
   const marcheSeul = `<div class="synth">
       <div><span>valeur de marché, médiane</span><b>${M} ${D}</b>
@@ -1858,13 +1968,15 @@ function rendreVerdict() {
   }
   if (confiance === 'faible') regle += ", base fragile, à confirmer";
 
+  verdictCtx = { mode: s.mode, canal: s.canal, prix: P, devise: D, source, n: base.n, confiance,
+    mediane: M, q1: Q1, q3: Q3, position: titre, repere: reco, regle };
   profil.verdict = { mode: s.mode, prix: P, devise: D, position: pos, titre, recommandation: reco, regle,
     valeur_marche: M, fourchette: [Q1, Q3], base: source, fiches: base.n, confiance,
     date: new Date().toISOString().slice(0, 10) };
 
   el.innerHTML = `<div class="res">
     <div class="reco" style="background:${fondReco};color:${fondReco === 'var(--alerte)' ? '#fff' : 'var(--sombre)'}">
-      <span>recommandation</span><b>${reco}</b>
+      <span>repère calculé</span><b>${reco}</b>
       <small>règle appliquée : ${regle}</small></div>
     <div style="background:${fond};color:${fond === 'var(--alerte)' ? '#fff' : 'var(--sombre)'};
          padding:11px 15px;border:3px solid var(--struct);margin-top:10px">
@@ -1947,8 +2059,9 @@ function rendreSynthese() {
   // l'objet
   if (profil.description) {
     const photo = images[0] ? `<img src="${images[0].url}" alt="" class="synth-photo">` : '';
-    const nom = [profil.corrections?.marque || profil.marque, profil.corrections?.modele || profil.modele]
-      .filter(Boolean).join(' ');
+    const marque = profil.corrections?.marque || profil.marque || '';
+    const modele = profil.corrections?.modele || profil.modele || '';
+    const nom = modele.toLowerCase().includes(marque.toLowerCase()) ? modele : [marque, modele].filter(Boolean).join(' ');
     const cm = Math.round((profil.certitude_modele ?? profil.certitude ?? 0) * 100);
     const cv = Math.round((profil.certitude_variante ?? profil.certitude ?? 0) * 100);
     const fr = profil.facteurs_retenus || [];
@@ -1985,38 +2098,171 @@ function rendreSynthese() {
   } else zp.innerHTML = '';
 
   rendreVerdict();
+  afficherAvis();
 }
 
 /* Barre de prix, à la manière des annonces : des zones de « très bonne affaire » à « trop cher »,
-   tirées des quartiles des prix trouvés, les prix observés en points, et ton prix en repère. */
-function barrePrix(M, Q1, Q3, vals, P, D) {
-  const mi = (0.5 * M + Q1) / 2;
-  const lo = Math.min(0.4 * M, ...(vals.length ? vals : [M]), P ?? Infinity) * 0.95;
-  const hi = Math.max(1.7 * M, ...(vals.length ? vals : [M]), P ?? 0) * 1.03;
+   les prix observés en points, et ton prix en repère. */
+/* ---------- avis de l'expert : l'IA raisonne sur les prix établis par le code ---------- */
+const SYS_AVIS = `Tu es expert en objets de collection. Tu conseilles une collectionneuse sur UNE
+décision précise, à partir de l'identification de l'objet, des prix réellement observés sur le
+marché (calculés sur des fiches vérifiées) et de sa situation, avec son prix.
+
+Règles :
+- Tu ne cites QUE les chiffres fournis. Tu n'inventes aucun prix, aucune décote, aucune statistique.
+- Tu raisonnes sur l'écart entre son prix et les prix observés, et sur la nature de ces prix :
+  ventes conclues, annonces d'occasion, prix neufs. Un prix très inférieur au marché pour une
+  marque recherchée est d'abord un signal de contrefaçon ou de défaut caché ; dis-le sans alarmisme.
+- Les vérifications que tu proposes sont concrètes, faisables sur place ou en demandant au vendeur,
+  et propres à CET objet : marquages, codes, finitions, accessoires, défauts typiques du modèle.
+- Si elle se renseigne avant d'acheter, ta décision est l'une de : "acheter", "négocier",
+  "vérifier avant d'acheter", "passer". Si l'objet est dans sa collection : "conserver", "vendre",
+  "faire expertiser".
+- Tu la tutoies, tu vas droit au but, sans formule d'introduction.
+
+Format :
+{"decision":"...","phrase":"la décision justifiée en une phrase",
+ "raisonnement":"trois à cinq phrases",
+ "risque_authenticite":{"niveau":"faible|moyen|élevé","pourquoi":"une phrase"},
+ "a_verifier":["trois à cinq vérifications concrètes"],
+ "argument_negociation":"une phrase, ou null",
+ "si_authentique":"ce que représente l'affaire si l'authenticité est confirmée, une phrase, ou null"}`;
+
+let avisEnCours = false;
+
+function cleAvis() {
+  if (!verdictCtx || verdictCtx.prix === null || verdictCtx.prix === undefined || isNaN(verdictCtx.prix)) return null;
+  const c = verdictCtx;
+  return [c.mode, c.canal, c.prix, c.devise, c.mediane, c.source, c.n].join('|');
+}
+
+function contexteAvis() {
+  const c = verdictCtx, ref = marche.ref || {}, D = ref.dev;
+  const ligne = (lib, s) => s ? `${lib} : ${s.n} fiches, basse ${s.min}, médiane ${s.med}, haute ${s.max} ${D}` : `${lib} : aucune`;
+  const lectures = (profil.lectures || []).filter(l => (l.confiance ?? 1) < 0.9)
+    .map(l => `« ${l.texte} » (${l.ou || '?'}), confiance ${Math.round((l.confiance || 0) * 100)} %`);
+  return [
+    `OBJET : ${profil.description}`,
+    `marque : ${profil.corrections?.marque || profil.marque || '?'} ; modèle : ${profil.corrections?.modele || profil.modele || '?'} ; référence : ${profil.corrections?.reference || profil.reference || '?'}`,
+    `état apparent : ${profil.etat_apparent || '?'}`,
+    `certitude : modèle ${Math.round((profil.certitude_modele ?? 0) * 100)} %, déclinaison ${Math.round((profil.certitude_variante ?? 0) * 100)} %`,
+    lectures.length ? `lectures incertaines : ${lectures.join(' ; ')}` : '',
+    (profil.facteurs_retenus || []).length ? `la propriétaire indique : ${profil.facteurs_retenus.join(', ')}` : '',
+    profil.contexte_fourni || $('#contexte')?.value ? `contexte donné : ${profil.contexte_fourni || $('#contexte').value}` : '',
+    ``,
+    `PRIX OBSERVÉS, fiches vérifiées, en ${D} :`,
+    ligne('ventes conclues', ref.sv), ligne("annonces d'occasion en cours", ref.so),
+    ligne('prix neufs chez les marchands', ref.sn), ligne('objets comparables', ref.sc),
+    ``,
+    `REPÈRE CALCULÉ PAR LE CODE : base ${c.source}${c.mediane ? `, médiane ${c.mediane} ${c.devise}` : ''}${
+      c.q1 ? `, fourchette ${c.q1} à ${c.q3}` : ''}${c.ratio_neuf ? `, son prix vaut ${c.ratio_neuf} % du prix neuf` : ''} ;
+     position : ${c.position} ; repère : ${c.repere}.`,
+    ``,
+    `SITUATION : ${c.mode === 'achat' ? "elle se renseigne avant d'acheter" : "l'objet est dans sa collection"}${
+      c.canal ? `, ${LIB_CANAL[c.canal]}` : ''} ; ${c.mode === 'achat' ? 'prix demandé' : 'prix payé'} : ${c.prix} ${c.devise}.`,
+  ].filter(x => x !== '').join('\n');
+}
+
+async function lancerAvis(auto) {
+  const z = $('#synthese-avis');
+  const cle = cleAvis();
+  if (!z || !cle || avisEnCours || !marche.ref) return;
+  if (auto && profil.avis && profil.avis.cle === cle) return;
+  avisEnCours = true;
+  const fin = attendre('#synthese-avis', ["lecture des prix observés", "comparaison avec ton prix",
+    "points à vérifier sur cet objet", "rédaction de l'avis"]);
+  try {
+    const d = await appeler(SYS_AVIS, contexteAvis(), false, 1500, "claude-sonnet-5");
+    fin();
+    profil.avis = { ...d, cle, date: new Date().toISOString().slice(0, 10) };
+    afficherAvis();
+  } catch (e) {
+    fin();
+    z.innerHTML = `<div class="warn">avis indisponible : ${e.message}</div>`;
+  }
+  avisEnCours = false;
+}
+
+function afficherAvis() {
+  const z = $('#synthese-avis');
+  if (!z) return;
+  const cle = cleAvis(), a = profil.avis;
+  if (!cle) { z.innerHTML = ''; return; }
+  if (!a || a.cle !== cle) {
+    z.innerHTML = `<div class="avis" style="background:var(--clair)"><span>avis de l'expert</span>
+      <p style="margin:6px 0 10px;font-size:14px">${a ? "Ton prix ou ta situation a changé depuis le dernier avis."
+        : "L'IA peut interpréter ces prix pour ton cas précis : risque d'authenticité, points à vérifier, décision."}</p>
+      <button id="avis-go">${a ? "actualiser l'avis" : "obtenir l'avis de l'expert"}</button>
+      <span class="etat" style="margin-left:8px">environ 0,02 €</span></div>`;
+    const b = document.getElementById('avis-go');
+    if (b) b.onclick = () => lancerAvis(false);
+    return;
+  }
+  const niv = a.risque_authenticite?.niveau || '?';
+  const couleurNiv = { faible: 'var(--data)', moyen: '#f5c26b', 'élevé': 'var(--alerte)' }[niv] || 'var(--clair)';
+  z.innerHTML = `<div class="avis">
+    <span>avis de l'expert</span>
+    <b>${a.decision || '?'}</b>
+    ${a.phrase ? `<p class="avis-phrase">${a.phrase}</p>` : ''}
+    ${a.raisonnement ? `<p>${a.raisonnement}</p>` : ''}
+    ${a.risque_authenticite ? `<p><span class="tag" style="background:${couleurNiv};${niv === 'élevé' ? 'color:#fff' : ''}">
+      risque d'authenticité ${niv}</span> ${a.risque_authenticite.pourquoi || ''}</p>` : ''}
+    ${(a.a_verifier || []).length ? `<p class="hist-h" style="margin-top:12px">à vérifier avant de décider</p>
+      ${a.a_verifier.map(v => `<p style="margin:3px 0 3px 12px">• ${v}</p>`).join('')}` : ''}
+    ${a.argument_negociation ? `<p style="margin-top:10px"><b>pour négocier :</b> ${a.argument_negociation}</p>` : ''}
+    ${a.si_authentique ? `<p><b>si l'authenticité est confirmée :</b> ${a.si_authentique}</p>` : ''}
+    <p class="etat" style="margin-top:10px">Avis rédigé par l'IA à partir des seuls prix observés et de ton
+      prix, sans aucun chiffre qui ne figure dans l'analyse. Il interprète le repère calculé, il ne le
+      remplace pas. <button class="second non-imprime" id="avis-go" style="padding:3px 9px;font-size:12.5px;
+      margin-left:6px">actualiser</button></p>
+  </div>`;
+  const b = document.getElementById('avis-go');
+  if (b) b.onclick = () => lancerAvis(false);
+}
+
+function dessinerBarre(zones, vals, P, D, lo, hi) {
   const x = v => Math.max(0, Math.min(100, ((v - lo) / (hi - lo)) * 100));
-  const zones = [
-    [lo, 0.5 * M, '#d8d8d8', "anormalement bas"],
-    [0.5 * M, mi, '#2e9e6a', "très bonne affaire"],
-    [mi, Q1, '#8fd19e', "bonne affaire"],
-    [Q1, Q3, '#e8edf2', "prix du marché"],
-    [Q3, 1.5 * M, '#f5c26b', "prix élevé"],
-    [1.5 * M, hi, '#ff7aa2', "trop cher"],
-  ].filter(z => z[1] > z[0]);
   const r = v => Math.round(v);
+  zones = zones.filter(z => z[1] > z[0]);
   return `<div class="barre-prix">
     <div class="bp-zones">${zones.map(([a, b, c]) =>
       `<i style="left:${x(a)}%;width:${x(b) - x(a)}%;background:${c}"></i>`).join('')}
       ${vals.map(v => `<u style="left:${x(v)}%" title="${r(v)} ${D}"></u>`).join('')}
-      ${P !== null && P !== undefined && !isNaN(P) ? `<s style="left:${x(P)}%"><span>ton prix<br><b>${r(P)} ${D}</b></span></s>` : ''}
+      ${P !== null && P !== undefined && !isNaN(P)
+        ? `<s style="left:${x(P)}%"><span>ton prix<br><b>${r(P)} ${D}</b></span></s>` : ''}
     </div>
-    <div class="bp-legende">${zones.map(([a, b, c, lib]) =>
-      `<span><i style="background:${c}"></i>${lib}${lib === "prix du marché" ? ` : ${r(Q1)} à ${r(Q3)} ${D}` :
-        lib === "très bonne affaire" ? ` : ${r(0.5 * M)} à ${r(mi)} ${D}` :
-        lib === "bonne affaire" ? ` : ${r(mi)} à ${r(Q1)} ${D}` :
-        lib === "prix élevé" ? ` : ${r(Q3)} à ${r(1.5 * M)} ${D}` :
-        lib === "trop cher" ? ` : au-delà de ${r(1.5 * M)} ${D}` : ` : sous ${r(0.5 * M)} ${D}`}</span>`).join('')}
+    <div class="bp-legende">${zones.map(([a, b, c, lib, leg]) =>
+      `<span><i style="background:${c}"></i>${lib} : ${leg}</span>`).join('')}
       <span><u></u>un prix observé</span></div>
   </div>`;
+}
+
+/* Zones tirées des quartiles des prix d'occasion ou des ventes conclues. */
+function barrePrix(M, Q1, Q3, vals, P, D) {
+  const r = v => Math.round(v), mi = (0.5 * M + Q1) / 2;
+  const lo = Math.min(0.4 * M, ...(vals.length ? vals : [M]), P ?? Infinity) * 0.95;
+  const hi = Math.max(1.7 * M, ...(vals.length ? vals : [M]), P ?? 0) * 1.03;
+  return dessinerBarre([
+    [lo, 0.5 * M, '#d8d8d8', "anormalement bas", `sous ${r(0.5 * M)} ${D}`],
+    [0.5 * M, mi, '#2e9e6a', "très bonne affaire", `${r(0.5 * M)} à ${r(mi)} ${D}`],
+    [mi, Q1, '#8fd19e', "bonne affaire", `${r(mi)} à ${r(Q1)} ${D}`],
+    [Q1, Q3, '#e8edf2', "prix du marché", `${r(Q1)} à ${r(Q3)} ${D}`],
+    [Q3, 1.5 * M, '#f5c26b', "prix élevé", `${r(Q3)} à ${r(1.5 * M)} ${D}`],
+    [1.5 * M, hi, '#ff7aa2', "trop cher", `au-delà de ${r(1.5 * M)} ${D}`],
+  ], vals, P, D, lo, hi);
+}
+
+/* Zones exprimées en part du prix neuf, quand aucune occasion n'a été trouvée. */
+function barreNeuf(N, vals, P, D) {
+  const r = v => Math.round(v);
+  const hi = Math.max(1.3 * N, ...(vals.length ? vals : [N]), P ?? 0) * 1.03;
+  return dessinerBarre([
+    [0, 0.15 * N, '#d8d8d8', "très bas, authenticité à vérifier", `sous ${r(0.15 * N)} ${D}`],
+    [0.15 * N, 0.5 * N, '#2e9e6a', "bonne affaire si authentique", `${r(0.15 * N)} à ${r(0.5 * N)} ${D}`],
+    [0.5 * N, 0.8 * N, '#8fd19e', "à négocier", `${r(0.5 * N)} à ${r(0.8 * N)} ${D}`],
+    [0.8 * N, N, '#f5c26b', "proche du neuf", `${r(0.8 * N)} à ${r(N)} ${D}`],
+    [N, hi, '#ff7aa2', "plus cher que le neuf", `au-delà de ${r(N)} ${D}`],
+  ], vals, P, D, 0, hi);
 }
 
 document.getElementById && ($('#imprimer') || {}).addEventListener?.('click', () => window.print());
@@ -2058,6 +2304,8 @@ async function verifierFiches() {
   };
   await Promise.all([travailleur(), travailleur(), travailleur()]);
   rendreMarche();
+  // Les prix sont établis : l'avis peut être rédigé, une seule fois pour cette situation.
+  lancerAvis(true);
 }
 
 /* ---------- outils communs ---------- */
