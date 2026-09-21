@@ -97,6 +97,9 @@
   #journal b{min-width:150px}
   #journal em{color:var(--gris);font-style:normal}
   .ok{color:var(--ia);font-weight:700}
+  .vm{display:flex;gap:12px;align-items:flex-start;margin-top:10px;font-size:14px;
+    padding-top:10px;border-top:1px solid rgba(16,16,24,.15)}
+  .vm button{padding:7px 12px;font-size:13.5px;white-space:nowrap;flex:0 0 auto}
   .bloc{color:#b26a00;font-weight:700}
   .ko{color:var(--alerte);font-weight:700}
   #journal .vide{opacity:.55}
@@ -124,7 +127,7 @@
   <legend>bloc 1 — objet photographié</legend>
   <div id="zone">
     <div id="zonetxt">déposer une ou plusieurs photos, ou cliquer pour choisir</div>
-    <p class="aide" style="margin:6px 0 0">Jusqu'à 5 vues du même objet : ensemble, dessous,
+    <p class="aide" style="margin:6px 0 0">Jusqu'à 8 vues du même objet : ensemble, dessous,
        marquages, étiquette, défauts. Plus il y a d'angles, plus la certitude monte.</p>
     <div id="galerie"></div>
   </div>
@@ -218,7 +221,7 @@
 <script>
 const PASSERELLE = "https://collector-passerelle.edouard-e8b.workers.dev";
 let images = [], profil = {}, cout = 0;
-const MAX_VUES = 5, COTE_MAX = 1568;
+const MAX_VUES = 8, COTE_MAX = 1568;
 
 const $ = s => document.querySelector(s);
 const allume = n => document.querySelectorAll('.b').forEach(b => {
@@ -255,19 +258,25 @@ function reduire(f) {
   });
 }
 
-async function charger(liste) {
+async function charger(liste, libelle) {
   const place = MAX_VUES - images.length;
   const retenues = liste.filter(f => f.type.startsWith('image/')).slice(0, place);
   for (const f of retenues) {
-    try { images.push(await reduire(f)); } catch { /* fichier illisible, on saute */ }
+    try {
+      const im = await reduire(f);
+      if (libelle) im.libelle = libelle;
+      images.push(im);
+    } catch { /* fichier illisible, on saute */ }
   }
   peindre();
+  return retenues.length;
 }
 
 function peindre() {
   $('#galerie').innerHTML = images.map((im, i) =>
-    `<div class="vig"><img src="${im.url}" alt="vue ${i + 1}">
-     <button data-i="${i}" title="retirer">×</button><span>vue ${i + 1}</span></div>`).join('');
+    `<div class="vig" title="${im.libelle || 'vue ' + (i + 1)}"><img src="${im.url}" alt="vue ${i + 1}">
+     <button data-i="${i}" title="retirer">×</button>
+     <span>${im.libelle ? (i + 1) + ' · ' + im.libelle.slice(0, 14) : 'vue ' + (i + 1)}</span></div>`).join('');
   document.querySelectorAll('.vig button').forEach(b =>
     b.onclick = () => { images.splice(+b.dataset.i, 1); peindre(); });
 
@@ -377,6 +386,45 @@ function chiffrer(usage, contenu, modele) {
   if (el) el.textContent = `cumul de la session : ${cout.toFixed(3)} €`;
 }
 
+/* Vues complémentaires : un sélecteur de fichier dédié, qui étiquette la photo avec
+   la vue demandée. Le modèle sait ainsi quelle image répond à quel doute. */
+const cible = Object.assign(document.createElement('input'),
+  { type: 'file', accept: 'image/*', hidden: true });
+document.body.appendChild(cible);
+let vueEnCours = null;
+
+cible.onchange = async () => {
+  if (!cible.files.length || !vueEnCours) return;
+  const bouton = vueEnCours;
+  const n = await charger([...cible.files], bouton.dataset.quoi);
+  cible.value = '';
+  if (n) {
+    bouton.textContent = 'ajoutée ✓';
+    bouton.disabled = true;
+    $('#relancer').disabled = false;
+  } else {
+    bouton.textContent = 'plus de place';
+  }
+  const libres = MAX_VUES - images.length;
+  $('#place').textContent = `${libres} emplacement${libres > 1 ? 's' : ''} libre${libres > 1 ? 's' : ''}`;
+};
+
+function brancherVues() {
+  document.querySelectorAll('.ajvue').forEach(b => b.onclick = () => {
+    if (images.length >= MAX_VUES) {
+      b.textContent = 'plus de place — retire une vue en haut';
+      return;
+    }
+    vueEnCours = b;
+    cible.click();
+  });
+  const r = $('#relancer');
+  if (r) r.onclick = () => {
+    $('#identifier').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('#identifier').click();
+  };
+}
+
 /* ---------- bloc 2 et 3 : identité et maille ---------- */
 const SYS_ID = `Tu identifies un objet de collection à partir d'une photographie et du contexte
 que sa propriétaire fournit.
@@ -410,8 +458,16 @@ trois champs renseignés : jamais une chaîne seule, jamais un champ vide.
 
 Liste enfin les facteurs qui font varier la valeur de CET objet : pièces d'origine, accessoires,
 documents, état d'éléments précis. Pour chacun, formule une question fermée que le propriétaire
-peut trancher sans expertise, et estime l'effet en pourcentage sur le prix de revente — positif
-si l'élément est présent. Entre 4 et 8 facteurs, du plus déterminant au moins important.
+peut trancher sans expertise, et estime l'effet en pourcentage sur le prix de revente.
+
+Règle de signe, stricte : la propriétaire COCHE la case quand sa réponse est OUI. effet_pct est
+l'effet de ce OUI sur le prix. Si le oui est favorable (étiquettes présentes, boîte d'origine),
+l'effet est positif. Si le oui est défavorable (déjà porté, défaut, pièce manquante), l'effet
+est NÉGATIF. Relis chaque question avant de répondre : "La robe a-t-elle été portée ?" appelle
+un effet négatif, "La robe est-elle neuve avec étiquettes ?" un effet positif.
+Préfère les formulations où le oui est favorable : elles se lisent plus simplement.
+
+Entre 4 et 8 facteurs, du plus déterminant au moins important.
 Ces facteurs sont propres à l'objet : un sac, une montre et une carte n'ont pas les mêmes.
 
 La fourchette plausible n'est pas une cote. C'est un garde-fou d'ordre de grandeur destiné à
@@ -457,6 +513,13 @@ défaut visible sur une vue doit peser sur l'état retenu.`
     if (ctx) texte += "\n\nContexte donné par la propriétaire :\n" + ctx;
     if (comp) texte += "\n\nPrécisions visuelles :\n" + comp;
     if (!ctx && !comp) texte += "\n\nAucun contexte fourni : l'image est le seul élément.";
+
+    const legendes = images.map((im, i) => im.libelle ? `vue ${i + 1} : ${im.libelle}` : null)
+                           .filter(Boolean);
+    if (legendes.length)
+      texte += "\n\nCertaines vues ont été prises à ta demande pour lever un doute. " +
+               "Lis-les en priorité et révise la certitude variante en conséquence :\n" +
+               legendes.join("\n");
 
     const contenu = images.map(im => ({
       type: "image",
@@ -510,15 +573,27 @@ function afficherIdentite(d) {
     .filter(v => v && v.quoi)
     .slice(0, 5);
   if (vues.length) {
-    h += `<div class="info"><b>vues complémentaires à prendre</b>`;
-    vues.forEach(v =>
-      h += `<p style="margin:7px 0 0;font-size:14px">• <b>${v.quoi}</b>${v.ou ? ` — ${v.ou}` : ''}
-            ${v.apporte ? `<em style="display:block;font-size:12.5px">${v.apporte}</em>` : ''}</p>`);
-    h += `<p style="margin:9px 0 0;font-size:13.5px">Ajoute-les ci-dessus et relance
-          l'identification : la certitude variante montera et la cote se resserrera.</p></div>`;
+    const deja = new Set(images.map(im => im.libelle).filter(Boolean));
+    h += `<div class="info"><b>vues complémentaires à prendre</b>
+          <p style="margin:3px 0 0;font-size:13px">Prends la photo, clique sur le bouton en
+          face de la vue correspondante, puis relance.</p>`;
+    vues.forEach((v, i) =>
+      h += `<div class="vm">
+        <div style="flex:1">
+          <b>${v.quoi}</b>${v.ou ? ` — ${v.ou}` : ''}
+          ${v.apporte ? `<em style="display:block;font-size:12.5px">${v.apporte}</em>` : ''}
+        </div>
+        <button class="second ajvue" data-quoi="${v.quoi.replace(/"/g, '&quot;')}"
+          ${deja.has(v.quoi) ? 'disabled' : ''}>${deja.has(v.quoi) ? 'ajoutée ✓' : '＋ photo'}</button>
+      </div>`);
+    h += `<div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button id="relancer" ${deja.size ? '' : 'disabled'}>relancer l'identification</button>
+            <span class="etat" id="place">${MAX_VUES - images.length} emplacement${
+              MAX_VUES - images.length > 1 ? 's' : ''} libre${MAX_VUES - images.length > 1 ? 's' : ''}</span>
+          </div></div>`;
   }
 
-  if (d.contexte_ecarte)
+  if (d.contexte_ecarte && !/^\s*(aucun|rien|pas de|null)/i.test(d.contexte_ecarte))
     h += `<div class="info"><b>contexte écarté :</b> ${d.contexte_ecarte}</div>`;
   if (faible)
     h += `<div class="warn">certitude modèle sous 60 % — collecte déconseillée en l'état.
@@ -551,6 +626,7 @@ function afficherIdentite(d) {
           <small>${r.langue}</small></span>`);
   h += `</div>`;
   $('#sortie1').innerHTML = h;
+  brancherVues();
 
   // recalcul en direct de la fourchette selon les facteurs cochés
   if (fact.length) {
