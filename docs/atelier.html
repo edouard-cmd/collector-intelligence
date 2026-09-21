@@ -98,6 +98,13 @@
   #journal em{color:var(--gris);font-style:normal}
   .ok{color:var(--ia);font-weight:700}
   details.avance{margin:0 0 20px}
+  .crayon{border:0;background:none;padding:0 5px;font-size:16px;cursor:pointer;
+    color:var(--ia);box-shadow:none;vertical-align:baseline}
+  .crayon:hover{color:var(--struct)}
+  .crayon:focus-visible{outline:3px solid var(--ia);outline-offset:1px}
+  .edit input{display:inline-block;width:auto;min-width:220px;max-width:100%;padding:5px 9px;
+    font-size:14.5px;margin:2px 6px 4px 0}
+  .edit button.ok-edit,.edit button.ko-edit{padding:5px 11px;font-size:13px;margin:2px 4px 4px 0}
   details.avance>summary{cursor:pointer;font-weight:700;font-size:14px;padding:10px 14px;
     border:3px dashed var(--struct);background:var(--clair);margin-bottom:14px}
   .art{display:grid;grid-template-columns:92px 1fr;gap:4px 12px;padding:8px 0 8px 10px;
@@ -202,6 +209,7 @@
   <label style="display:flex;gap:9px;align-items:center;font-weight:400;margin:10px 0 0">
     <input type="checkbox" id="approfondi" style="width:auto"> recherche approfondie —
     plus de plateformes et un meilleur tri, environ trois fois plus chère</label>
+  <p class="aide" id="intensite" style="margin:6px 0 0"></p>
   <div style="margin-top:12px">
     <button id="chercher" class="second" disabled>chercher sur le marché</button>
   </div>
@@ -324,6 +332,7 @@ function reduire(f) {
 }
 
 async function charger(liste, libelle) {
+  if (!images.length && !libelle) profil = {};   // nouvel objet : on repart de zéro
   const place = MAX_VUES - images.length;
   const retenues = liste.filter(f => f.type.startsWith('image/')).slice(0, place);
   for (const f of retenues) {
@@ -493,6 +502,73 @@ cible.onchange = async () => {
   $('#place').textContent = `${libres} emplacement${libres > 1 ? 's' : ''} libre${libres > 1 ? 's' : ''}`;
 };
 
+/* Boucle de correction du schéma (bloc 11 vers bloc 2). Une correction change l'objet
+   recherché : l'histoire et le marché de l'ancienne lecture ne valent plus rien, on les
+   efface pour qu'ils soient refaits sur la bonne base. */
+const LIB_CHAMP = { marque: "marque", modele: "modèle", reference: "référence", inscription: "inscription" };
+
+function editable(champ, valeur) {
+  const corrige = profil.corrections?.[champ];
+  const v = corrige || valeur;
+  const aff = v ? String(v).replace(/</g, '&lt;') : '<span style="color:var(--gris)">non lisible</span>';
+  return `<span class="edit" data-champ="${champ}" data-valeur="${(v || '').replace(/"/g, '&quot;')}">
+    <span class="val">${aff}</span>
+    <button class="crayon" title="modifier" aria-label="modifier ${LIB_CHAMP[champ]}">✎</button>
+    ${corrige ? '<span class="tag" style="background:var(--data);margin-left:4px">lu par toi</span>' : ''}
+  </span>`;
+}
+
+const echapper = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+function appliquerCorrection(c) {
+  profil.corrections = { ...(profil.corrections || {}), ...c };
+  delete profil.histoire;
+  delete profil.marche;
+  delete profil.marche_modele;
+  const vider = s => { const el = $(s); if (el) el.innerHTML = ''; };
+  vider('#sortie-hist'); vider('#sortie-marche');
+  $('#identifier').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  $('#identifier').click();
+}
+
+function brancherCorrection(d) {
+  document.querySelectorAll('.edit .crayon').forEach(btn => btn.onclick = () => {
+    const zone = btn.closest('.edit');
+    const champ = zone.dataset.champ, avant = zone.dataset.valeur || '';
+    const garde = zone.innerHTML;
+    zone.innerHTML = `<input type="text" value="${avant.replace(/"/g, '&quot;')}"
+        aria-label="${LIB_CHAMP[champ]}">
+      <button class="ok-edit" title="corriger et relancer">✓ corriger et relancer</button>
+      <button class="ko-edit second" title="annuler">annuler</button>`;
+    const champTexte = zone.querySelector('input');
+    champTexte.focus();
+    champTexte.select();
+    const annuler = () => { zone.innerHTML = garde; brancherCorrection(d); };
+    const valider = () => {
+      const v = champTexte.value.trim();
+      if (!v || v === avant) return annuler();
+      appliquerCorrection({ [champ]: v });
+    };
+    zone.querySelector('.ok-edit').onclick = valider;
+    zone.querySelector('.ko-edit').onclick = annuler;
+    champTexte.onkeydown = e => {
+      if (e.key === 'Enter') valider();
+      if (e.key === 'Escape') annuler();
+    };
+  });
+  document.querySelectorAll('.alt').forEach(x => x.onclick = () => {
+    // l'alternative choisie remplace la lecture fautive là où elle apparaît
+    const de = x.dataset.de, vers = x.dataset.vers;
+    const c = {};
+    if (d.marque && d.marque.toLowerCase().includes(de.toLowerCase()))
+      c.marque = d.marque.replace(new RegExp(echapper(de), 'i'), vers);
+    else if (d.reference && d.reference.toLowerCase().includes(de.toLowerCase()))
+      c.reference = d.reference.replace(new RegExp(echapper(de), 'i'), vers);
+    else c.inscription = `« ${de} » se lit en réalité « ${vers} »`;
+    appliquerCorrection(c);
+  });
+}
+
 function brancherVues() {
   document.querySelectorAll('.ajvue').forEach(b => b.onclick = () => {
     if (images.length >= MAX_VUES) {
@@ -532,6 +608,18 @@ la collecte reste faisable, il suffit de couvrir les variantes plausibles dans l
 
 Si tu hésites entre plusieurs déclinaisons, dis lesquelles et ce qui permettrait de trancher.
 
+LECTURE DES INSCRIPTIONS. Une seule lettre mal lue sur un nom de marque ou une référence fausse
+toute la suite : les recherches partent sur un nom qui n'existe pas. Les inscriptions gravées,
+stylisées, en petits caractères ou photographiées en biais se lisent mal — H et B, N et M,
+0 et O, 1 et I, S et 5 se confondent. Pour chaque inscription dont tu te sers (marque,
+référence, poinçon, signature), indique ta confiance et, si elle est inférieure à 0,9, les
+lectures alternatives plausibles. Mets aussi ces alternatives dans les requêtes, en précision
+"large".
+
+Si une marque que tu as lue ne donne AUCUN résultat en ligne, remets d'abord ta lecture en
+cause : cherche les graphies proches avant de conclure à une marque confidentielle ou de façade.
+Une marque introuvable est bien plus souvent une marque mal lue qu'une marque inexistante.
+
 Liste ensuite les vues qui manquent pour lever le doute, en indiquant précisément OÙ chercher
 sur l'objet — pas "une photo de meilleure qualité", mais par exemple "la patte de cuir cousue
 dans la poche intérieure droite, où figure le code atelier". La propriétaire doit pouvoir aller
@@ -560,6 +648,8 @@ La fourchette plausible n'est pas une cote. C'est un garde-fou d'ordre de grande
 Format :
 {"univers":"...","description":"une phrase dense servant de requête mère",
  "marque":"... ou null","modele":"... ou null","reference":"... ou null",
+ "lectures":[{"texte":"ce que tu lis","ou":"où sur l'objet","confiance":0.0,
+   "alternatives":["autres lectures plausibles"]}],
  "etat_apparent":"...","maille":"unite|lot|serie|scelle",
  "certitude_modele":0.0,"certitude_variante":0.0,
  "hypotheses_concurrentes":["..."],
@@ -618,6 +708,14 @@ défaut visible sur une vue doit peser sur l'état retenu.`
     if (comp) texte += "\n\nPrécisions visuelles :\n" + comp;
     if (!ctx && !comp) texte += "\n\nAucun contexte fourni : l'image est le seul élément.";
 
+    const corr = profil.corrections || {};
+    const lignesCorr = Object.entries(corr).filter(([, v]) => v)
+                             .map(([k, v]) => `${LIB_CHAMP[k] || k} : « ${v} »`);
+    if (lignesCorr.length)
+      texte += "\n\nLECTURE DE LA PROPRIÉTAIRE, qui a l'objet en main. Elle prime sur ta " +
+               "lecture des photos, ne la remets pas en cause :\n" + lignesCorr.join("\n") +
+               "\nReprends toute l'identification, les requêtes et l'histoire sur cette base.";
+
     if (profil.histoire && profil.modele)
       texte += `\n\nL'histoire du modèle « ${profil.modele} » a déjà été racontée. Mets
 "histoire" à null, SAUF si ton identification aboutit à un modèle différent : raconte alors
@@ -652,6 +750,7 @@ celle du nouveau modèle.`;
     allume(4);
     $('#router').disabled = false;
     $('#chercher').disabled = false;
+    regler_intensite();
     $('#etat1').textContent = "";
 
     // Enchaînement : seulement si le modèle est sûr, et seulement si le marché n'a pas
@@ -683,13 +782,36 @@ function afficherIdentite(d) {
     <dl class="kv">
       <dt>univers</dt><dd>${d.univers || "—"}</dd>
       <dt>objet</dt><dd>${d.description || "—"}</dd>
-      <dt>référence</dt><dd>${d.reference || "non lisible"}</dd>
+      <dt>marque</dt><dd>${editable('marque', d.marque)}</dd>
+      <dt>modèle</dt><dd>${editable('modele', d.modele)}</dd>
+      <dt>référence</dt><dd>${editable('reference', d.reference)}</dd>
       <dt>état apparent</dt><dd>${d.etat_apparent || "—"}</dd>
       <dt>maille (bloc 3)</dt><dd>${d.maille || "—"}</dd>
       <dt>fourchette plausible</dt><dd>${f.bas ?? "?"} – ${f.haut ?? "?"} ${f.devise || ""} <em>(garde-fou, pas une cote)</em></dd>
       <dt>certitude modèle</dt><dd>${cm} %<div class="jauge"><i style="width:${cm}%"></i></div></dd>
       <dt>certitude variante</dt><dd>${cv} %<div class="jauge"><i style="width:${cv}%"></i></div></dd>
     </dl>`;
+
+  const lectures = (d.lectures || []).filter(l => l && l.texte);
+  const douteuses = lectures.filter(l => (l.confiance ?? 1) < 0.9 && (l.alternatives || []).length);
+  if (douteuses.length) {
+    h += `<div class="info" style="background:#f5c26b"><b>lectures incertaines</b> — vérifie
+          sur l'objet. Si l'une des alternatives est la bonne, clique dessus.`;
+    douteuses.forEach(l => {
+      h += `<p style="margin:8px 0 0;font-size:14px">« <b>${l.texte}</b> »
+            ${l.ou ? `<span style="color:var(--gris)">(${l.ou})</span>` : ''}
+            — confiance ${Math.round((l.confiance || 0) * 100)} %. C'est plutôt :
+            ${(l.alternatives || []).slice(0, 4).map(a =>
+              `<button class="second alt" data-de="${String(l.texte).replace(/"/g, '&quot;')}"
+                data-vers="${String(a).replace(/"/g, '&quot;')}"
+                style="padding:3px 9px;font-size:13px;margin:3px 4px 0 0">${a}</button>`).join('')}</p>`;
+    });
+    h += `</div>`;
+  }
+
+  h += `<p class="aide" style="margin:10px 0 0">Une lecture est fausse ? Clique sur ✎ à côté de la
+        marque, du modèle ou de la référence et corrige avec l'objet en main : ta lecture prime
+        sur celle des photos, et l'identification repart sur la bonne base.</p>`;
 
   if (d.hypotheses_concurrentes && d.hypotheses_concurrentes.length)
     h += `<p style="margin:12px 0 0;font-size:14px"><b>hypothèses concurrentes :</b>
@@ -756,6 +878,7 @@ function afficherIdentite(d) {
   h += `</div>`;
   $('#sortie1').innerHTML = h;
   brancherVues();
+  brancherCorrection(d);
 
   // recalcul en direct de la fourchette selon les facteurs cochés
   if (fact.length) {
@@ -946,11 +1069,20 @@ Pour chaque fiche :
 - statut : "vendu" si la page indique une vente conclue ou une adjudication, "en_vente" si
   l'article est proposé, "inconnu" sinon
 - correspondance avec l'objet recherché : "exacte" (même modèle, même déclinaison), "modele"
-  (même modèle, déclinaison différente), "famille" (même gamme ou collaboration). Écarte tout
-  le reste sans le mentionner.
+  (même modèle, déclinaison différente), "famille" (même gamme ou collaboration),
+  "comparable" (autre marque ou autre modèle, mais même classe d'objet — voir plus bas).
+  Écarte tout le reste sans le mentionner.
 - neuf : true si vendu neuf par un marchand ou la marque, false si occasion
 
 Vise entre 10 et 30 fiches pertinentes. Moins vaut mieux que du hors-sujet.
+
+OBJET INTROUVABLE OU RARE. Si tes recherches ramènent moins de trois fiches exactes ou du même
+modèle — marque confidentielle, marque de façade, objet sans nom — ne t'arrête pas : cherche des
+COMPARABLES, comme le ferait un expert. Définis d'abord la classe d'objet à partir de ses
+propriétés : type, matière, mécanisme ou technique, style, époque, qualité de fabrication,
+segment de prix. Puis cherche des fiches d'objets de cette classe, de marques équivalentes. Tu
+écris cette classe en une phrase dans "classe_comparable". Un comparable n'est jamais présenté
+comme l'objet lui-même : il donne un ordre de grandeur.
 
 Termine par une lecture qualitative en trois ou quatre phrases : où l'objet circule, comment
 les canaux se distinguent, ce qui explique les écarts. N'y avance aucun chiffre qui ne figure
@@ -958,11 +1090,36 @@ pas dans les fiches listées.
 
 Format :
 {"fiches":[{"plateforme":"...","url":"...","titre":"...","prix":0,"devise":"EUR",
-  "statut":"vendu|en_vente|inconnu","correspondance":"exacte|modele|famille",
+  "statut":"vendu|en_vente|inconnu","correspondance":"exacte|modele|famille|comparable",
   "etat":"... ou null","neuf":false}],
+ "classe_comparable":"... ou null",
  "lecture":"..."}`;
 
 let marcheEnCours = false;
+
+/* Bloc 4 du schéma : l'effort de recherche suit la valeur plausible de l'objet. Dépenser
+   un euro pour situer une montre à 40 € n'a pas de sens ; l'économiser sur une pièce à
+   2 000 € non plus. L'utilisateur peut toujours changer la case. */
+const SEUIL_BAS = 150, SEUIL_HAUT = 500;
+function regler_intensite() {
+  const f = profil.fourchette_plausible || {};
+  const haut = +f.haut || 0;
+  const el = $('#intensite');
+  if (!haut) { el.textContent = ''; return; }
+  if (haut < SEUIL_BAS) {
+    $('#approfondi').checked = false;
+    el.innerHTML = `<b>bloc 4 — intensité de veille :</b> objet estimé jusqu'à ${haut}
+      ${f.devise || '€'}, recherche économique retenue. Une recherche approfondie coûterait une
+      part sensible de sa valeur.`;
+  } else if (haut >= SEUIL_HAUT) {
+    $('#approfondi').checked = true;
+    el.innerHTML = `<b>bloc 4 — intensité de veille :</b> objet estimé jusqu'à ${haut}
+      ${f.devise || '€'}, recherche approfondie activée. L'enjeu justifie la précision.`;
+  } else {
+    el.innerHTML = `<b>bloc 4 — intensité de veille :</b> objet estimé jusqu'à ${haut}
+      ${f.devise || '€'}, recherche économique par défaut ; à approfondir si le résultat est mince.`;
+  }
+}
 
 async function lancerMarche() {
   if (marcheEnCours || !profil.description) return;
@@ -993,10 +1150,16 @@ async function lancerMarche() {
       profond ? "claude-sonnet-5" : "claude-haiku-4-5-20251001",
       { pays: "FR" });
     const pages = pagesDetail(dernierBrut);
+    const diag = {
+      recherches: (dernierBrut?.content || []).filter(x => x.type === "server_tool_use").length,
+      pages: pages.size,
+      proposees: (d.fiches || []).length,
+      modele_ia: profond ? "Sonnet" : "Haiku"
+    };
     fin();
     profil.marche = { ...d, date: new Date().toISOString().slice(0, 10) };
     profil.marche_modele = profil.modele;
-    afficherMarche(d, pages);
+    afficherMarche(d, pages, diag);
     allume(8);
     $('#export').disabled = false;
   } catch (e) {
@@ -1018,7 +1181,7 @@ function stats(prix) {
 
 let marche = { fiches: [], ecartees: [], lecture: "" };
 
-function afficherMarche(d, pages) {
+function afficherMarche(d, pages, diag = {}) {
   const fiches = [], ecartees = [];
   (d.fiches || []).filter(f => f && f.url).forEach(f => {
     const p = pages.get(normaliser(f.url));
@@ -1028,7 +1191,8 @@ function afficherMarche(d, pages) {
     fiches.push({ ...f, url: p.url, age: p.age, domaine: dom, verif: null,
                   prix: f.prix === null || f.prix === undefined ? null : +f.prix });
   });
-  marche = { fiches, ecartees, lecture: d.lecture || "" };
+  marche = { fiches, ecartees, lecture: d.lecture || "", classe: d.classe_comparable || null,
+             diag: { ...diag, retenues: fiches.length } };
   profil.marche = { date: new Date().toISOString().slice(0, 10), lecture: d.lecture || "",
                     fiches, adresses_ecartees: ecartees.length };
   rendreMarche();
@@ -1059,13 +1223,24 @@ const COULEUR_PREUVE = { confirme: 'var(--data)', arevoir: '#f5c26b', enligne: '
   nonverif: 'var(--clair)', disparue: 'var(--alerte)', attente: 'var(--clair)' };
 
 function rendreMarche() {
-  const { fiches, ecartees, lecture } = marche;
+  const { fiches, ecartees, lecture, classe, diag = {} } = marche;
+  const ligneDiag = diag.recherches !== undefined
+    ? `${diag.recherches} recherche${diag.recherches > 1 ? 's' : ''} web (${diag.modele_ia}),
+       ${diag.pages} page${diag.pages > 1 ? 's' : ''} consultée${diag.pages > 1 ? 's' : ''},
+       ${diag.proposees} fiche${diag.proposees > 1 ? 's' : ''} proposée${diag.proposees > 1 ? 's' : ''},
+       ${diag.retenues} retenue${diag.retenues > 1 ? 's' : ''} après vérification des adresses`
+    : '';
   if (!fiches.length) {
-    $('#sortie-marche').innerHTML = `<div class="warn">aucune fiche vérifiable trouvée.
-      ${ecartees.length ? `${ecartees.length} adresse${ecartees.length > 1 ? 's' : ''} citée${
-        ecartees.length > 1 ? 's' : ''} mais jamais consultée${ecartees.length > 1 ? 's' : ''},
-        donc écartée${ecartees.length > 1 ? 's' : ''}. ` : ''}
-      Essayer la recherche approfondie, ou élargir l'identification.</div>`;
+    const rien = !diag.proposees;
+    $('#sortie-marche').innerHTML = `<div class="warn">aucune fiche vérifiable trouvée.</div>
+      <div class="res"><p style="margin:0;font-size:14px"><b>ce que la recherche a fait :</b>
+        ${ligneDiag || 'détail indisponible'}.</p>
+      <p style="margin:10px 0 0;font-size:14px">${rien
+        ? `Le modèle a lu ${diag.pages || 0} pages sans y trouver une seule fiche d'article, ni de
+           l'objet ni d'un comparable. Pour une marque absente du web, c'est une réponse vraie :
+           la cote devra passer par la saisie assistée ou une expertise.`
+        : `Des fiches ont été proposées, mais aucune adresse ne figurait parmi les pages réellement
+           consultées : elles ont été écartées par précaution. Relancer peut suffire.`}</p></div>`;
     return;
   }
 
@@ -1074,14 +1249,16 @@ function rendreMarche() {
   fiches.forEach(f => f.prix && (compte[f.devise || 'EUR'] = (compte[f.devise || 'EUR'] || 0) + 1));
   const dev = Object.entries(compte).sort((a, b) => b[1] - a[1])[0]?.[0] || 'EUR';
 
-  const retenue = f => {
-    if (!f.prix || (f.devise || 'EUR') !== dev || f.correspondance === 'famille') return false;
+  const valide = f => {
+    if (!f.prix || (f.devise || 'EUR') !== dev) return false;
     const n = niveau(f);
     if (n.cle === 'disparue' && f.statut !== 'vendu') return false;   // annonce retirée
     if (n.vente && f.statut === 'en_vente') return false;             // annonce qui semble vendue
     if (strict) return n.cle === 'confirme';
     return true;
   };
+  const retenue = f => valide(f) && f.correspondance !== 'famille' && f.correspondance !== 'comparable';
+  const comparable = f => valide(f) && f.correspondance === 'comparable' && !f.neuf;
 
   const vendues = fiches.filter(f => f.statut === 'vendu' && retenue(f));
   const offertes = fiches.filter(f => f.statut === 'en_vente' && !f.neuf && retenue(f));
@@ -1090,11 +1267,14 @@ function rendreMarche() {
   const so = stats(offertes.map(f => f.prix));
   const sn = stats(neuves.map(f => f.prix));
   const exactesVendues = vendues.filter(f => f.correspondance === 'exacte').length;
+  const comps = fiches.filter(comparable);
+  const sc = stats(comps.map(f => f.prix));
 
   let cas, libelle, fond;
   if (exactesVendues >= 8) { cas = 1; libelle = "cas 1 — cote statistique possible"; fond = 'var(--data)'; }
   else if (vendues.length >= 3) { cas = 2; libelle = "cas 2 — cote par comparables"; fond = 'var(--clair)'; }
   else if (offertes.length >= 3) { cas = '8c'; libelle = "tension de l'offre — prix demandés seulement"; fond = 'var(--clair)'; }
+  else if (comps.length >= 3) { cas = '8b'; libelle = "cote par comparables — objets de même classe, pas cet objet"; fond = 'var(--clair)'; }
   else { cas = 3; libelle = "cas 3 — trop peu de fiches pour une cote défendable"; fond = 'var(--alerte)'; }
   profil.cas = cas;
 
@@ -1103,7 +1283,7 @@ function rendreMarche() {
   const enCours = tally.attente || 0;
 
   const k = 1 + (profil.effet_facteurs_pct || 0) / 100;
-  const ref = sv || so;
+  const ref = sv || so || sc;
 
   let h = `<div class="res">
     <div style="background:${fond};color:${cas === 3 ? '#fff' : 'var(--sombre)'};padding:11px 14px;
@@ -1112,7 +1292,11 @@ function rendreMarche() {
       ${offertes.length} annonce${offertes.length > 1 ? 's' : ''} d'occasion retenues
       ${strict ? '<b>(prix confirmés aujourd\'hui uniquement)</b>' : ''}.</div>
 
-    <p style="margin:10px 0 0;font-size:13.5px">
+    ${classe && comps.length ? `<div class="info" style="margin:10px 0 0"><b>classe de comparables
+      retenue :</b> ${classe}. Ces objets ne sont pas le tien : ils situent un ordre de grandeur,
+      à confirmer par l'état et la provenance.</div>` : ''}
+    <p style="margin:10px 0 0;font-size:13.5px"><b>recherche :</b> ${ligneDiag}.</p>
+    <p style="margin:6px 0 0;font-size:13.5px">
       <b>preuve :</b>
       ${tally.confirme || 0} prix confirmé${(tally.confirme || 0) > 1 ? 's' : ''} aujourd'hui ·
       ${tally.arevoir || 0} en ligne à revoir ·
@@ -1131,6 +1315,8 @@ function rendreMarche() {
               <span>de ${so.min} à ${so.max}</span></div>` : ''}
       ${sn ? `<div><span>neuf, marchands · ${sn.n}</span><b>${sn.med} ${dev}</b>
               <span>de ${sn.min} à ${sn.max}</span></div>` : ''}
+      ${sc ? `<div style="border-style:dashed"><span>comparables d'occasion · ${sc.n}</span>
+              <b>${sc.med} ${dev}</b><span>de ${sc.min} à ${sc.max} · ordre de grandeur</span></div>` : ''}
       ${ref && profil.effet_facteurs_pct ? `<div style="background:var(--clair)">
               <span>ajusté selon tes réponses · ${profil.effet_facteurs_pct > 0 ? '+' : ''}${profil.effet_facteurs_pct} %</span>
               <b>${Math.round(ref.med * k)} ${dev}</b><span>indicatif, sur la médiane ${sv ? 'des ventes' : 'des annonces'}</span></div>` : ''}
