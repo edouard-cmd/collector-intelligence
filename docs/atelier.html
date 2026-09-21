@@ -25,6 +25,7 @@
   legend{background:var(--struct);color:var(--clair);padding:4px 12px;font-weight:700;font-size:14px}
   label{display:block;font-weight:700;font-size:13px;margin:12px 0 5px}
   .aide{font-weight:400;color:var(--gris);font-size:12.5px;margin:0 0 6px}
+  input[type=number],input[type=date],
   input[type=text],input[type=password],textarea,select{
     width:100%;padding:9px 11px;border:2px solid var(--struct);background:#fff;
     font:inherit;font-size:15px}
@@ -98,6 +99,11 @@
   #journal em{color:var(--gris);font-style:normal}
   .ok{color:var(--ia);font-weight:700}
   details.avance{margin:0 0 20px}
+  .choix{display:flex;gap:10px;flex-wrap:wrap}
+  .choix label{display:flex;gap:8px;align-items:center;font-weight:600;font-size:14px;margin:0;
+    border:3px solid var(--struct);background:#fff;padding:9px 13px;cursor:pointer}
+  .choix label:has(input:checked){background:var(--ia);color:#fff}
+  .choix input{width:auto;margin:0}
   .crayon{border:0;background:none;padding:0 5px;font-size:16px;cursor:pointer;
     color:var(--ia);box-shadow:none;vertical-align:baseline}
   .crayon:hover{color:var(--struct)}
@@ -179,6 +185,36 @@
   <p class="aide">Optionnel. Ce que vous voyez et que la photo rend mal : dimensions, matière, odeur du cuir, poids.</p>
   <input type="text" id="complement" placeholder="environ 25 cm de large, cuir très patiné">
 
+  <p class="hist-h" style="margin-top:20px">ta situation</p>
+  <div class="choix">
+    <label><input type="radio" name="mode" value="achat"> je me renseigne avant d'acheter</label>
+    <label><input type="radio" name="mode" value="collection"> il est dans ma collection</label>
+  </div>
+  <div id="champs-situation" style="display:none">
+    <label for="s-prix" id="s-prix-lib">prix demandé</label>
+    <div style="display:flex;gap:8px">
+      <input type="number" id="s-prix" min="0" step="any" placeholder="0" style="flex:1">
+      <select id="s-devise" style="width:auto">
+        <option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option>
+      </select>
+    </div>
+    <div id="s-date-zone">
+      <label for="s-date">date d'acquisition (facultatif)</label>
+      <input type="date" id="s-date">
+    </div>
+    <label for="s-canal">où ? (facultatif)</label>
+    <select id="s-canal">
+      <option value="">—</option>
+      <option value="particuliers">entre particuliers — Vinted, leboncoin, brocante…</option>
+      <option value="authentifies">revendeur ou dépôt-vente</option>
+      <option value="encheres">enchères</option>
+      <option value="neuf">neuf, en boutique</option>
+    </select>
+    <p class="aide" style="margin-top:8px">Ce prix n'est jamais transmis au modèle : il ne peut pas
+       orienter la recherche. Il sert uniquement au verdict final, calculé par le code sur les
+       prix trouvés.</p>
+  </div>
+
   <div style="margin-top:16px">
     <button id="identifier" disabled>identifier l'objet</button>
     <span class="etat" id="etat1"></span>
@@ -214,6 +250,14 @@
     <button id="chercher" class="second" disabled>chercher sur le marché</button>
   </div>
   <div id="sortie-marche"></div>
+</fieldset>
+
+<fieldset>
+  <legend>verdict — est-ce que ça vaut le coût ?</legend>
+  <p class="aide">Ton prix, comparé aux prix trouvés sur le marché. Calculé par le code, jamais estimé
+     par le modèle ; la base de calcul et le niveau de confiance sont affichés avec le résultat.</p>
+  <div id="sortie-verdict"><p class="aide">Indique ta situation et un prix dans le bloc 1 ;
+     le verdict apparaîtra après la recherche sur le marché.</p></div>
 </fieldset>
 
 <details class="avance">
@@ -974,6 +1018,7 @@ function afficherIdentite(d) {
       const k = 1 + pct / 100;
       profil.facteurs_retenus = coches.map(c => fact[+c.dataset.i].element);
       profil.effet_facteurs_pct = pct;
+      if (typeof marche !== 'undefined' && marche.fiches && marche.fiches.length) rendreMarche();
       $('#fvres').innerHTML = coches.length
         ? `${coches.length} élément${coches.length > 1 ? 's' : ''} retenu${coches.length > 1 ? 's' : ''}
            — effet cumulé <b>${pct >= 0 ? '+' : ''}${pct} %</b>${base.haut ? `,
@@ -1275,10 +1320,17 @@ async function lancerMarche() {
 
 $('#chercher').onclick = lancerMarche;
 
+function quantile(s, p) {
+  const i = (s.length - 1) * p, b = Math.floor(i), f = i - b;
+  return s[b + 1] !== undefined ? s[b] + f * (s[b + 1] - s[b]) : s[b];
+}
+
 function stats(prix) {
   if (!prix.length) return null;
   const s = [...prix].sort((a, b) => a - b);
-  return { n: s.length, min: s[0], max: s[s.length - 1], med: mediane(s) };
+  const r = { n: s.length, min: s[0], max: s[s.length - 1], med: mediane(s) };
+  if (s.length >= 4) { r.q1 = quantile(s, .25); r.q3 = quantile(s, .75); }
+  return r;
 }
 
 let marche = { fiches: [], ecartees: [], lecture: "" };
@@ -1347,6 +1399,8 @@ function rendreMarche() {
         recherche</button> <span class="etat">Sonnet, 10 recherches, environ 0,25 €</span></div>` : ''}
       </div>`;
     brancherElargir();
+    marche.ref = null;
+    rendreVerdict();
     return;
   }
 
@@ -1395,6 +1449,7 @@ function rendreMarche() {
 
   const k = 1 + (profil.effet_facteurs_pct || 0) / 100;
   const ref = sv || so || sc;
+  marche.ref = { sv, so, sn, sc, dev, k };
 
   let h = `<div class="res">
     <div style="background:${fond};color:${cas === 3 ? '#fff' : 'var(--sombre)'};padding:11px 14px;
@@ -1492,9 +1547,225 @@ function rendreMarche() {
 
   $('#sortie-marche').innerHTML = h + `</div>`;
   brancherElargir();
+  rendreVerdict();
   const s = $('#strict');
   if (s && s.addEventListener) s.addEventListener('change', rendreMarche);
 }
+
+/* ---------- verdict : est-ce que ça vaut le coût ? ----------
+   Tout est calculé ici, par le code, sur les prix trouvés. Les seuils sont les quartiles des
+   prix de référence quand on en a assez ; sinon une marge de ±15 % autour de la médiane. */
+function lireSituation() {
+  const coche = [...document.querySelectorAll('input[name=mode]')].find(r => r.checked);
+  const brut = $('#s-prix') ? $('#s-prix').value : '';
+  const s = {
+    mode: coche ? coche.value : null,
+    prix: brut === '' || brut === undefined ? null : +brut,
+    devise: $('#s-devise') ? $('#s-devise').value || 'EUR' : 'EUR',
+    date: $('#s-date') ? $('#s-date').value || null : null,
+    canal: $('#s-canal') ? $('#s-canal').value || null : null,
+  };
+  profil.situation = s;
+  return s;
+}
+
+const tauxCache = {};
+async function obtenirTaux(de, vers) {
+  const cle = de + vers;
+  if (tauxCache[cle] !== undefined) return tauxCache[cle];
+  tauxCache[cle] = null;   // en cours
+  // Taux de référence de la Banque centrale européenne, lus via la passerelle.
+  for (const url of [`https://api.frankfurter.app/latest?from=${de}&to=${vers}`,
+                     `https://api.frankfurter.dev/v1/latest?base=${de}&symbols=${vers}`]) {
+    try {
+      const p = await lirePage(url);
+      const j = JSON.parse(p.texte || '');
+      if (j.rates && j.rates[vers]) return (tauxCache[cle] = { taux: j.rates[vers], date: j.date });
+    } catch {}
+  }
+  return (tauxCache[cle] = false);
+}
+
+function rendreVerdict() {
+  const el = $('#sortie-verdict');
+  if (!el) return;
+  const s = lireSituation();
+  const ref = typeof marche !== 'undefined' ? marche.ref : null;
+
+  if (!s.mode) {
+    el.innerHTML = `<p class="aide">Indique ta situation dans le bloc 1 — achat en réflexion ou
+      objet de ta collection — pour obtenir un verdict.</p>`;
+    return;
+  }
+  if (!ref) {
+    el.innerHTML = `<p class="aide">Le verdict apparaîtra après la recherche sur le marché.</p>`;
+    return;
+  }
+
+  // ── la base de comparaison, de la plus solide à la plus fragile ──
+  const { sv, so, sn, sc, dev } = ref;
+  // lu à la source, pour que le verdict suive les cases cochées même sans relancer le marché
+  const k = 1 + (profil.effet_facteurs_pct || 0) / 100;
+  let base, source, nature, confiance;
+  if (s.mode === 'achat' && s.canal === 'neuf' && sn) {
+    base = sn; source = "prix neufs en boutique"; nature = 'neuf';
+    confiance = sn.n >= 3 ? 'moyenne' : 'faible';
+  } else if (sv && sv.n >= 3) {
+    base = sv; source = "ventes conclues"; nature = 'obtenu';
+    confiance = sv.n >= 8 ? 'forte' : 'moyenne';
+  } else if (so && so.n >= 3) {
+    base = so; source = "annonces d'occasion en cours"; nature = 'demande';
+    confiance = so.n >= 5 ? 'moyenne' : 'faible';
+  } else if (sc && sc.n >= 3) {
+    base = sc; source = "objets comparables, pas le tien"; nature = 'comparable'; confiance = 'faible';
+  } else {
+    const n = (sv?.n || 0) + (so?.n || 0);
+    el.innerHTML = `<div class="warn">pas assez de prix trouvés pour trancher${n ? ` :
+      seulement ${n} prix de cet objet` : ''}.</div>
+      <p class="aide">Un verdict sur une ou deux fiches serait une opinion déguisée en chiffre :
+      il en faut au moins trois. Élargir la recherche, ou passer par une expertise.</p>`;
+    profil.verdict = { mode: s.mode, verdict: 'indecidable' };
+    return;
+  }
+
+  const kk = nature === 'neuf' ? 1 : k;   // l'état ne module pas un prix neuf
+  let med = base.med * kk;
+  let q1 = (base.q1 ?? base.med * 0.85) * kk;
+  let q3 = (base.q3 ?? base.med * 1.15) * kk;
+
+  // ── devise : on ne compare jamais des euros à des dollars ──
+  let noteConv = '';
+  if (s.devise !== dev) {
+    const t = tauxCache[dev + s.devise];
+    if (t === undefined || t === null) {
+      el.innerHTML = `<div class="attente"><i class="rotor"></i><span>conversion ${dev} → ${s.devise}
+        au taux de la Banque centrale européenne…</span></div>`;
+      if (t === undefined) obtenirTaux(dev, s.devise).then(rendreVerdict);
+      return;
+    }
+    if (t === false) {
+      el.innerHTML = `<div class="warn">les prix trouvés sont en ${dev} et le taux de change n'a pas
+        pu être obtenu. Saisis ton prix en ${dev} pour obtenir le verdict.</div>`;
+      return;
+    }
+    med *= t.taux; q1 *= t.taux; q3 *= t.taux;
+    noteConv = `Prix de marché convertis de ${dev} en ${s.devise} au taux BCE du ${t.date} (1 ${dev} = ${t.taux} ${s.devise}).`;
+  }
+  const r = x => Math.round(x);
+  const M = r(med), Q1 = r(q1), Q3 = r(q3), D = s.devise, P = s.prix;
+
+  const marcheSeul = `<div class="synth">
+      <div><span>valeur de marché · médiane</span><b>${M} ${D}</b>
+        <span>fourchette ${Q1}–${Q3}</span></div>
+      <div><span>base de calcul</span><b style="font-size:16px">${base.n} ${source}</b>
+        <span>confiance ${confiance}</span></div></div>`;
+
+  if (P === null || isNaN(P)) {
+    el.innerHTML = `<div class="res">${marcheSeul}
+      <p class="aide" style="margin:0">Saisis ${s.mode === 'achat' ? 'le prix demandé' : 'le prix payé'}
+      dans le bloc 1 pour obtenir le verdict.</p></div>`;
+    return;
+  }
+
+  // ── position du prix dans le marché ──
+  let pos;
+  if (P < 0.5 * M) pos = 'tres_bas';
+  else if (P < Q1) pos = 'sous';
+  else if (P <= Q3) pos = 'marche';
+  else if (P <= 1.5 * M) pos = 'dessus';
+  else pos = 'trop';
+
+  let titre, fond, texte = [];
+  if (s.mode === 'achat') {
+    ({
+      tres_bas: () => { titre = "anormalement bas"; fond = 'var(--alerte)';
+        texte.push(`Moins de la moitié du prix de marché. Avant d'acheter, vérifie l'authenticité,
+          l'état et le vendeur : un prix trop beau est le premier signe d'une contrefaçon ou d'une arnaque.`); },
+      sous: () => { titre = "bonne affaire — sous le marché"; fond = 'var(--data)';
+        texte.push(`À saisir si l'état et l'authenticité sont confirmés.`); },
+      marche: () => { titre = "au prix du marché"; fond = 'var(--clair)';
+        texte.push(`Ni affaire ni excès : c'est le prix auquel cet objet s'échange.`); },
+      dessus: () => { titre = "au-dessus du marché — à négocier"; fond = '#f5c26b';
+        texte.push(`Une offre autour de ${M} ${D} est défendable, et les fiches du bloc marché
+          te donnent de quoi l'argumenter. Au-delà de ${Q3} ${D}, tu paies plus que la plupart des acheteurs.`); },
+      trop: () => { titre = "nettement trop cher"; fond = 'var(--alerte)';
+        texte.push(`Plus d'une fois et demie le prix de marché. À négocier fortement, ou à laisser passer.`); },
+    })[pos]();
+  } else {
+    const ecart = M - P;
+    const pct = P > 0 ? Math.round((M / P - 1) * 100) : null;
+    titre = ecart >= 0 ? `plus-value latente : +${ecart} ${D}${pct !== null ? ` (+${pct} %)` : ''}`
+                       : `moins-value latente : ${ecart} ${D} (${pct} %)`;
+    fond = ecart >= 0 ? 'var(--data)' : '#f5c26b';
+    texte.push({
+      tres_bas: `Tu l'as payé moins de la moitié de sa valeur de marché : belle trouvaille — à condition
+        que l'authenticité soit confirmée, puisque c'est elle qui porte toute la valeur.`,
+      sous: `Tu l'as payé sous le prix du marché actuel : un bon achat.`,
+      marche: `Tu l'as payé au prix du marché actuel.`,
+      dessus: `Tu l'as payé au-dessus du marché actuel : la revente couvrirait difficilement ton prix d'achat.`,
+      trop: `Tu l'as payé bien au-dessus du marché actuel.`,
+    }[pos]);
+    if (s.date && P > 0) {
+      const ans = (Date.now() - new Date(s.date)) / (365.25 * 864e5);
+      if (ans >= 1) texte.push(`Sur ${ans.toFixed(1).replace('.', ',')} ans de détention, cela représente
+        ${((Math.pow(M / P, 1 / ans) - 1) * 100).toFixed(1).replace('.', ',')} % par an.`);
+    }
+    if (sn && nature !== 'neuf')
+      texte.push(`Pour l'assurance, la valeur de remplacement est plutôt le prix neuf :
+        ${r(sn.med * (s.devise !== dev && tauxCache[dev + s.devise] ? tauxCache[dev + s.devise].taux : 1))} ${D}.`);
+    else texte.push(`Pour l'assurance, déclare plutôt le haut de la fourchette : ${Q3} ${D}.`);
+  }
+
+  if (nature === 'demande')
+    texte.push(`La référence est faite de prix demandés, pas de prix obtenus : les ventes se concluent
+      en général un peu en dessous. Le marché réel est donc probablement plus bas que ${M} ${D}.`);
+  if (nature === 'comparable')
+    texte.push(`La référence est faite d'objets comparables, pas du tien : ce verdict donne un ordre
+      de grandeur, pas une cote.`);
+  if (profil.effet_facteurs_pct && nature !== 'neuf')
+    texte.push(`La valeur tient compte des éléments que tu as cochés (${profil.effet_facteurs_pct > 0 ? '+' : ''}${profil.effet_facteurs_pct} %).`);
+
+  profil.verdict = { mode: s.mode, prix: P, devise: D, position: pos, titre,
+    valeur_marche: M, fourchette: [Q1, Q3], base: source, fiches: base.n, confiance,
+    date: new Date().toISOString().slice(0, 10) };
+
+  el.innerHTML = `<div class="res">
+    <div style="background:${fond};color:${fond === 'var(--alerte)' ? '#fff' : 'var(--sombre)'};
+         padding:13px 15px;border:3px solid var(--struct)">
+      <b style="font-size:18px">${titre}</b></div>
+    <div class="synth">
+      <div><span>${s.mode === 'achat' ? 'prix demandé' : 'prix payé'}</span><b>${P} ${D}</b>
+        <span>${s.canal ? LIB_CANAL[s.canal] : '&nbsp;'}</span></div>
+      <div><span>valeur de marché · médiane</span><b>${M} ${D}</b><span>fourchette ${Q1}–${Q3}</span></div>
+      <div><span>écart</span><b>${P > 0 ? `${P >= M ? '+' : ''}${Math.round((P / M - 1) * 100)} %` : '—'}</b>
+        <span>ton prix face au marché</span></div>
+    </div>
+    ${texte.map(t => `<p style="margin:0 0 8px;font-size:14.5px;line-height:1.5">${t}</p>`).join('')}
+    <p class="etat" style="margin-top:10px"><b>base du verdict :</b> médiane de ${base.n} ${source},
+      trouvées et vérifiées dans le bloc marché · seuils : ${base.q1 !== undefined
+        ? 'quartiles des prix trouvés' : 'médiane ±15 %, trop peu de prix pour des quartiles'} ·
+      confiance ${confiance}. ${noteConv}</p>
+  </div>`;
+}
+
+const LIB_CANAL = { particuliers: "entre particuliers", authentifies: "revendeur ou dépôt-vente",
+                    encheres: "enchères", neuf: "neuf, en boutique" };
+
+function brancherSituation() {
+  const champs = $('#champs-situation');
+  document.querySelectorAll('input[name=mode]').forEach(radio => radio.onchange = () => {
+    const achat = radio.value === 'achat';
+    if (champs) champs.style.display = 'block';
+    $('#s-prix-lib').textContent = achat ? 'prix demandé' : 'prix payé';
+    $('#s-date-zone').style.display = achat ? 'none' : 'block';
+    rendreVerdict();
+  });
+  ['#s-prix', '#s-devise', '#s-date', '#s-canal'].forEach(id => {
+    const x = $(id);
+    if (x) x.oninput = x.onchange = rendreVerdict;
+  });
+}
+brancherSituation();
 
 function brancherElargir() {
   const b = document.getElementById('elargir');
