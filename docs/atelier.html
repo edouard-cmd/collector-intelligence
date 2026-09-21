@@ -1016,19 +1016,50 @@ function stats(prix) {
   return { n: s.length, min: s[0], max: s[s.length - 1], med: mediane(s) };
 }
 
+let marche = { fiches: [], ecartees: [], lecture: "" };
+
 function afficherMarche(d, pages) {
-  const brutes = (d.fiches || []).filter(f => f && f.url);
-  // une fiche n'est retenue que si son adresse figure parmi les pages réellement consultées
   const fiches = [], ecartees = [];
-  brutes.forEach(f => {
+  (d.fiches || []).filter(f => f && f.url).forEach(f => {
     const p = pages.get(normaliser(f.url));
-    if (!p) return ecartees.push(f);
+    if (!p) return ecartees.push(f);        // adresse jamais consultée : écartée
     let dom = '';
     try { dom = new URL(f.url).hostname.replace(/^www\./, ''); } catch {}
-    fiches.push({ ...f, url: p.url, age: p.age, domaine: dom,
+    fiches.push({ ...f, url: p.url, age: p.age, domaine: dom, verif: null,
                   prix: f.prix === null || f.prix === undefined ? null : +f.prix });
   });
+  marche = { fiches, ecartees, lecture: d.lecture || "" };
+  profil.marche = { date: new Date().toISOString().slice(0, 10), lecture: d.lecture || "",
+                    fiches, adresses_ecartees: ecartees.length };
+  rendreMarche();
+  if (fiches.length) verifierFiches();
+}
 
+/* Niveau de preuve d'une fiche, du plus fort au plus faible. C'est ce qui permet de dire
+   exactement, pour chaque prix transmis, sur quoi il repose. */
+function niveau(f) {
+  const v = f.verif;
+  if (!v) return { cle: 'attente', lib: 'vérification en cours…' };
+  if (v.etat === 'disparue') return { cle: 'disparue', lib: "page disparue aujourd'hui" };
+  if (v.etat !== 'en_ligne')
+    return { cle: 'nonverif', lib: "non vérifiable aujourd'hui (plateforme protégée) — prix lu par le moteur de recherche" };
+  let n;
+  if (v.prix_trouve === true) n = { cle: 'confirme', lib: "en ligne, prix confirmé aujourd'hui" };
+  else if (v.prix_trouve === false)
+    n = { cle: 'arevoir', lib: v.rendu_js
+      ? "en ligne, page construite en javascript : prix non contrôlable"
+      : "en ligne, prix non retrouvé sur la page — a pu changer" };
+  else n = { cle: 'enligne', lib: "en ligne" };
+  if ((v.signes_vente || []).length && f.statut !== 'vendu')
+    n.vente = v.signes_vente.join(', ');
+  return n;
+}
+
+const COULEUR_PREUVE = { confirme: 'var(--data)', arevoir: '#f5c26b', enligne: '#fff',
+  nonverif: 'var(--clair)', disparue: 'var(--alerte)', attente: 'var(--clair)' };
+
+function rendreMarche() {
+  const { fiches, ecartees, lecture } = marche;
   if (!fiches.length) {
     $('#sortie-marche').innerHTML = `<div class="warn">aucune fiche vérifiable trouvée.
       ${ecartees.length ? `${ecartees.length} adresse${ecartees.length > 1 ? 's' : ''} citée${
@@ -1038,21 +1069,28 @@ function afficherMarche(d, pages) {
     return;
   }
 
-  // devise majoritaire : on ne mélange jamais des euros et des dollars dans une médiane
+  const strict = $('#strict') ? $('#strict').checked : false;
   const compte = {};
   fiches.forEach(f => f.prix && (compte[f.devise || 'EUR'] = (compte[f.devise || 'EUR'] || 0) + 1));
   const dev = Object.entries(compte).sort((a, b) => b[1] - a[1])[0]?.[0] || 'EUR';
-  const pertinent = f => f.prix && (f.devise || 'EUR') === dev && f.correspondance !== 'famille';
 
-  const vendues = fiches.filter(f => f.statut === 'vendu' && pertinent(f));
-  const offertes = fiches.filter(f => f.statut === 'en_vente' && pertinent(f) && !f.neuf);
-  const neuves = fiches.filter(f => f.neuf && pertinent(f));
+  const retenue = f => {
+    if (!f.prix || (f.devise || 'EUR') !== dev || f.correspondance === 'famille') return false;
+    const n = niveau(f);
+    if (n.cle === 'disparue' && f.statut !== 'vendu') return false;   // annonce retirée
+    if (n.vente && f.statut === 'en_vente') return false;             // annonce qui semble vendue
+    if (strict) return n.cle === 'confirme';
+    return true;
+  };
+
+  const vendues = fiches.filter(f => f.statut === 'vendu' && retenue(f));
+  const offertes = fiches.filter(f => f.statut === 'en_vente' && !f.neuf && retenue(f));
+  const neuves = fiches.filter(f => f.neuf && retenue(f));
   const sv = stats(vendues.map(f => f.prix));
   const so = stats(offertes.map(f => f.prix));
   const sn = stats(neuves.map(f => f.prix));
   const exactesVendues = vendues.filter(f => f.correspondance === 'exacte').length;
 
-  // verdict a posteriori, sur les fiches réellement trouvées
   let cas, libelle, fond;
   if (exactesVendues >= 8) { cas = 1; libelle = "cas 1 — cote statistique possible"; fond = 'var(--data)'; }
   else if (vendues.length >= 3) { cas = 2; libelle = "cas 2 — cote par comparables"; fond = 'var(--clair)'; }
@@ -1060,15 +1098,32 @@ function afficherMarche(d, pages) {
   else { cas = 3; libelle = "cas 3 — trop peu de fiches pour une cote défendable"; fond = 'var(--alerte)'; }
   profil.cas = cas;
 
+  const tally = {};
+  fiches.forEach(f => { const c = niveau(f).cle; tally[c] = (tally[c] || 0) + 1; });
+  const enCours = tally.attente || 0;
+
   const k = 1 + (profil.effet_facteurs_pct || 0) / 100;
   const ref = sv || so;
 
   let h = `<div class="res">
     <div style="background:${fond};color:${cas === 3 ? '#fff' : 'var(--sombre)'};padding:11px 14px;
          border:3px solid var(--struct)"><b>${libelle}</b> —
-      ${fiches.length} fiche${fiches.length > 1 ? 's' : ''} vérifiée${fiches.length > 1 ? 's' : ''},
-      dont ${vendues.length} vendue${vendues.length > 1 ? 's' : ''} et
-      ${offertes.length} en vente d'occasion.</div>
+      ${vendues.length} vente${vendues.length > 1 ? 's' : ''} conclue${vendues.length > 1 ? 's' : ''} et
+      ${offertes.length} annonce${offertes.length > 1 ? 's' : ''} d'occasion retenues
+      ${strict ? '<b>(prix confirmés aujourd\'hui uniquement)</b>' : ''}.</div>
+
+    <p style="margin:10px 0 0;font-size:13.5px">
+      <b>preuve :</b>
+      ${tally.confirme || 0} prix confirmé${(tally.confirme || 0) > 1 ? 's' : ''} aujourd'hui ·
+      ${tally.arevoir || 0} en ligne à revoir ·
+      ${tally.nonverif || 0} non vérifiable${(tally.nonverif || 0) > 1 ? 's' : ''} ·
+      ${tally.disparue || 0} disparue${(tally.disparue || 0) > 1 ? 's' : ''}
+      ${enCours ? ` · <span class="bloc">${enCours} en cours de vérification</span>` : ''}</p>
+
+    <label style="display:flex;gap:9px;align-items:center;font-weight:400;margin:8px 0 0;font-size:13.5px">
+      <input type="checkbox" id="strict" style="width:auto" ${strict ? 'checked' : ''}>
+      ne calculer que sur les prix confirmés aujourd'hui</label>
+
     <div class="synth">
       ${sv ? `<div><span>ventes conclues · ${sv.n}</span><b>${sv.med} ${dev}</b>
               <span>de ${sv.min} à ${sv.max}</span></div>` : ''}
@@ -1083,52 +1138,88 @@ function afficherMarche(d, pages) {
 
   if (sv && so)
     h += `<p class="aide" style="margin:0 0 6px">Les annonces en cours sont en médiane
-          ${Math.round((so.med / sv.med - 1) * 100)} % ${so.med >= sv.med ? 'au-dessus' : 'en dessous'}
-          des ventes conclues : c'est la marge de négociation habituelle sur ce marché.</p>`;
+          ${Math.abs(Math.round((so.med / sv.med - 1) * 100))} % ${so.med >= sv.med ? 'au-dessus' : 'en dessous'}
+          des ventes conclues.</p>`;
   if (!sv && so)
-    h += `<p class="aide" style="margin:0 0 6px">Aucune vente conclue trouvée : ces chiffres sont
+    h += `<p class="aide" style="margin:0 0 6px">Aucune vente conclue retenue : ces chiffres sont
           des prix demandés, pas des prix obtenus. Ils bornent la cote par le haut.</p>`;
 
-  // détail par plateforme, chaque prix cliquable
   const parPf = {};
   fiches.forEach(f => (parPf[f.plateforme || f.domaine] ||= []).push(f));
-  Object.entries(parPf)
-    .sort((a, b) => b[1].length - a[1].length)
-    .forEach(([pf, lot]) => {
-      const px = lot.filter(pertinent).map(f => f.prix);
-      const s = stats(px);
-      h += `<p style="margin:18px 0 4px;font-size:14px;font-weight:700;display:flex;gap:8px;
-            align-items:center">${logo(lot[0])}${pf}
-            <span style="color:var(--gris);font-weight:400">${lot.length} fiche${lot.length > 1 ? 's' : ''}
-            ${s ? `· médiane ${s.med} ${dev}` : ''}</span></p>`;
-      lot.sort((a, b) => (a.prix ?? 1e9) - (b.prix ?? 1e9)).forEach(f => {
-        h += `<div class="art">
-          <div class="px">${f.prix !== null
-            ? `<a href="${f.url}" target="_blank" rel="noopener">${f.prix} ${f.devise || ''}</a>`
-            : `<a href="${f.url}" target="_blank" rel="noopener">voir ↗</a>`}</div>
-          <div class="tt">${(f.titre || '').slice(0, 110)}</div>
-          <div class="meta">
-            <span class="tag ${f.statut === 'vendu' ? 'vendu' : 'envente'}">${
-              f.statut === 'vendu' ? 'vendu' : f.statut === 'en_vente' ? 'en vente' : 'statut ?'}</span>
-            <span class="tag">${f.correspondance || '?'}</span>
-            ${f.neuf ? '<span class="tag">neuf</span>' : ''}
-            ${f.etat ? f.etat.slice(0, 40) + ' · ' : ''}${f.domaine}${f.age ? ' · page vue ' + f.age : ''}
-          </div></div>`;
-      });
+  Object.entries(parPf).sort((a, b) => b[1].length - a[1].length).forEach(([pf, lot]) => {
+    const s = stats(lot.filter(retenue).map(f => f.prix));
+    h += `<p style="margin:18px 0 4px;font-size:14px;font-weight:700;display:flex;gap:8px;
+          align-items:center">${logo(lot[0])}${pf}
+          <span style="color:var(--gris);font-weight:400">${lot.length} fiche${lot.length > 1 ? 's' : ''}
+          ${s ? `· médiane ${s.med} ${dev}` : ''}</span></p>`;
+    [...lot].sort((a, b) => (a.prix ?? 1e9) - (b.prix ?? 1e9)).forEach(f => {
+      const n = niveau(f);
+      const exclue = !retenue(f);
+      h += `<div class="art" style="border-left-color:${COULEUR_PREUVE[n.cle]};${exclue ? 'opacity:.55' : ''}">
+        <div class="px"><a href="${f.url}" target="_blank" rel="noopener">${
+          f.prix !== null ? `${f.prix} ${f.devise || ''}` : 'voir ↗'}</a></div>
+        <div class="tt">${(f.titre || '').slice(0, 110)}</div>
+        <div class="meta">
+          <span class="tag ${f.statut === 'vendu' ? 'vendu' : 'envente'}">${
+            f.statut === 'vendu' ? 'vendu' : f.statut === 'en_vente' ? 'en vente' : 'statut ?'}</span>
+          <span class="tag">${f.correspondance || '?'}</span>
+          ${f.neuf ? '<span class="tag">neuf</span>' : ''}
+          <span class="tag" style="background:${COULEUR_PREUVE[n.cle]}">${n.lib}</span>
+          ${n.vente ? `<span class="tag" style="background:#f5c26b">semble vendue : ${n.vente}</span>` : ''}
+          ${exclue ? '<span class="tag">hors calcul</span>' : ''}
+          <br>${f.etat ? f.etat.slice(0, 40) + ' · ' : ''}${f.domaine}${f.age ? ' · indexée ' + f.age : ''}
+        </div></div>`;
     });
+  });
 
-  if (d.lecture)
+  if (lecture)
     h += `<p class="hist-h">lecture du marché</p>
-          <p style="margin:0;font-size:14.5px;line-height:1.55">${d.lecture}</p>`;
+          <p style="margin:0;font-size:14.5px;line-height:1.55">${lecture}</p>`;
 
-  h += `<p class="etat" style="margin-top:14px">Les prix sont ceux affichés sur les fiches au
-        moment où le moteur de recherche les a lues : une annonce peut avoir été retirée ou
-        modifiée depuis. Chaque lien permet de vérifier.
-        ${ecartees.length ? ` ${ecartees.length} adresse${ecartees.length > 1 ? 's' : ''} citée${
-          ecartees.length > 1 ? 's' : ''} sans avoir été consultée${ecartees.length > 1 ? 's' : ''}
-          ${ecartees.length > 1 ? 'ont' : 'a'} été écartée${ecartees.length > 1 ? 's' : ''}.` : ''}</p>`;
+  h += `<div class="info" style="margin-top:16px"><b>d'où vient chaque donnée</b>
+    <span style="display:block;margin-top:5px">• <b>le lien</b> — adresse renvoyée par la
+      recherche web : l'article existe ou a existé. Une adresse citée sans avoir été consultée
+      est écartée${ecartees.length ? ` (${ecartees.length} ici)` : ''}.</span>
+    <span style="display:block;margin-top:4px">• <b>le prix, le statut, la correspondance</b> —
+      lus par le modèle sur la page telle que le moteur de recherche l'a indexée, puis contrôlés
+      aujourd'hui par la passerelle, sans IA, quand la plateforme l'accepte : c'est le niveau de
+      preuve affiché sur chaque ligne.</span>
+    <span style="display:block;margin-top:4px">• <b>les médianes et les écarts</b> — calculés par
+      le code sur les seules fiches retenues. Une annonce disparue ou qui semble vendue sort du calcul.</span>
+    <span style="display:block;margin-top:4px">• <b>la lecture du marché</b> — interprétation du
+      modèle, sans chiffre qui ne figure dans les fiches.</span>
+    <span style="display:block;margin-top:4px">• <b>ce qui n'est pas couvert</b> — les annonces
+      que le moteur de recherche n'a pas indexées : c'est un échantillon, pas un inventaire.</span>
+  </div>`;
 
   $('#sortie-marche').innerHTML = h + `</div>`;
+  const s = $('#strict');
+  if (s && s.addEventListener) s.addEventListener('change', rendreMarche);
+}
+
+/* Contrôle de chaque fiche par la passerelle : aucun appel à Claude, donc aucun coût. */
+async function verifierFiches() {
+  const file = [...marche.fiches];
+  const jour = new Date().toISOString().slice(0, 10);
+  let fait = 0;
+  const travailleur = async () => {
+    while (file.length) {
+      const f = file.shift();
+      try {
+        const r = await fetch(PASSERELLE, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ verifier: { url: f.url, prix: f.prix } })
+        });
+        f.verif = r.ok ? { ...(await r.json()), date: jour } : { etat: 'injoignable', date: jour };
+      } catch {
+        f.verif = { etat: 'injoignable', date: jour };
+      }
+      if (++fait % 3 === 0) rendreMarche();
+    }
+  };
+  await Promise.all([travailleur(), travailleur(), travailleur()]);
+  rendreMarche();
 }
 
 function ouvrable(e) {
