@@ -97,6 +97,23 @@
   #journal b{min-width:150px}
   #journal em{color:var(--gris);font-style:normal}
   .ok{color:var(--ia);font-weight:700}
+  details.avance{margin:0 0 20px}
+  details.avance>summary{cursor:pointer;font-weight:700;font-size:14px;padding:10px 14px;
+    border:3px dashed var(--struct);background:var(--clair);margin-bottom:14px}
+  .art{display:grid;grid-template-columns:92px 1fr;gap:4px 12px;padding:8px 0 8px 10px;
+    border-left:3px solid var(--data);margin:6px 0;font-size:13.5px}
+  .art .px a{font-weight:800;font-size:15px;color:var(--ia)}
+  .art .px{white-space:nowrap}
+  .art .tt{overflow:hidden}
+  .art .meta{grid-column:2;font-size:12px;color:var(--gris)}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:0 6px;
+    border:2px solid var(--struct);margin-right:4px;background:var(--clair)}
+  .tag.vendu{background:var(--data)}
+  .tag.envente{background:#fff}
+  .synth{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+  .synth div{border:3px solid var(--struct);background:#fff;padding:10px 12px}
+  .synth b{display:block;font-size:20px;letter-spacing:-.02em}
+  .synth span{font-size:12.5px;color:var(--gris)}
   .hist-titre{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px;line-height:1.15}
   .hist-accroche{font-size:16px;line-height:1.55;margin:0 0 16px}
   .frise{border-left:3px solid var(--struct);margin:14px 0 18px 6px;padding-left:18px}
@@ -159,17 +176,43 @@
     <button id="identifier" disabled>identifier l'objet</button>
     <span class="etat" id="etat1"></span>
   </div>
+  <label style="display:flex;gap:9px;align-items:center;font-weight:400;margin:10px 0 0">
+    <input type="checkbox" id="enchainer" checked style="width:auto">
+    enchaîner automatiquement la recherche sur le marché</label>
   <div id="sortie1"></div>
 </fieldset>
 
 <fieldset>
   <legend>histoire du modèle</legend>
   <p class="aide">D'où vient ce modèle, pourquoi il est recherché, ce qui a fait bouger sa cote.
-     Chaque fait daté renvoie à sa source ; une source que le modèle n'a pas réellement
-     consultée est signalée. S'active une fois l'objet identifié, environ 0,20 €.</p>
+     Rédigée pendant l'identification, à partir des mêmes pages : quelques centimes au lieu d'un
+     appel séparé. Chaque fait daté renvoie à sa source ; une source que le modèle n'a pas
+     réellement consultée est signalée. Le bouton la régénère seule si elle est trop mince
+     (environ 0,20 €).</p>
   <button id="raconter" class="second" disabled>raconter l'histoire</button>
   <div id="sortie-hist"></div>
 </fieldset>
+
+<fieldset>
+  <legend>marché — annonces et ventes réelles</legend>
+  <p class="aide">Cherche sur le web les fiches individuelles de cet objet sur les places de marché :
+     chaque ligne est un article réel, avec son lien. Les prix sont ceux affichés sur la fiche ;
+     l'analyse est calculée sur ces seules fiches, jamais estimée. Une fiche dont l'adresse n'a
+     pas été réellement consultée est mise de côté.</p>
+  <label style="display:flex;gap:9px;align-items:center;font-weight:400;margin:10px 0 0">
+    <input type="checkbox" id="approfondi" style="width:auto"> recherche approfondie —
+    plus de plateformes et un meilleur tri, environ trois fois plus chère</label>
+  <div style="margin-top:12px">
+    <button id="chercher" class="second" disabled>chercher sur le marché</button>
+  </div>
+  <div id="sortie-marche"></div>
+</fieldset>
+
+<details class="avance">
+<summary>mode avancé — lecture directe des plateformes</summary>
+<p class="aide" style="margin:10px 0 14px">L'ancien parcours : le routeur propose des modèles de
+   recherche, puis la passerelle lit les pages elle-même. Beaucoup de plateformes bloquent les
+   robots ; à garder pour les sources qui l'acceptent.</p>
 
 <fieldset>
   <legend>bloc 5 — routeur d'univers</legend>
@@ -203,6 +246,7 @@
   </div>
   <div id="sortie4"></div>
 </fieldset>
+</details>
 
 <fieldset>
   <legend>coût</legend>
@@ -309,24 +353,42 @@ function peindre() {
 }
 
 /* ---------- appel API ---------- */
-async function appeler(systeme, contenu, recherche, plafond, modele) {
+async function appeler(systeme, contenu, recherche, plafond, modele, opts = {}) {
   const corps = {
     model: modele || "claude-sonnet-5",
     max_tokens: plafond || 4000,
     system: systeme + "\n\nRéponds uniquement par du JSON valide, sans préambule ni balises de code.",
     messages: [{ role: "user", content: contenu }]
   };
-  if (recherche) corps.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }];
+  if (recherche) {
+    const outil = { type: "web_search_20250305", name: "web_search",
+                    max_uses: recherche === true ? 4 : recherche };
+    if (opts.pays) outil.user_location = { type: "approximate", country: opts.pays };
+    corps.tools = [outil];
+  }
 
-  const r = await fetch(PASSERELLE, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(corps)
-  });
-  if (!r.ok) throw new Error((await r.text()).slice(0, 300));
-  const d = await r.json();
-  dernierBrut = d;
-  chiffrer(d.usage, d.content, corps.model);
+  const envoyer = async () => {
+    const r = await fetch(PASSERELLE, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(corps)
+    });
+    if (!r.ok) throw new Error((await r.text()).slice(0, 300));
+    const x = await r.json();
+    chiffrer(x.usage, x.content, corps.model);
+    return x;
+  };
+
+  // Une recherche longue peut être mise en pause par l'API : on la relance là où
+  // elle s'est arrêtée au lieu de perdre tout ce qui a déjà été lu et payé.
+  let d = await envoyer();
+  const lu = [...(d.content || [])];
+  for (let tour = 0; d.stop_reason === "pause_turn" && tour < 2; tour++) {
+    corps.messages = [...corps.messages, { role: "assistant", content: d.content }];
+    d = await envoyer();
+    lu.push(...(d.content || []));
+  }
+  dernierBrut = { ...d, content: lu };
   let t = d.content.filter(b => b.type === "text").map(b => b.text).join("\n").trim();
   t = t.replace(/^```(?:json)?/m, '').replace(/```$/m, '').trim();
   try { return JSON.parse(t); } catch {}
@@ -508,10 +570,29 @@ Format :
  "fourchette_plausible":{"bas":0,"haut":0,"devise":"EUR"},
  "contexte_retenu":"ce que j'ai gardé du contexte fourni",
  "contexte_ecarte":"ce que j'ai écarté et pourquoi, ou null",
- "requetes":[{"terme":"...","langue":"fr","precision":"exacte|large"}]}
+ "requetes":[{"terme":"...","langue":"fr","precision":"exacte|large"}],
+ "histoire":{"titre":"...","accroche":"deux ou trois phrases","createur":"... ou null",
+   "frise":[{"date":"AAAA ou AAAA-MM","evenement":"une phrase","source":"url ou null"}],
+   "chiffres":[{"libelle":"...","valeur":"...","source":"url ou null"}],
+   "pourquoi_recherche":"un paragraphe","anecdote":"... ou null",
+   "a_surveiller":["..."],"variantes":"... ou null"}}
 
 Entre 15 et 30 requêtes, de la plus précise à la plus large, dans les langues des marchés où
-cet objet s'échange réellement.`;
+cet objet s'échange réellement.
+
+HISTOIRE DU MODÈLE — en dernier, une fois l'identification faite. Les pages que tu consultes
+pour identifier l'objet racontent souvent aussi son histoire : exploite-les au lieu de relancer
+des recherches. Raconte le MODÈLE, pas l'exemplaire de la propriétaire : sa création, son
+créateur, sa place dans son univers, ce qui le rend désirable. Écris pour une collectionneuse,
+en français, sobre et vivant, sans superlatifs publicitaires.
+
+Chaque fait daté ou chiffré doit venir d'une page réellement consultée, avec son URL exacte.
+Sans source, omets le fait : quatre jalons sourcés valent mieux que dix approximatifs. Entre
+4 et 8 jalons, dans l'ordre chronologique. Si la déclinaison est incertaine, raconte le modèle
+et signale les variantes dans "variantes".
+
+L'identification passe avant l'histoire : si tes recherches sont comptées, consacre-les d'abord
+à identifier l'objet correctement.`;
 
 $('#identifier').onclick = async () => {
   const b = $('#identifier');
@@ -523,6 +604,7 @@ $('#identifier').onclick = async () => {
     "vérification des variantes possibles",
     "construction de la signature de recherche",
     "estimation de la fourchette et des facteurs de valeur",
+    "reconstitution de l'histoire du modèle",
     "encore un instant, la recherche web est en cours"
   ]);
   try {
@@ -536,6 +618,11 @@ défaut visible sur une vue doit peser sur l'état retenu.`
     if (comp) texte += "\n\nPrécisions visuelles :\n" + comp;
     if (!ctx && !comp) texte += "\n\nAucun contexte fourni : l'image est le seul élément.";
 
+    if (profil.histoire && profil.modele)
+      texte += `\n\nL'histoire du modèle « ${profil.modele} » a déjà été racontée. Mets
+"histoire" à null, SAUF si ton identification aboutit à un modèle différent : raconte alors
+celle du nouveau modèle.`;
+
     const legendes = images.map((im, i) => im.libelle ? `vue ${i + 1} : ${im.libelle}` : null)
                            .filter(Boolean);
     if (legendes.length)
@@ -548,15 +635,34 @@ défaut visible sur une vue doit peser sur l'état retenu.`
       source: { type: "base64", media_type: im.media_type, data: im.data }
     }));
     contenu.push({ type: "text", text: texte });
-    const d = await appeler(SYS_ID, contenu, true, 8000);
+    const d = await appeler(SYS_ID, contenu, 5, 8000);
+    const vuesId = pagesConsultees(dernierBrut);
 
     fin1();
+    const histoirePrecedente = profil.histoire;
+    const histoireNeuve = d.histoire && (d.histoire.frise || []).length ? d.histoire : null;
+    delete d.histoire;
     profil = Object.assign(profil, d);
+    profil.histoire = histoireNeuve || histoirePrecedente || null;
     afficherIdentite(d);
+
+    if (histoireNeuve) afficherHistoire(histoireNeuve, vuesId);
     $('#raconter').disabled = false;
+    $('#raconter').textContent = profil.histoire ? "régénérer l'histoire" : "raconter l'histoire";
     allume(4);
     $('#router').disabled = false;
+    $('#chercher').disabled = false;
     $('#etat1').textContent = "";
+
+    // Enchaînement : seulement si le modèle est sûr, et seulement si le marché n'a pas
+    // déjà été cherché pour ce même modèle — une relance avec photos ne repaie rien.
+    const sur = (d.certitude_modele ?? d.certitude ?? 0) >= 0.6;
+    const dejaFait = profil.marche && profil.marche_modele === profil.modele;
+    if ($('#enchainer').checked && sur && !dejaFait) {
+      b.disabled = false;
+      lancerMarche();
+      return;
+    }
   } catch (e) {
     fin1();
     $('#sortie1').innerHTML = `<div class="warn">échec : ${e.message}</div>`;
@@ -712,6 +818,16 @@ function pagesConsultees(brut) {
   return vues;
 }
 
+function pagesDetail(brut) {
+  const m = new Map();
+  (brut?.content || []).forEach(b => {
+    if (b.type === "web_search_tool_result" && Array.isArray(b.content))
+      b.content.forEach(r => r.url && m.set(normaliser(r.url),
+        { url: r.url, age: r.page_age || null, titre: r.title || "" }));
+  });
+  return m;
+}
+
 function normaliser(u) {
   try {
     const x = new URL(u);
@@ -806,6 +922,219 @@ function afficherHistoire(d, vues) {
         ${cites.length > verifies ? ` — les autres sont signalées en orange` : ''}.</p>`;
 
   $('#sortie-hist').innerHTML = h + `</div>`;
+}
+
+/* ---------- marché : fiches réelles trouvées par la recherche web ----------
+   Lire soi-même eBay, StockX ou Mercari se heurte aux protections anti-robot. Le moteur
+   de recherche, lui, a déjà indexé les fiches individuelles. On cherche donc les fiches,
+   on garde celles dont l'adresse a réellement été consultée, et on calcule l'analyse
+   sur elles seules. Aucun chiffre de synthèse ne vient du modèle. */
+const SYS_MARCHE = `Tu cherches sur le web les fiches individuelles d'un objet de collection mises en
+vente ou vendues sur les places de marché : annonce, fiche produit, lot d'enchère.
+
+Méthode : choisis les places de marché propres à cet univers, sur les trois strates — entre
+particuliers, revendeurs authentifiés, enchères — et interroge-les avec l'opérateur site:
+(par exemple  site:exemple.com  suivi du nom de l'objet). Varie les formulations et les langues
+des marchés où cet objet circule.
+
+Ne retiens QUE des pages consacrées à UN article précis. Jamais une page de résultats, de
+catégorie, de marque ou d'article de blog. L'URL doit être exactement celle d'un résultat de ta
+recherche : ne la reconstruis pas, ne la complète pas.
+
+Pour chaque fiche :
+- le prix tel qu'il apparaît sur la page ; null s'il n'y figure pas. N'estime jamais un prix.
+- statut : "vendu" si la page indique une vente conclue ou une adjudication, "en_vente" si
+  l'article est proposé, "inconnu" sinon
+- correspondance avec l'objet recherché : "exacte" (même modèle, même déclinaison), "modele"
+  (même modèle, déclinaison différente), "famille" (même gamme ou collaboration). Écarte tout
+  le reste sans le mentionner.
+- neuf : true si vendu neuf par un marchand ou la marque, false si occasion
+
+Vise entre 10 et 30 fiches pertinentes. Moins vaut mieux que du hors-sujet.
+
+Termine par une lecture qualitative en trois ou quatre phrases : où l'objet circule, comment
+les canaux se distinguent, ce qui explique les écarts. N'y avance aucun chiffre qui ne figure
+pas dans les fiches listées.
+
+Format :
+{"fiches":[{"plateforme":"...","url":"...","titre":"...","prix":0,"devise":"EUR",
+  "statut":"vendu|en_vente|inconnu","correspondance":"exacte|modele|famille",
+  "etat":"... ou null","neuf":false}],
+ "lecture":"..."}`;
+
+let marcheEnCours = false;
+
+async function lancerMarche() {
+  if (marcheEnCours || !profil.description) return;
+  marcheEnCours = true;
+  const b = $('#chercher');
+  b.disabled = true;
+  const profond = $('#approfondi').checked;
+  const fin = attendre('#sortie-marche', [
+    "choix des places de marché de cet univers",
+    "recherche des fiches individuelles",
+    "tri des fiches qui correspondent vraiment",
+    "lecture des prix affichés",
+    "vérification des adresses",
+    "encore un instant"
+  ]);
+  $('#sortie-marche').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  try {
+    const d = await appeler(SYS_MARCHE,
+      `OBJET : ${profil.description}\n` +
+      `univers : ${profil.univers || '?'} · marque : ${profil.marque || '?'} · ` +
+      `modèle : ${profil.modele || '?'} · référence : ${profil.reference || '?'}\n` +
+      (profil.hypotheses_concurrentes?.length
+        ? `déclinaisons possibles : ${profil.hypotheses_concurrentes.join(' ; ')}\n` : '') +
+      `termes de recherche éprouvés : ` +
+      (profil.requetes || []).slice(0, 8).map(r => r.terme).join(' | '),
+      profond ? 10 : 6, 7000,
+      profond ? "claude-sonnet-5" : "claude-haiku-4-5-20251001",
+      { pays: "FR" });
+    const pages = pagesDetail(dernierBrut);
+    fin();
+    profil.marche = { ...d, date: new Date().toISOString().slice(0, 10) };
+    profil.marche_modele = profil.modele;
+    afficherMarche(d, pages);
+    allume(8);
+    $('#export').disabled = false;
+  } catch (e) {
+    fin();
+    $('#sortie-marche').innerHTML = `<div class="warn">échec : ${e.message}</div>`;
+  }
+  b.disabled = false;
+  b.textContent = "relancer la recherche";
+  marcheEnCours = false;
+}
+
+$('#chercher').onclick = lancerMarche;
+
+function stats(prix) {
+  if (!prix.length) return null;
+  const s = [...prix].sort((a, b) => a - b);
+  return { n: s.length, min: s[0], max: s[s.length - 1], med: mediane(s) };
+}
+
+function afficherMarche(d, pages) {
+  const brutes = (d.fiches || []).filter(f => f && f.url);
+  // une fiche n'est retenue que si son adresse figure parmi les pages réellement consultées
+  const fiches = [], ecartees = [];
+  brutes.forEach(f => {
+    const p = pages.get(normaliser(f.url));
+    if (!p) return ecartees.push(f);
+    let dom = '';
+    try { dom = new URL(f.url).hostname.replace(/^www\./, ''); } catch {}
+    fiches.push({ ...f, url: p.url, age: p.age, domaine: dom,
+                  prix: f.prix === null || f.prix === undefined ? null : +f.prix });
+  });
+
+  if (!fiches.length) {
+    $('#sortie-marche').innerHTML = `<div class="warn">aucune fiche vérifiable trouvée.
+      ${ecartees.length ? `${ecartees.length} adresse${ecartees.length > 1 ? 's' : ''} citée${
+        ecartees.length > 1 ? 's' : ''} mais jamais consultée${ecartees.length > 1 ? 's' : ''},
+        donc écartée${ecartees.length > 1 ? 's' : ''}. ` : ''}
+      Essayer la recherche approfondie, ou élargir l'identification.</div>`;
+    return;
+  }
+
+  // devise majoritaire : on ne mélange jamais des euros et des dollars dans une médiane
+  const compte = {};
+  fiches.forEach(f => f.prix && (compte[f.devise || 'EUR'] = (compte[f.devise || 'EUR'] || 0) + 1));
+  const dev = Object.entries(compte).sort((a, b) => b[1] - a[1])[0]?.[0] || 'EUR';
+  const pertinent = f => f.prix && (f.devise || 'EUR') === dev && f.correspondance !== 'famille';
+
+  const vendues = fiches.filter(f => f.statut === 'vendu' && pertinent(f));
+  const offertes = fiches.filter(f => f.statut === 'en_vente' && pertinent(f) && !f.neuf);
+  const neuves = fiches.filter(f => f.neuf && pertinent(f));
+  const sv = stats(vendues.map(f => f.prix));
+  const so = stats(offertes.map(f => f.prix));
+  const sn = stats(neuves.map(f => f.prix));
+  const exactesVendues = vendues.filter(f => f.correspondance === 'exacte').length;
+
+  // verdict a posteriori, sur les fiches réellement trouvées
+  let cas, libelle, fond;
+  if (exactesVendues >= 8) { cas = 1; libelle = "cas 1 — cote statistique possible"; fond = 'var(--data)'; }
+  else if (vendues.length >= 3) { cas = 2; libelle = "cas 2 — cote par comparables"; fond = 'var(--clair)'; }
+  else if (offertes.length >= 3) { cas = '8c'; libelle = "tension de l'offre — prix demandés seulement"; fond = 'var(--clair)'; }
+  else { cas = 3; libelle = "cas 3 — trop peu de fiches pour une cote défendable"; fond = 'var(--alerte)'; }
+  profil.cas = cas;
+
+  const k = 1 + (profil.effet_facteurs_pct || 0) / 100;
+  const ref = sv || so;
+
+  let h = `<div class="res">
+    <div style="background:${fond};color:${cas === 3 ? '#fff' : 'var(--sombre)'};padding:11px 14px;
+         border:3px solid var(--struct)"><b>${libelle}</b> —
+      ${fiches.length} fiche${fiches.length > 1 ? 's' : ''} vérifiée${fiches.length > 1 ? 's' : ''},
+      dont ${vendues.length} vendue${vendues.length > 1 ? 's' : ''} et
+      ${offertes.length} en vente d'occasion.</div>
+    <div class="synth">
+      ${sv ? `<div><span>ventes conclues · ${sv.n}</span><b>${sv.med} ${dev}</b>
+              <span>de ${sv.min} à ${sv.max}</span></div>` : ''}
+      ${so ? `<div><span>en vente, occasion · ${so.n}</span><b>${so.med} ${dev}</b>
+              <span>de ${so.min} à ${so.max}</span></div>` : ''}
+      ${sn ? `<div><span>neuf, marchands · ${sn.n}</span><b>${sn.med} ${dev}</b>
+              <span>de ${sn.min} à ${sn.max}</span></div>` : ''}
+      ${ref && profil.effet_facteurs_pct ? `<div style="background:var(--clair)">
+              <span>ajusté selon tes réponses · ${profil.effet_facteurs_pct > 0 ? '+' : ''}${profil.effet_facteurs_pct} %</span>
+              <b>${Math.round(ref.med * k)} ${dev}</b><span>indicatif, sur la médiane ${sv ? 'des ventes' : 'des annonces'}</span></div>` : ''}
+    </div>`;
+
+  if (sv && so)
+    h += `<p class="aide" style="margin:0 0 6px">Les annonces en cours sont en médiane
+          ${Math.round((so.med / sv.med - 1) * 100)} % ${so.med >= sv.med ? 'au-dessus' : 'en dessous'}
+          des ventes conclues : c'est la marge de négociation habituelle sur ce marché.</p>`;
+  if (!sv && so)
+    h += `<p class="aide" style="margin:0 0 6px">Aucune vente conclue trouvée : ces chiffres sont
+          des prix demandés, pas des prix obtenus. Ils bornent la cote par le haut.</p>`;
+
+  // détail par plateforme, chaque prix cliquable
+  const parPf = {};
+  fiches.forEach(f => (parPf[f.plateforme || f.domaine] ||= []).push(f));
+  Object.entries(parPf)
+    .sort((a, b) => b[1].length - a[1].length)
+    .forEach(([pf, lot]) => {
+      const px = lot.filter(pertinent).map(f => f.prix);
+      const s = stats(px);
+      h += `<p style="margin:18px 0 4px;font-size:14px;font-weight:700;display:flex;gap:8px;
+            align-items:center">${logo(lot[0])}${pf}
+            <span style="color:var(--gris);font-weight:400">${lot.length} fiche${lot.length > 1 ? 's' : ''}
+            ${s ? `· médiane ${s.med} ${dev}` : ''}</span></p>`;
+      lot.sort((a, b) => (a.prix ?? 1e9) - (b.prix ?? 1e9)).forEach(f => {
+        h += `<div class="art">
+          <div class="px">${f.prix !== null
+            ? `<a href="${f.url}" target="_blank" rel="noopener">${f.prix} ${f.devise || ''}</a>`
+            : `<a href="${f.url}" target="_blank" rel="noopener">voir ↗</a>`}</div>
+          <div class="tt">${(f.titre || '').slice(0, 110)}</div>
+          <div class="meta">
+            <span class="tag ${f.statut === 'vendu' ? 'vendu' : 'envente'}">${
+              f.statut === 'vendu' ? 'vendu' : f.statut === 'en_vente' ? 'en vente' : 'statut ?'}</span>
+            <span class="tag">${f.correspondance || '?'}</span>
+            ${f.neuf ? '<span class="tag">neuf</span>' : ''}
+            ${f.etat ? f.etat.slice(0, 40) + ' · ' : ''}${f.domaine}${f.age ? ' · page vue ' + f.age : ''}
+          </div></div>`;
+      });
+    });
+
+  if (d.lecture)
+    h += `<p class="hist-h">lecture du marché</p>
+          <p style="margin:0;font-size:14.5px;line-height:1.55">${d.lecture}</p>`;
+
+  h += `<p class="etat" style="margin-top:14px">Les prix sont ceux affichés sur les fiches au
+        moment où le moteur de recherche les a lues : une annonce peut avoir été retirée ou
+        modifiée depuis. Chaque lien permet de vérifier.
+        ${ecartees.length ? ` ${ecartees.length} adresse${ecartees.length > 1 ? 's' : ''} citée${
+          ecartees.length > 1 ? 's' : ''} sans avoir été consultée${ecartees.length > 1 ? 's' : ''}
+          ${ecartees.length > 1 ? 'ont' : 'a'} été écartée${ecartees.length > 1 ? 's' : ''}.` : ''}</p>`;
+
+  $('#sortie-marche').innerHTML = h + `</div>`;
+}
+
+function ouvrable(e) {
+  const terme = e.terme || (profil.requetes || [])[0]?.terme || profil.description || '';
+  return (e.url_modele || '').replace("{q}", encodeURIComponent(terme))
+                             .replace("{page}", e.page_debut || 1);
 }
 
 /* ---------- bloc 5 : routeur ---------- */
@@ -987,7 +1316,9 @@ function afficherRoutage(d) {
             e.niveau === 'exact' ? 'var(--data)' : 'var(--clair)'}">${e.niveau}</span>` : ''}
           ${f.haut ? `<span class="puce" style="margin:0 0 0 auto">${f.bas}–${f.haut} ${f.devise || ''}</span>` : ''}
         </div>
-        <code style="font-size:12px;word-break:break-all;display:block;margin-top:4px">${e.url_modele}</code>
+        <a href="${ouvrable(e)}" target="_blank" rel="noopener"
+           style="font-size:12.5px;display:inline-block;margin-top:4px;color:var(--ia)">ouvrir cette
+           recherche ↗</a>
         ${e.note ? `<em style="font-size:12.5px;display:block;margin-top:3px">${e.note}</em>` : ''}
         ${e.limite ? `<em style="font-size:12.5px;color:var(--alerte);display:block">limite : ${e.limite}</em>` : ''}
       </div>`;
