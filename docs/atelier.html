@@ -82,6 +82,7 @@
   .etiq span{overflow:hidden;text-overflow:ellipsis}
   .rail{position:relative;height:17px;border:2px solid var(--struct);background:#fff}
   .rail i{position:absolute;top:0;bottom:0;background:var(--ia);display:block}
+  .rail em{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--struct);display:block}
   .prix{font-size:13px;font-weight:700;text-align:right}
   #barre{transition:width .25s}
   .attente{display:flex;align-items:center;gap:11px;margin-top:12px;
@@ -100,6 +101,10 @@
   .ok{color:var(--ia);font-weight:700}
   details.avance{margin:0 0 20px}
   .choix{display:flex;gap:10px;flex-wrap:wrap}
+  .reco{border:3px solid var(--struct);padding:14px 16px;box-shadow:6px 6px 0 rgba(25,25,34,.75)}
+  .reco span{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;opacity:.75}
+  .reco b{display:block;font-size:24px;letter-spacing:-.02em;margin:2px 0 4px;text-transform:uppercase}
+  .reco small{display:block;font-size:12.5px;opacity:.85}
   .choix label{display:flex;gap:8px;align-items:center;font-weight:600;font-size:14px;margin:0;
     border:3px solid var(--struct);background:#fff;padding:9px 13px;cursor:pointer}
   .choix label:has(input:checked){background:var(--ia);color:#fff}
@@ -243,7 +248,7 @@
      l'analyse est calculée sur ces seules fiches, jamais estimée. Une fiche dont l'adresse n'a
      pas été réellement consultée est mise de côté.</p>
   <label style="display:flex;gap:9px;align-items:center;font-weight:400;margin:10px 0 0">
-    <input type="checkbox" id="approfondi" style="width:auto"> recherche approfondie —
+    <input type="checkbox" id="approfondi" checked style="width:auto"> recherche approfondie —
     plus de plateformes et un meilleur tri, environ trois fois plus chère</label>
   <p class="aide" id="intensite" style="margin:6px 0 0"></p>
   <div style="margin-top:12px">
@@ -258,6 +263,21 @@
      par le modèle ; la base de calcul et le niveau de confiance sont affichés avec le résultat.</p>
   <div id="sortie-verdict"><p class="aide">Indique ta situation et un prix dans le bloc 1 ;
      le verdict apparaîtra après la recherche sur le marché.</p></div>
+</fieldset>
+
+<fieldset>
+  <legend>coût</legend>
+  <p class="aide" style="margin:0">Estimation lue dans les réponses de l'API. Le chiffre
+     facturé fait foi, il est dans la console Anthropic sous Usage.</p>
+  <p id="cout" style="margin:8px 0 0;font-weight:700">cumul de la session : 0.000 €</p>
+</fieldset>
+
+<fieldset>
+  <legend>profil</legend>
+  <p class="aide">Le profil gravé alimente le moteur de collecte. À déposer dans
+     <code>moteur/profils/</code> ou à passer au workflow.</p>
+  <button id="export" class="second" disabled>télécharger le profil JSON</button>
+  <div id="sortie3"></div>
 </fieldset>
 
 <details class="avance">
@@ -299,21 +319,6 @@
   <div id="sortie4"></div>
 </fieldset>
 </details>
-
-<fieldset>
-  <legend>coût</legend>
-  <p class="aide" style="margin:0">Estimation lue dans les réponses de l'API. Le chiffre
-     facturé fait foi, il est dans la console Anthropic sous Usage.</p>
-  <p id="cout" style="margin:8px 0 0;font-weight:700">cumul de la session : 0.000 €</p>
-</fieldset>
-
-<fieldset>
-  <legend>profil</legend>
-  <p class="aide">Le profil gravé alimente le moteur de collecte. À déposer dans
-     <code>moteur/profils/</code> ou à passer au workflow.</p>
-  <button id="export" class="second" disabled>télécharger le profil JSON</button>
-  <div id="sortie3"></div>
-</fieldset>
 
 </div>
 
@@ -438,12 +443,28 @@ async function appeler(systeme, contenu, recherche, plafond, modele, opts = {}) 
   let d = await envoyer();
   const lu = [...(d.content || [])];
   for (let tour = 0; d.stop_reason === "pause_turn" && tour < 2; tour++) {
-    corps.messages = [...corps.messages, { role: "assistant", content: d.content }];
+    corps.messages = [...corps.messages, { role: "assistant", content: propre(d.content) }];
     d = await envoyer();
     lu.push(...(d.content || []));
   }
+  // Le modèle a parfois fini ses recherches sans rédiger le JSON — il commente au lieu de
+  // conclure. Plutôt que d'échouer et de tout repayer, on lui demande de conclure à partir
+  // de ce qu'il a déjà lu : aucune nouvelle recherche, seulement la rédaction.
+  const texteDe = c => (c || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+  if (texteDe(lu).indexOf('{') === -1) {
+    corps.messages = [...corps.messages,
+      { role: "assistant", content: propre(d.content) },
+      { role: "user", content: "Tes recherches sont terminées. Rédige maintenant ta réponse " +
+        "finale : UNIQUEMENT le JSON demandé, construit à partir de ce que tu as trouvé, sans " +
+        "aucun texte autour et sans nouvelle recherche." }];
+    corps.tool_choice = { type: "none" };
+    try { d = await envoyer(); }
+    catch { delete corps.tool_choice; d = await envoyer(); }
+    lu.push(...(d.content || []));
+  }
   dernierBrut = { ...d, content: lu };
-  let t = d.content.filter(b => b.type === "text").map(b => b.text).join("\n").trim();
+  let t = texteDe(d.content).trim();
+  if (t.indexOf('{') === -1) t = texteDe(lu).trim();
   t = t.replace(/^```(?:json)?/m, '').replace(/```$/m, '').trim();
   try { return JSON.parse(t); } catch {}
   const a = t.indexOf('{'), z = t.lastIndexOf('}');
@@ -517,6 +538,11 @@ async function lireFlux(r) {
   }
   msg.content = blocs.filter(Boolean);
   return msg;
+}
+
+/* Un bloc de texte vide est refusé par l'API quand on renvoie la conversation. */
+function propre(contenu) {
+  return (contenu || []).filter(b => b.type !== "text" || (b.text || "").trim());
 }
 
 function messageErreur(statut, texte) {
@@ -1252,15 +1278,12 @@ function regler_intensite() {
   if (haut < SEUIL_BAS) {
     $('#approfondi').checked = false;
     el.innerHTML = `<b>bloc 4 — intensité de veille :</b> objet estimé jusqu'à ${haut}
-      ${f.devise || '€'}, recherche économique retenue. Une recherche approfondie coûterait une
-      part sensible de sa valeur.`;
-  } else if (haut >= SEUIL_HAUT) {
+      ${f.devise || '€'}, recherche économique retenue : une recherche approfondie coûterait une
+      part sensible de sa valeur. Coche la case si tu veux quand même approfondir.`;
+  } else {
     $('#approfondi').checked = true;
     el.innerHTML = `<b>bloc 4 — intensité de veille :</b> objet estimé jusqu'à ${haut}
-      ${f.devise || '€'}, recherche approfondie activée. L'enjeu justifie la précision.`;
-  } else {
-    el.innerHTML = `<b>bloc 4 — intensité de veille :</b> objet estimé jusqu'à ${haut}
-      ${f.devise || '€'}, recherche économique par défaut ; à approfondir si le résultat est mince.`;
+      ${f.devise || '€'}, recherche approfondie activée.`;
   }
 }
 
@@ -1337,7 +1360,9 @@ let marche = { fiches: [], ecartees: [], lecture: "" };
 
 function afficherMarche(d, pages, diag = {}) {
   const fiches = [], ecartees = [];
+  let listes = 0;
   (d.fiches || []).filter(f => f && f.url).forEach(f => {
+    if (estPageDeRecherche(f.url)) { listes++; return; }   // une liste de résultats n'est pas un article
     const p = pages.get(normaliser(f.url));
     if (!p) return ecartees.push(f);        // adresse jamais consultée : écartée
     let dom = '';
@@ -1346,7 +1371,7 @@ function afficherMarche(d, pages, diag = {}) {
                   prix: f.prix === null || f.prix === undefined ? null : +f.prix });
   });
   marche = { fiches, ecartees, lecture: d.lecture || "", classe: d.classe_comparable || null,
-             diag: { ...diag, retenues: fiches.length } };
+             diag: { ...diag, retenues: fiches.length, listes } };
   profil.marche = { date: new Date().toISOString().slice(0, 10), lecture: d.lecture || "",
                     fiches, adresses_ecartees: ecartees.length };
   rendreMarche();
@@ -1355,10 +1380,27 @@ function afficherMarche(d, pages, diag = {}) {
 
 /* Niveau de preuve d'une fiche, du plus fort au plus faible. C'est ce qui permet de dire
    exactement, pour chaque prix transmis, sur quoi il repose. */
+/* Une page de résultats, de catégorie ou de catalogue n'est pas la fiche d'un article : son
+   lien mène à une liste, et son « prix » n'est celui d'aucun objet précis. */
+function estPageDeRecherche(u) {
+  try {
+    const x = new URL(u);
+    const chemin = x.pathname.toLowerCase();
+    if (/(^|\/)(search|recherche|suche|busqueda|ricerca|catalog|catalogue|browse|sch)(\/|$)/.test(chemin)) return true;
+    return ['q', 'query', 'keyword', 'keywords', 'search_text', '_nkw', 'text', 'k', 'term', 'searchterm']
+      .some(p => x.searchParams.has(p));
+  } catch { return false; }
+}
+
 function niveau(f) {
   const v = f.verif;
   if (!v) return { cle: 'attente', lib: 'vérification en cours…' };
   if (v.etat === 'disparue') return { cle: 'disparue', lib: "page disparue aujourd'hui" };
+  if (v.etat === 'redirigee')
+    return { cle: 'arevoir', lib: "redirigée vers l'accueil — annonce retirée ou accès filtré" };
+  if (f.prix_origine === 'page') return { cle: 'confirme', lib: "prix lu sur la page aujourd'hui" };
+  if (f.prix_origine === 'page_maj')
+    return { cle: 'confirme', lib: `prix actuel de la page (indexé à ${f.prix_indexe})` };
   if (v.etat !== 'en_ligne')
     return { cle: 'nonverif', lib: "non vérifiable aujourd'hui (plateforme protégée) — prix lu par le moteur de recherche" };
   let n;
@@ -1382,7 +1424,8 @@ function rendreMarche() {
     ? `${diag.recherches} recherche${diag.recherches > 1 ? 's' : ''} web (${diag.modele_ia}),
        ${diag.pages} page${diag.pages > 1 ? 's' : ''} consultée${diag.pages > 1 ? 's' : ''},
        ${diag.proposees} fiche${diag.proposees > 1 ? 's' : ''} proposée${diag.proposees > 1 ? 's' : ''},
-       ${diag.retenues} retenue${diag.retenues > 1 ? 's' : ''} après vérification des adresses`
+       ${diag.retenues} retenue${diag.retenues > 1 ? 's' : ''} après vérification des adresses${
+       diag.listes ? `, ${diag.listes} page${diag.listes > 1 ? 's' : ''} de résultats écartée${diag.listes > 1 ? 's' : ''}` : ''}`
     : '';
   if (!fiches.length) {
     const rien = !diag.proposees;
@@ -1409,16 +1452,24 @@ function rendreMarche() {
   fiches.forEach(f => f.prix && (compte[f.devise || 'EUR'] = (compte[f.devise || 'EUR'] || 0) + 1));
   const dev = Object.entries(compte).sort((a, b) => b[1] - a[1])[0]?.[0] || 'EUR';
 
-  const valide = f => {
-    if (!f.prix || (f.devise || 'EUR') !== dev) return false;
+  // Chaque exclusion a une raison, affichée sur la ligne : rien n'est grisé sans explication.
+  const defaut = f => {
+    if (!f.prix) return "prix absent de la fiche";
+    if ((f.devise || 'EUR') !== dev) return `prix en ${f.devise}, calcul en ${dev}`;
     const n = niveau(f);
-    if (n.cle === 'disparue' && f.statut !== 'vendu') return false;   // annonce retirée
-    if (n.vente && f.statut === 'en_vente') return false;             // annonce qui semble vendue
-    if (strict) return n.cle === 'confirme';
-    return true;
+    if (n.cle === 'disparue' && f.statut !== 'vendu') return "page disparue";
+    // un article neuf « épuisé » garde son prix catalogue ; une annonce d'occasion vendue, non
+    if (n.vente && f.statut === 'en_vente' && !f.neuf) return "annonce qui semble vendue";
+    if (strict && n.cle !== 'confirme') return "prix non confirmé aujourd'hui";
+    return null;
   };
-  const retenue = f => valide(f) && f.correspondance !== 'famille' && f.correspondance !== 'comparable';
+  const raison = f => f.correspondance === 'famille' ? "autre modèle de la marque"
+                    : f.correspondance === 'comparable' ? "comparable, calculé à part"
+                    : defaut(f);
+  const valide = f => !defaut(f);
+  const retenue = f => !raison(f);
   const comparable = f => valide(f) && f.correspondance === 'comparable' && !f.neuf;
+  marche.raison = raison;
 
   const vendues = fiches.filter(f => f.statut === 'vendu' && retenue(f));
   const offertes = fiches.filter(f => f.statut === 'en_vente' && !f.neuf && retenue(f));
@@ -1489,6 +1540,8 @@ function rendreMarche() {
               <b>${Math.round(ref.med * k)} ${dev}</b><span>indicatif, sur la médiane ${sv ? 'des ventes' : 'des annonces'}</span></div>` : ''}
     </div>`;
 
+  h += graphiqueMesure(fiches.filter(retenue), dev);
+
   if (sv && so)
     h += `<p class="aide" style="margin:0 0 6px">Les annonces en cours sont en médiane
           ${Math.abs(Math.round((so.med / sv.med - 1) * 100))} % ${so.med >= sv.med ? 'au-dessus' : 'en dessous'}
@@ -1507,8 +1560,9 @@ function rendreMarche() {
           ${s ? `· médiane ${s.med} ${dev}` : ''}</span></p>`;
     [...lot].sort((a, b) => (a.prix ?? 1e9) - (b.prix ?? 1e9)).forEach(f => {
       const n = niveau(f);
-      const exclue = !retenue(f);
-      h += `<div class="art" style="border-left-color:${COULEUR_PREUVE[n.cle]};${exclue ? 'opacity:.55' : ''}">
+      const pourquoi = raison(f);
+      const exclue = !!pourquoi;
+      h += `<div class="art" style="border-left-color:${COULEUR_PREUVE[n.cle]};${exclue ? 'background:rgba(16,16,24,.035)' : ''}">
         <div class="px"><a href="${f.url}" target="_blank" rel="noopener">${
           f.prix !== null ? `${f.prix} ${f.devise || ''}` : 'voir ↗'}</a></div>
         <div class="tt">${(f.titre || '').slice(0, 110)}</div>
@@ -1518,8 +1572,8 @@ function rendreMarche() {
           <span class="tag">${f.correspondance || '?'}</span>
           ${f.neuf ? '<span class="tag">neuf</span>' : ''}
           <span class="tag" style="background:${COULEUR_PREUVE[n.cle]}">${n.lib}</span>
-          ${n.vente ? `<span class="tag" style="background:#f5c26b">semble vendue : ${n.vente}</span>` : ''}
-          ${exclue ? '<span class="tag">hors calcul</span>' : ''}
+          ${n.vente ? `<span class="tag" style="background:#f5c26b">${f.neuf ? 'rupture signalée' : 'semble vendue'} : ${n.vente}</span>` : ''}
+          ${exclue ? `<span class="tag" style="border-style:dashed">hors calcul : ${pourquoi}</span>` : ''}
           <br>${f.etat ? f.etat.slice(0, 40) + ' · ' : ''}${f.domaine}${f.age ? ' · indexée ' + f.age : ''}
         </div></div>`;
     });
@@ -1624,7 +1678,11 @@ function rendreVerdict() {
       seulement ${n} prix de cet objet` : ''}.</div>
       <p class="aide">Un verdict sur une ou deux fiches serait une opinion déguisée en chiffre :
       il en faut au moins trois. Élargir la recherche, ou passer par une expertise.</p>`;
-    profil.verdict = { mode: s.mode, verdict: 'indecidable' };
+    profil.verdict = { mode: s.mode, verdict: 'indecidable',
+      recommandation: s.mode === 'achat' ? "attendre — pas assez de données" : "maintenir — pas assez de données" };
+    el.innerHTML = `<div class="reco" style="background:var(--clair)"><span>recommandation</span>
+      <b>${profil.verdict.recommandation}</b>
+      <small>règle appliquée : moins de trois prix de cet objet trouvés sur le marché</small></div>` + el.innerHTML;
     return;
   }
 
@@ -1725,14 +1783,52 @@ function rendreVerdict() {
   if (profil.effet_facteurs_pct && nature !== 'neuf')
     texte.push(`La valeur tient compte des éléments que tu as cochés (${profil.effet_facteurs_pct > 0 ? '+' : ''}${profil.effet_facteurs_pct} %).`);
 
-  profil.verdict = { mode: s.mode, prix: P, devise: D, position: pos, titre,
+  // ── recommandation : une règle explicite, écrite en clair sous le résultat ──
+  const liquide = sv && sv.n >= 3;
+  let reco, regle, fondReco;
+  if (s.mode === 'achat') {
+    ({
+      tres_bas: () => { reco = "vérifier avant d'acheter"; fondReco = '#f5c26b';
+        regle = "prix inférieur à la moitié de la médiane du marché"; },
+      sous: () => { reco = "acheter"; fondReco = 'var(--data)';
+        regle = "prix sous le premier quartile du marché"; },
+      marche: () => { reco = "acheter — prix juste"; fondReco = 'var(--data)';
+        regle = "prix entre le premier et le troisième quartile du marché"; },
+      dessus: () => { reco = `négocier — viser ${M} ${D}`; fondReco = '#f5c26b';
+        regle = "prix au-dessus du troisième quartile, sans dépasser 1,5 fois la médiane"; },
+      trop: () => { reco = "passer"; fondReco = 'var(--alerte)';
+        regle = "prix supérieur à 1,5 fois la médiane du marché"; },
+    })[pos]();
+  } else {
+    const gain = P > 0 ? (M / P - 1) * 100 : Infinity;
+    if (gain >= 25 && liquide) {
+      reco = "vendre possible — bon moment pour réaliser la plus-value"; fondReco = 'var(--data)';
+      regle = `plus-value d'au moins 25 % et marché liquide (${sv.n} ventes conclues trouvées)`;
+    } else if (gain >= 25) {
+      reco = "maintenir — plus-value réelle, mais marché peu liquide"; fondReco = 'var(--clair)';
+      regle = "plus-value d'au moins 25 %, mais moins de 3 ventes conclues : vendre prendrait du temps et forcerait le prix";
+    } else if (gain <= -15) {
+      reco = "maintenir — vendre maintenant cristalliserait une perte"; fondReco = '#f5c26b';
+      regle = "moins-value de plus de 15 %";
+    } else {
+      reco = "maintenir"; fondReco = 'var(--clair)';
+      regle = "écart de moins de 25 % entre le prix payé et le marché : une revente n'apporterait rien de significatif";
+    }
+    if (P > 0 && M > P * 1.25) texte.push(`À faire : mettre à jour la valeur déclarée à ton assurance.`);
+  }
+  if (confiance === 'faible') regle += " — base fragile, à confirmer";
+
+  profil.verdict = { mode: s.mode, prix: P, devise: D, position: pos, titre, recommandation: reco, regle,
     valeur_marche: M, fourchette: [Q1, Q3], base: source, fiches: base.n, confiance,
     date: new Date().toISOString().slice(0, 10) };
 
   el.innerHTML = `<div class="res">
+    <div class="reco" style="background:${fondReco};color:${fondReco === 'var(--alerte)' ? '#fff' : 'var(--sombre)'}">
+      <span>recommandation</span><b>${reco}</b>
+      <small>règle appliquée : ${regle}</small></div>
     <div style="background:${fond};color:${fond === 'var(--alerte)' ? '#fff' : 'var(--sombre)'};
-         padding:13px 15px;border:3px solid var(--struct)">
-      <b style="font-size:18px">${titre}</b></div>
+         padding:11px 15px;border:3px solid var(--struct);margin-top:10px">
+      <b style="font-size:16px">${titre}</b></div>
     <div class="synth">
       <div><span>${s.mode === 'achat' ? 'prix demandé' : 'prix payé'}</span><b>${P} ${D}</b>
         <span>${s.canal ? LIB_CANAL[s.canal] : '&nbsp;'}</span></div>
@@ -1745,6 +1841,9 @@ function rendreVerdict() {
       trouvées et vérifiées dans le bloc marché · seuils : ${base.q1 !== undefined
         ? 'quartiles des prix trouvés' : 'médiane ±15 %, trop peu de prix pour des quartiles'} ·
       confiance ${confiance}. ${noteConv}</p>
+    <p class="etat" style="margin-top:6px">Indicateur calculé à partir des prix trouvés et de règles
+      explicites, pas un conseil en investissement : l'attachement, la rareté future et
+      l'évolution du marché n'y entrent pas.</p>
   </div>`;
 }
 
@@ -1767,6 +1866,37 @@ function brancherSituation() {
 }
 brancherSituation();
 
+/* Les barres que tu aimais dans le routeur, mais avec des prix constatés : chaque barre va
+   du moins cher au plus cher des fiches retenues, le trait noir marque la médiane. */
+function graphiqueMesure(retenues, dev) {
+  const parPf = {};
+  retenues.forEach(f => (parPf[f.plateforme || f.domaine] ||= []).push(f));
+  const lignes = Object.entries(parPf).map(([pf, lot]) => {
+    const px = lot.map(f => f.prix).sort((a, b) => a - b);
+    const neufs = lot.filter(f => f.neuf).length, vendus = lot.filter(f => f.statut === 'vendu').length;
+    return { pf, lot, min: px[0], max: px[px.length - 1], med: mediane(px), n: px.length,
+             type: vendus > lot.length / 2 ? 'vendu' : neufs > lot.length / 2 ? 'neuf' : 'occasion' };
+  });
+  if (!lignes.length || retenues.length < 2) return '';
+  const bas = Math.min(...lignes.map(l => l.min)), haut = Math.max(...lignes.map(l => l.max));
+  const pos = v => haut === bas ? 50 : ((v - bas) / (haut - bas)) * 100;
+  const COUL = { vendu: 'var(--struct)', neuf: 'var(--ia)', occasion: 'var(--data)' };
+  let h = `<p class="hist-h">prix mesurés par plateforme</p>
+    <p class="aide" style="margin:0 0 10px">Du moins cher au plus cher des fiches retenues ;
+      le trait noir marque la médiane. <b style="color:var(--ia)">violet</b> : neuf ·
+      <b style="color:#12a2b3">cyan</b> : occasion en vente · <b>noir</b> : ventes conclues.</p>`;
+  lignes.sort((a, b) => a.med - b.med).forEach(l => {
+    h += `<div class="ligne">
+      <div class="etiq">${logo(l.lot[0])}<span>${l.pf}</span></div>
+      <div class="rail"><i style="left:${pos(l.min)}%;width:${Math.max(pos(l.max) - pos(l.min), 1.5)}%;
+        background:${COUL[l.type]}"></i><em style="left:calc(${pos(l.med)}% - 1px)"></em></div>
+      <div class="prix">${l.n > 1 ? `${l.min}–${l.max}` : l.min}<small style="display:block;
+        font-weight:400;color:var(--gris)">méd. ${l.med} · ${l.n} fiche${l.n > 1 ? 's' : ''}</small></div>
+    </div>`;
+  });
+  return h + `<p class="aide" style="margin:4px 0 12px;text-align:right">en ${dev}</p>`;
+}
+
 function brancherElargir() {
   const b = document.getElementById('elargir');
   if (b) b.onclick = () => { $('#approfondi').checked = true; lancerMarche(); };
@@ -1787,6 +1917,15 @@ async function verifierFiches() {
           body: JSON.stringify({ verifier: { url: f.url, prix: f.prix } })
         });
         f.verif = r.ok ? { ...(await r.json()), date: jour } : { etat: 'injoignable', date: jour };
+        // Le prix publié par la page fait foi : il comble un prix absent, ou remplace un prix
+        // indexé qui a changé depuis le passage du moteur de recherche.
+        const pp = f.verif.prix_page, dp = f.verif.devise_page;
+        if (pp && f.verif.etat === 'en_ligne' && (!dp || !f.devise || dp === f.devise || f.prix === null)) {
+          if (f.prix === null) { f.prix = pp; f.devise = dp || f.devise || 'EUR'; f.prix_origine = 'page'; }
+          else if (f.verif.prix_trouve === false && Math.abs(pp - f.prix) / f.prix > 0.02) {
+            f.prix_indexe = f.prix; f.prix = pp; f.prix_origine = 'page_maj';
+          }
+        }
       } catch {
         f.verif = { etat: 'injoignable', date: jour };
       }
@@ -2140,6 +2279,7 @@ $('#collecter').onclick = async () => {
                        strate: e.strate, domaine: e.domaine,
                        niveau: normNiveau(v.correspondance || e.niveau) }));
         (d.annonces || []).forEach(a => annonces.push({ ...a, plateforme: e.plateforme,
+                       lien_page: !a.url_source || normaliser(a.url_source) === normaliser(url),
                        strate: e.strate, domaine: e.domaine,
                        niveau: normNiveau(a.correspondance || e.niveau) }));
         ecartes += (d.ecartes || 0);
@@ -2210,10 +2350,20 @@ function afficherVentes(ventes, annonces, journal) {
   }
   if (!ventes.length) {
     const exa = annonces.filter(a => normNiveau(a.niveau) === "exacte").length;
-    $('#sortie4').innerHTML = `<div class="warn">aucune vente conclue, mais
-      ${annonces.length} annonces en cours${exa ? `, dont ${exa} sur la référence exacte` :
-      ` — <b>aucune sur la référence exacte</b>, ce ne sont que des voisins de gamme`}.
-      Sans transaction sourcée, pas de cote : cet objet reste en tension de l'offre (bloc 8c).</div>`
+    const detailAutres = (liste) => liste.length ? `<details style="margin-top:12px">
+      <summary style="cursor:pointer;font-weight:700;font-size:13.5px">voir les ${liste.length}
+        annonces d'autres modèles (hors calcul)</summary>
+      ${liste.slice(0, 80).map(a => `<p style="margin:4px 0;font-size:13px;opacity:.8">
+        <a href="${a.url_source}" target="_blank" rel="noopener">${a.prix_demande} ${a.devise || ''}</a>
+        — ${(a.objet || '').slice(0, 80)} · ${a.plateforme}${a.lien_page ? ' · <em>lien vers la page de résultats</em>' : ''}</p>`).join('')}
+      </details>` : '';
+    const duModele = annonces.filter(horsFamille);
+    const autresMod = annonces.filter(a => !horsFamille(a));
+    $('#sortie4').innerHTML = `<div class="warn">aucune vente conclue. ${annonces.length} annonces
+      relevées sur les pages lues, dont <b>${duModele.length} de ce modèle</b>${exa ? ` (${exa} sur la
+      référence exacte)` : ''} ; les ${autresMod.length} autres sont d'autres modèles de la marque,
+      affichés à part et hors calcul. Sans transaction sourcée, pas de cote : cet objet reste en
+      tension de l'offre (bloc 8c).</div>`
       + `<div class="res">${(() => { let x = ''; const pa = {};
          annonces.forEach(a => (pa[a.plateforme] ||= []).push(a));
          Object.entries(pa).forEach(([p, lot]) => {
@@ -2231,7 +2381,11 @@ function afficherVentes(ventes, annonces, journal) {
                médian <b>${mediane(prix)}</b> ·
                plus cher <a href="${haut.url_source}" target="_blank" rel="noopener"
                  style="color:var(--ia);font-weight:700">${prix[prix.length - 1]}</a></p>`;
-         }); return x; })()}</div>`;
+         }); return x; })()}${detailAutres(annonces.filter(a => !horsFamille(a)))}
+      ${annonces.some(a => a.lien_page) ? `<p class="etat" style="margin-top:10px">Sur certaines
+        plateformes, les liens mènent à la page de résultats et non à l'article : la page est construite
+        en JavaScript et ne contient pas le lien de chaque annonce. Le bloc marché, lui, ne retient
+        que des fiches d'article.</p>` : ''}</div>`;
     return;
   }
 
