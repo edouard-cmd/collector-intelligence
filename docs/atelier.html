@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Collector Intelligence — atelier</title>
+<title>Collector Intelligence, atelier</title>
 <style>
   :root{
     --struct:#191922; --ia:#6c2bff; --data:#2ad3e6; --alerte:#ff2e7a;
@@ -84,7 +84,6 @@
   .rail i{position:absolute;top:0;bottom:0;background:var(--ia);display:block}
   .rail em{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--struct);display:block}
   .prix{font-size:13px;font-weight:700;text-align:right}
-  #barre{transition:width .25s}
   .attente{display:flex;align-items:center;gap:11px;margin-top:12px;
     border:3px solid var(--struct);background:#fff;padding:11px 14px}
   .rotor{width:19px;height:19px;flex:0 0 19px;border:3px solid var(--struct);
@@ -94,13 +93,33 @@
   .attente em{font-size:13px;color:var(--gris);font-style:normal;margin-left:auto;
     font-variant-numeric:tabular-nums}
   @media(prefers-reduced-motion:reduce){.rotor{animation:none}}
-  #journal{font-size:13px;margin-top:8px;max-height:190px;overflow:auto}
-  #journal div{display:flex;gap:8px;align-items:center;padding:2px 0}
-  #journal b{min-width:150px}
-  #journal em{color:var(--gris);font-style:normal}
   .ok{color:var(--ia);font-weight:700}
-  details.avance{margin:0 0 20px}
   .choix{display:flex;gap:10px;flex-wrap:wrap}
+  .saisie{margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--sombre)}
+  .saisie input{width:110px;padding:4px 7px;font-size:13px}
+  .saisie select{width:auto;padding:4px 6px;font-size:13px}
+  .saisie button{padding:4px 10px;font-size:12.5px}
+  .synth-objet{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:start;margin-bottom:6px}
+  .synth-photo{width:150px;height:150px;object-fit:cover;border:3px solid var(--struct)}
+  @media(max-width:620px){.synth-objet{grid-template-columns:1fr}}
+  .barre-prix{margin:16px 0 8px}
+  .bp-zones{position:relative;height:26px;border:3px solid var(--struct);margin-top:46px;background:#fff}
+  .bp-zones i{position:absolute;top:0;bottom:0;display:block}
+  .bp-zones u{position:absolute;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;
+    background:var(--struct);border:2px solid #fff;text-decoration:none}
+  .bp-zones s{position:absolute;top:-6px;bottom:-6px;width:4px;margin-left:-2px;background:var(--ia);text-decoration:none}
+  .bp-zones s span{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);
+    white-space:nowrap;font-size:12px;text-align:center;background:var(--ia);color:#fff;padding:3px 8px;line-height:1.2}
+  .bp-legende{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12.5px}
+  .bp-legende span{display:flex;gap:6px;align-items:center}
+  .bp-legende i{width:14px;height:14px;border:2px solid var(--struct);display:inline-block}
+  .bp-legende u{width:9px;height:9px;border-radius:50%;background:var(--struct);display:inline-block}
+  @media print{
+    body *{visibility:hidden}
+    #synthese,#synthese *{visibility:visible}
+    #synthese{position:absolute;left:0;top:0;width:100%;border:0}
+    .non-imprime{display:none}
+  }
   .reco{border:3px solid var(--struct);padding:14px 16px;box-shadow:6px 6px 0 rgba(25,25,34,.75)}
   .reco span{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;opacity:.75}
   .reco b{display:block;font-size:24px;letter-spacing:-.02em;margin:2px 0 4px;text-transform:uppercase}
@@ -116,8 +135,6 @@
   .edit input{display:inline-block;width:auto;min-width:220px;max-width:100%;padding:5px 9px;
     font-size:14.5px;margin:2px 6px 4px 0}
   .edit button.ok-edit,.edit button.ko-edit{padding:5px 11px;font-size:13px;margin:2px 4px 4px 0}
-  details.avance>summary{cursor:pointer;font-weight:700;font-size:14px;padding:10px 14px;
-    border:3px dashed var(--struct);background:var(--clair);margin-bottom:14px}
   .art{display:grid;grid-template-columns:92px 1fr;gap:4px 12px;padding:8px 0 8px 10px;
     border-left:3px solid var(--data);margin:6px 0;font-size:13.5px}
   .art .px a{font-weight:800;font-size:15px;color:var(--ia)}
@@ -149,7 +166,6 @@
   .vm button{padding:7px 12px;font-size:13.5px;white-space:nowrap;flex:0 0 auto}
   .bloc{color:#b26a00;font-weight:700}
   .ko{color:var(--alerte);font-weight:700}
-  #journal .vide{opacity:.55}
   .bilan{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:13.5px;
     border-top:2px solid var(--filet);padding-top:9px}
   .bilan b{font-variant-numeric:tabular-nums}
@@ -163,7 +179,7 @@
 <body>
 
 <header>
-  <h1>Collector Intelligence — atelier</h1>
+  <h1>Collector Intelligence, atelier</h1>
   <p>blocs 1 à 5 du schéma : entrée, identité, maille, veille, routeur. La collecte se fait ensuite côté moteur.</p>
 </header>
 
@@ -171,7 +187,7 @@
 <div>
 
 <fieldset>
-  <legend>bloc 1 — objet photographié</legend>
+  <legend>bloc 1 : objet photographié</legend>
   <div id="zone">
     <div id="zonetxt">déposer une ou plusieurs photos, ou cliquer pour choisir</div>
     <p class="aide" style="margin:6px 0 0">Jusqu'à 8 vues du même objet : ensemble, dessous,
@@ -184,7 +200,7 @@
   <p class="aide">Tout ce que la collectionneuse sait déjà et qui aiguille l'identification :
      provenance, date et prix d'achat, ce qui est écrit dessus, papiers, réparations, ce dont
      elle n'est pas sûre. Laisser vide si rien n'est connu.</p>
-  <textarea id="contexte" placeholder="acheté 300 € à Drouot en 2019, pas de facture, doublure remplacée, code date illisible…"></textarea>
+  <textarea id="contexte" placeholder="acheté 300 € à Drouot en 2019, pas de facture, doublure remplacée, code date illisible"></textarea>
 
   <label for="complement">précision libre</label>
   <p class="aide">Optionnel. Ce que vous voyez et que la photo rend mal : dimensions, matière, odeur du cuir, poids.</p>
@@ -209,8 +225,8 @@
     </div>
     <label for="s-canal">où ? (facultatif)</label>
     <select id="s-canal">
-      <option value="">—</option>
-      <option value="particuliers">entre particuliers — Vinted, leboncoin, brocante…</option>
+      <option value="">-</option>
+      <option value="particuliers">entre particuliers, Vinted, leboncoin, brocante</option>
       <option value="authentifies">revendeur ou dépôt-vente</option>
       <option value="encheres">enchères</option>
       <option value="neuf">neuf, en boutique</option>
@@ -242,13 +258,13 @@
 </fieldset>
 
 <fieldset>
-  <legend>marché — annonces et ventes réelles</legend>
+  <legend>marché : annonces et ventes réelles</legend>
   <p class="aide">Cherche sur le web les fiches individuelles de cet objet sur les places de marché :
      chaque ligne est un article réel, avec son lien. Les prix sont ceux affichés sur la fiche ;
      l'analyse est calculée sur ces seules fiches, jamais estimée. Une fiche dont l'adresse n'a
      pas été réellement consultée est mise de côté.</p>
   <label style="display:flex;gap:9px;align-items:center;font-weight:400;margin:10px 0 0">
-    <input type="checkbox" id="approfondi" checked style="width:auto"> recherche approfondie —
+    <input type="checkbox" id="approfondi" checked style="width:auto"> recherche approfondie -
     plus de plateformes et un meilleur tri, environ trois fois plus chère</label>
   <p class="aide" id="intensite" style="margin:6px 0 0"></p>
   <div style="margin-top:12px">
@@ -257,12 +273,17 @@
   <div id="sortie-marche"></div>
 </fieldset>
 
-<fieldset>
-  <legend>verdict — est-ce que ça vaut le coût ?</legend>
-  <p class="aide">Ton prix, comparé aux prix trouvés sur le marché. Calculé par le code, jamais estimé
-     par le modèle ; la base de calcul et le niveau de confiance sont affichés avec le résultat.</p>
+<fieldset id="synthese">
+  <legend>synthèse</legend>
+  <p class="aide">Tout ce qu'il faut retenir, au même endroit : l'objet, les prix observés, ton prix et
+     l'aide à la décision. Assemblée à partir de l'analyse déjà faite, sans nouvelle requête ni coût.
+     Tous les chiffres sont calculés par le code sur les fiches trouvées.</p>
+  <div id="synthese-objet"></div>
+  <div id="synthese-prix"></div>
   <div id="sortie-verdict"><p class="aide">Indique ta situation et un prix dans le bloc 1 ;
      le verdict apparaîtra après la recherche sur le marché.</p></div>
+  <div class="non-imprime" style="margin-top:16px">
+    <button id="imprimer" class="second">imprimer ou enregistrer la synthèse en PDF</button></div>
 </fieldset>
 
 <fieldset>
@@ -279,46 +300,6 @@
   <button id="export" class="second" disabled>télécharger le profil JSON</button>
   <div id="sortie3"></div>
 </fieldset>
-
-<details class="avance">
-<summary>mode avancé — lecture directe des plateformes</summary>
-<p class="aide" style="margin:10px 0 14px">L'ancien parcours : le routeur propose des modèles de
-   recherche, puis la passerelle lit les pages elle-même. Beaucoup de plateformes bloquent les
-   robots ; à garder pour les sources qui l'acceptent.</p>
-
-<fieldset>
-  <legend>bloc 5 — routeur d'univers</legend>
-  <p class="aide">Cherche où cet objet s'échange réellement et comment y lire les ventes conclues.
-     Ne s'active qu'une fois l'identification faite.</p>
-  <button id="router" class="second" disabled>découvrir les sources</button>
-  <span class="etat" id="etat2"></span>
-  <div id="sortie2"></div>
-</fieldset>
-
-<fieldset>
-  <legend>bloc 6 — antenne marché</legend>
-  <p class="aide">Pagine réellement les plateformes retenues et extrait les ventes conclues.
-     Chaque prix affiché ici renvoie à sa transaction : c'est ce qui distingue une cote d'une
-     estimation.</p>
-  <label for="profondeur">profondeur</label>
-  <select id="profondeur">
-    <option value="2">2 pages par source — rapide, ~0,15 €</option>
-    <option value="4" selected>4 pages par source — équilibré, ~0,30 €</option>
-    <option value="8">8 pages par source — profond, ~0,60 €</option>
-  </select>
-  <div style="margin-top:14px">
-    <button id="collecter" class="second" disabled>collecter les ventes</button>
-    <button id="stop" class="second" style="display:none;border-color:var(--alerte);
-      color:var(--alerte)">arrêter</button>
-    <span class="etat" id="etat3"></span>
-  </div>
-  <div id="avance" style="display:none;margin-top:12px">
-    <div class="rail" style="height:22px"><i id="barre" style="left:0;width:0"></i></div>
-    <div id="journal"></div>
-  </div>
-  <div id="sortie4"></div>
-</fieldset>
-</details>
 
 </div>
 
@@ -399,12 +380,12 @@ function peindre() {
   $('#galerie').innerHTML = images.map((im, i) =>
     `<div class="vig" title="${im.libelle || 'vue ' + (i + 1)}"><img src="${im.url}" alt="vue ${i + 1}">
      <button data-i="${i}" title="retirer">×</button>
-     <span>${im.libelle ? (i + 1) + ' · ' + im.libelle.slice(0, 14) : 'vue ' + (i + 1)}</span></div>`).join('');
+     <span>${im.libelle ? (i + 1) + ', ' + im.libelle.slice(0, 14) : 'vue ' + (i + 1)}</span></div>`).join('');
   document.querySelectorAll('.vig button').forEach(b =>
     b.onclick = () => { images.splice(+b.dataset.i, 1); peindre(); });
 
   $('#zonetxt').textContent = images.length
-    ? `${images.length} vue${images.length > 1 ? 's' : ''}${images.length >= MAX_VUES ? ' — maximum atteint' : ' — en ajouter'}`
+    ? `${images.length} vue${images.length > 1 ? 's' : ''}${images.length >= MAX_VUES ? ', maximum atteint' : ', en ajouter'}`
     : 'déposer une ou plusieurs photos, ou cliquer pour choisir';
   $('#identifier').disabled = images.length === 0;
   if (images.length) allume(1);
@@ -415,7 +396,9 @@ async function appeler(systeme, contenu, recherche, plafond, modele, opts = {}) 
   const corps = {
     model: modele || "claude-sonnet-5",
     max_tokens: plafond || 4000,
-    system: systeme + "\n\nRéponds uniquement par du JSON valide, sans préambule ni balises de code.",
+    system: systeme + "\n\nRéponds uniquement par du JSON valide, sans préambule ni balises de code." +
+            " Dans tous les textes, n'utilise jamais de tiret long, de tiret moyen ni de point médian :" +
+            " des virgules, des deux-points ou des parenthèses à la place.",
     messages: [{ role: "user", content: contenu }]
   };
   if (recherche) {
@@ -447,7 +430,7 @@ async function appeler(systeme, contenu, recherche, plafond, modele, opts = {}) 
     d = await envoyer();
     lu.push(...(d.content || []));
   }
-  // Le modèle a parfois fini ses recherches sans rédiger le JSON — il commente au lieu de
+  // Le modèle a parfois fini ses recherches sans rédiger le JSON, il commente au lieu de
   // conclure. Plutôt que d'échouer et de tout repayer, on lui demande de conclure à partir
   // de ce qu'il a déjà lu : aucune nouvelle recherche, seulement la rédaction.
   const texteDe = c => (c || []).filter(b => b.type === "text").map(b => b.text).join("\n");
@@ -466,15 +449,45 @@ async function appeler(systeme, contenu, recherche, plafond, modele, opts = {}) 
   let t = texteDe(d.content).trim();
   if (t.indexOf('{') === -1) t = texteDe(lu).trim();
   t = t.replace(/^```(?:json)?/m, '').replace(/```$/m, '').trim();
+  return nettoyerProfond(analyser(t));
+}
+
+function analyser(t) {
   try { return JSON.parse(t); } catch {}
   const a = t.indexOf('{'), z = t.lastIndexOf('}');
   if (a !== -1 && z > a) { try { return JSON.parse(t.slice(a, z + 1)); } catch {} }
   return reparer(t);
 }
 
+/* Les tics typographiques des modèles (tiret long, tiret moyen, point médian, points de
+   suspension, flèches) sont retirés de tout ce qui s'affiche. Les adresses ne sont pas touchées. */
+function nettoyerTexte(s) {
+  return s.replace(/\s*\u2014\s*/g, ', ')
+          .replace(/(\d)\s*\u2013\s*(\d)/g, '$1-$2')
+          .replace(/\s+\u2013\s+/g, ', ')
+          .replace(/\u2013/g, '-')
+          .replace(/\s*\u00b7\s*/g, ', ')
+          .replace(/\u2026/g, '.')
+          .replace(/\s*\u2192\s*/g, ' vers ')
+          .replace(/,\s*,/g, ',')
+          .replace(/^\s*,\s*/, '')
+          .replace(/,\s*([.;:!?])/g, '$1');
+}
+
+function nettoyerProfond(x, cle = '') {
+  if (typeof x === 'string') return /url|source|lien/i.test(cle) ? x : nettoyerTexte(x);
+  if (Array.isArray(x)) return x.map(v => nettoyerProfond(v, cle));
+  if (x && typeof x === 'object') {
+    const o = {};
+    for (const [k, v] of Object.entries(x)) o[k] = nettoyerProfond(v, k);
+    return o;
+  }
+  return x;
+}
+
 /* Lecture du flux de l'API (événements SSE). On reconstruit le message complet tel que
-   l'aurait rendu un appel classique — blocs de texte, recherches web et leurs résultats,
-   usage, motif d'arrêt — pour que tout le reste du code reste inchangé. En chemin, on
+   l'aurait rendu un appel classique, blocs de texte, recherches web et leurs résultats,
+   usage, motif d'arrêt, pour que tout le reste du code reste inchangé. En chemin, on
    tient l'écran d'attente informé : recherches effectuées, texte reçu. */
 async function lireFlux(r) {
   const lecteur = r.body.getReader();
@@ -607,7 +620,7 @@ function attendre(cible, etapes) {
   suivi = ({ recherches, recu }) => {
     const f = document.getElementById('att-flux');
     if (f) f.textContent = `${recherches} recherche${recherches > 1 ? 's' : ''} web effectuée${
-      recherches > 1 ? 's' : ''} · ${recu.toLocaleString('fr-FR')} caractères de réponse reçus`;
+      recherches > 1 ? 's' : ''}, ${recu.toLocaleString('fr-FR')} caractères de réponse reçus`;
   };
   const t0 = Date.now();
   let i = 0;
@@ -647,7 +660,7 @@ cible.onchange = async () => {
   const n = await charger([...cible.files], bouton.dataset.quoi);
   cible.value = '';
   if (n) {
-    bouton.textContent = 'ajoutée ✓';
+    bouton.textContent = 'ajoutée';
     bouton.disabled = true;
     $('#relancer').disabled = false;
   } else {
@@ -693,7 +706,7 @@ function brancherCorrection(d) {
     const garde = zone.innerHTML;
     zone.innerHTML = `<input type="text" value="${avant.replace(/"/g, '&quot;')}"
         aria-label="${LIB_CHAMP[champ]}">
-      <button class="ok-edit" title="corriger et relancer">✓ corriger et relancer</button>
+      <button class="ok-edit" title="corriger et relancer">corriger et relancer</button>
       <button class="ko-edit second" title="annuler">annuler</button>`;
     const champTexte = zone.querySelector('input');
     champTexte.focus();
@@ -727,7 +740,7 @@ function brancherCorrection(d) {
 function brancherVues() {
   document.querySelectorAll('.ajvue').forEach(b => b.onclick = () => {
     if (images.length >= MAX_VUES) {
-      b.textContent = 'plus de place — retire une vue en haut';
+      b.textContent = 'plus de place, retire une vue en haut';
       return;
     }
     vueEnCours = b;
@@ -755,7 +768,7 @@ même chose :
   un modèle emblématique d'après sa silhouette et ses finitions justifie une note haute même
   sans référence lisible.
 - certitude_variante : à quel point tu es sûr de la déclinaison exacte (taille, millésime,
-  coloris, édition). Cette note peut être basse alors que la première est très haute — c'est le
+  coloris, édition). Cette note peut être basse alors que la première est très haute, c'est le
   cas normal quand seule une mesure physique ou un code interne permet de trancher.
 
 Ne rabaisse jamais certitude_modele à cause d'un doute qui ne porte que sur la déclinaison :
@@ -765,7 +778,7 @@ Si tu hésites entre plusieurs déclinaisons, dis lesquelles et ce qui permettra
 
 LECTURE DES INSCRIPTIONS. Une seule lettre mal lue sur un nom de marque ou une référence fausse
 toute la suite : les recherches partent sur un nom qui n'existe pas. Les inscriptions gravées,
-stylisées, en petits caractères ou photographiées en biais se lisent mal — H et B, N et M,
+stylisées, en petits caractères ou photographiées en biais se lisent mal, H et B, N et M,
 0 et O, 1 et I, S et 5 se confondent. Pour chaque inscription dont tu te sers (marque,
 référence, poinçon, signature), indique ta confiance et, si elle est inférieure à 0,9, les
 lectures alternatives plausibles. Mets aussi ces alternatives dans les requêtes, en précision
@@ -776,7 +789,7 @@ cause : cherche les graphies proches avant de conclure à une marque confidentie
 Une marque introuvable est bien plus souvent une marque mal lue qu'une marque inexistante.
 
 Liste ensuite les vues qui manquent pour lever le doute, en indiquant précisément OÙ chercher
-sur l'objet — pas "une photo de meilleure qualité", mais par exemple "la patte de cuir cousue
+sur l'objet, pas "une photo de meilleure qualité", mais par exemple "la patte de cuir cousue
 dans la poche intérieure droite, où figure le code atelier". La propriétaire doit pouvoir aller
 photographier l'endroit exact sans chercher.
 
@@ -825,7 +838,7 @@ Format :
 Entre 15 et 30 requêtes, de la plus précise à la plus large, dans les langues des marchés où
 cet objet s'échange réellement.
 
-HISTOIRE DU MODÈLE — en dernier, une fois l'identification faite. Les pages que tu consultes
+HISTOIRE DU MODÈLE, en dernier, une fois l'identification faite. Les pages que tu consultes
 pour identifier l'objet racontent souvent aussi son histoire : exploite-les au lieu de relancer
 des recherches. Raconte le MODÈLE, pas l'exemplaire de la propriétaire : sa création, son
 créateur, sa place dans son univers, ce qui le rend désirable. Écris pour une collectionneuse,
@@ -834,7 +847,8 @@ en français, sobre et vivant, sans superlatifs publicitaires.
 Chaque fait daté ou chiffré doit venir d'une page réellement consultée, avec son URL exacte.
 Sans source, omets le fait : quatre jalons sourcés valent mieux que dix approximatifs. Entre
 4 et 8 jalons, dans l'ordre chronologique. Si la déclinaison est incertaine, raconte le modèle
-et signale les variantes dans "variantes".
+et signale les variantes dans "variantes". Aucun prix dans l'histoire : les prix n'apparaissent
+que dans la synthèse, calculés sur les fiches trouvées.
 
 L'identification passe avant l'histoire : si tes recherches sont comptées, consacre-les d'abord
 à identifier l'objet correctement.`;
@@ -900,16 +914,16 @@ celle du nouveau modèle.`;
     afficherIdentite(d);
 
     if (histoireNeuve) afficherHistoire(histoireNeuve, vuesId);
+    rendreSynthese();
     $('#raconter').disabled = false;
     $('#raconter').textContent = profil.histoire ? "régénérer l'histoire" : "raconter l'histoire";
     allume(4);
-    $('#router').disabled = false;
     $('#chercher').disabled = false;
     regler_intensite();
     $('#etat1').textContent = "";
 
     // Enchaînement : seulement si le modèle est sûr, et seulement si le marché n'a pas
-    // déjà été cherché pour ce même modèle — une relance avec photos ne repaie rien.
+    // déjà été cherché pour ce même modèle, une relance avec photos ne repaie rien.
     const sur = (d.certitude_modele ?? d.certitude ?? 0) >= 0.6;
     const dejaFait = profil.marche && profil.marche_modele === profil.modele;
     if ($('#enchainer').checked && sur && !dejaFait) {
@@ -933,16 +947,15 @@ function afficherIdentite(d) {
   let h = `<div class="res">
     ${d.tronque ? `<div class="info">réponse du modèle tronquée : les derniers champs
       manquent. Relancer pour la version complète.</div>` : ''}
-    <h3>bloc 2 — identité</h3>
+    <h3>bloc 2 : identité</h3>
     <dl class="kv">
-      <dt>univers</dt><dd>${d.univers || "—"}</dd>
-      <dt>objet</dt><dd>${d.description || "—"}</dd>
+      <dt>univers</dt><dd>${d.univers || "-"}</dd>
+      <dt>objet</dt><dd>${d.description || "-"}</dd>
       <dt>marque</dt><dd>${editable('marque', d.marque)}</dd>
       <dt>modèle</dt><dd>${editable('modele', d.modele)}</dd>
       <dt>référence</dt><dd>${editable('reference', d.reference)}</dd>
-      <dt>état apparent</dt><dd>${d.etat_apparent || "—"}</dd>
-      <dt>maille (bloc 3)</dt><dd>${d.maille || "—"}</dd>
-      <dt>fourchette plausible</dt><dd>${f.bas ?? "?"} – ${f.haut ?? "?"} ${f.devise || ""} <em>(garde-fou, pas une cote)</em></dd>
+      <dt>état apparent</dt><dd>${d.etat_apparent || "-"}</dd>
+      <dt>maille (bloc 3)</dt><dd>${d.maille || "-"}</dd>
       <dt>certitude modèle</dt><dd>${cm} %<div class="jauge"><i style="width:${cm}%"></i></div></dd>
       <dt>certitude variante</dt><dd>${cv} %<div class="jauge"><i style="width:${cv}%"></i></div></dd>
     </dl>`;
@@ -950,12 +963,12 @@ function afficherIdentite(d) {
   const lectures = (d.lectures || []).filter(l => l && l.texte);
   const douteuses = lectures.filter(l => (l.confiance ?? 1) < 0.9 && (l.alternatives || []).length);
   if (douteuses.length) {
-    h += `<div class="info" style="background:#f5c26b"><b>lectures incertaines</b> — vérifie
+    h += `<div class="info" style="background:#f5c26b"><b>lectures incertaines</b>, vérifie
           sur l'objet. Si l'une des alternatives est la bonne, clique dessus.`;
     douteuses.forEach(l => {
       h += `<p style="margin:8px 0 0;font-size:14px">« <b>${l.texte}</b> »
             ${l.ou ? `<span style="color:var(--gris)">(${l.ou})</span>` : ''}
-            — confiance ${Math.round((l.confiance || 0) * 100)} %. C'est plutôt :
+            : confiance ${Math.round((l.confiance || 0) * 100)} %. C'est plutôt :
             ${(l.alternatives || []).slice(0, 4).map(a =>
               `<button class="second alt" data-de="${String(l.texte).replace(/"/g, '&quot;')}"
                 data-vers="${String(a).replace(/"/g, '&quot;')}"
@@ -970,7 +983,7 @@ function afficherIdentite(d) {
 
   if (d.hypotheses_concurrentes && d.hypotheses_concurrentes.length)
     h += `<p style="margin:12px 0 0;font-size:14px"><b>hypothèses concurrentes :</b>
-          ${d.hypotheses_concurrentes.join(" · ")}</p>`;
+          ${d.hypotheses_concurrentes.join(", ")}</p>`;
   if (d.leve_de_doute)
     h += `<p style="margin:6px 0 0;font-size:14px"><b>pour trancher :</b> ${d.leve_de_doute}</p>`;
 
@@ -986,11 +999,11 @@ function afficherIdentite(d) {
     vues.forEach((v, i) =>
       h += `<div class="vm">
         <div style="flex:1">
-          <b>${v.quoi}</b>${v.ou ? ` — ${v.ou}` : ''}
+          <b>${v.quoi}</b>${v.ou ? `, ${v.ou}` : ''}
           ${v.apporte ? `<em style="display:block;font-size:12.5px">${v.apporte}</em>` : ''}
         </div>
         <button class="second ajvue" data-quoi="${v.quoi.replace(/"/g, '&quot;')}"
-          ${deja.has(v.quoi) ? 'disabled' : ''}>${deja.has(v.quoi) ? 'ajoutée ✓' : '＋ photo'}</button>
+          ${deja.has(v.quoi) ? 'disabled' : ''}>${deja.has(v.quoi) ? 'ajoutée' : 'ajouter une photo'}</button>
       </div>`);
     h += `<div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <button id="relancer" ${deja.size ? '' : 'disabled'}>relancer l'identification</button>
@@ -1002,7 +1015,7 @@ function afficherIdentite(d) {
   if (d.contexte_ecarte && !/^\s*(aucun|rien|pas de|null)/i.test(d.contexte_ecarte))
     h += `<div class="info"><b>contexte écarté :</b> ${d.contexte_ecarte}</div>`;
   if (faible)
-    h += `<div class="warn">certitude modèle sous 60 % — collecte déconseillée en l'état.
+    h += `<div class="warn">certitude modèle sous 60 %, collecte déconseillée en l'état.
           Reprendre une photo ou passer en saisie assistée (trou ouvert n° 2).</div>`;
   else if (cv < 60)
     h += `<div class="info">le modèle est sûr, la déclinaison ne l'est pas. La collecte reste
@@ -1047,10 +1060,8 @@ function afficherIdentite(d) {
       if (typeof marche !== 'undefined' && marche.fiches && marche.fiches.length) rendreMarche();
       $('#fvres').innerHTML = coches.length
         ? `${coches.length} élément${coches.length > 1 ? 's' : ''} retenu${coches.length > 1 ? 's' : ''}
-           — effet cumulé <b>${pct >= 0 ? '+' : ''}${pct} %</b>${base.haut ? `,
-           fourchette ajustée <b>${Math.round(base.bas * k)}–${Math.round(base.haut * k)}
-           ${base.devise || ''}</b>` : ''}`
-        : `aucun élément coché — fourchette de base`;
+           : effet cumulé <b>${pct >= 0 ? '+' : ''}${pct} %</b>, appliqué dans la synthèse`
+        : `aucun élément coché`;
     };
     document.querySelectorAll('.fv').forEach(c => c.onchange = recalc);
     recalc();
@@ -1077,13 +1088,16 @@ Format :
  "accroche":"deux ou trois phrases qui donnent envie d'en savoir plus",
  "frise":[{"date":"AAAA ou AAAA-MM","evenement":"une phrase","source":"url ou null"}],
  "createur":"personne, maison ou studio à l'origine du modèle, ou null",
- "chiffres":[{"libelle":"prix de lancement, tirage, ...","valeur":"...","source":"url ou null"}],
+ "chiffres":[{"libelle":"tirage, date de sortie, nombre de pièces, ...","valeur":"...","source":"url ou null"}],
  "pourquoi_recherche":"un paragraphe : ce qui fait la désirabilité et la valeur de ce modèle",
  "anecdote":"un fait marquant et sourcé, ou null",
  "a_surveiller":["événement à venir ou signal qui pourrait faire bouger la cote"],
  "variantes":"une phrase si la déclinaison est incertaine, sinon null"}
 
-Entre 4 et 10 jalons dans la frise, dans l'ordre chronologique.`;
+Entre 4 et 10 jalons dans la frise, dans l'ordre chronologique.
+
+Aucun prix dans l'histoire, ni dans les chiffres, ni dans le texte : les prix n'apparaissent qu'à
+un seul endroit, la synthèse, où ils sont calculés sur les fiches réellement trouvées.`;
 
 /* Une source citée n'est crédible que si le modèle a réellement consulté la page.
    On compare chaque URL citée aux pages rendues par la recherche web : celles qui
@@ -1116,12 +1130,12 @@ function normaliser(u) {
 
 function badgeSource(url, vues) {
   if (!url || !/^https?:\/\//i.test(url))
-    return `<span class="src absente">· non sourcé</span>`;
+    return `<span class="src absente">, non sourcé</span>`;
   let dom = '';
   try { dom = new URL(url).hostname.replace(/^www\./, ''); } catch {}
   const ok = vues.has(normaliser(url));
-  return `<span class="src ${ok ? '' : 'douteuse'}">·
-    <a href="${url}" target="_blank" rel="noopener">${dom}</a>${ok ? '' : ' — non vérifiée'}</span>`;
+  return `<span class="src ${ok ? '' : 'douteuse'}">,
+    <a href="${url}" target="_blank" rel="noopener">${dom}</a>${ok ? '' : ', non vérifiée'}</span>`;
 }
 
 $('#raconter').onclick = async () => {
@@ -1137,8 +1151,8 @@ $('#raconter').onclick = async () => {
   try {
     const d = await appeler(SYS_HIST,
       `Modèle identifié : ${profil.description}\n` +
-      `univers : ${profil.univers || '?'} · marque : ${profil.marque || '?'} · ` +
-      `modèle : ${profil.modele || '?'} · référence : ${profil.reference || '?'}\n` +
+      `univers : ${profil.univers || '?'}, marque : ${profil.marque || '?'}, ` +
+      `modèle : ${profil.modele || '?'}, référence : ${profil.reference || '?'}\n` +
       (profil.hypotheses_concurrentes?.length
         ? `déclinaisons possibles : ${profil.hypotheses_concurrentes.join(' ; ')}\n` : ''),
       true, 6000);
@@ -1146,6 +1160,7 @@ $('#raconter').onclick = async () => {
     fin();
     profil.histoire = d;
     afficherHistoire(d, vues);
+    rendreSynthese();
   } catch (e) {
     fin();
     $('#sortie-hist').innerHTML = `<div class="warn">échec : ${e.message}</div>`;
@@ -1170,11 +1185,14 @@ function afficherHistoire(d, vues) {
 
   if (frise.length) {
     h += `<p class="hist-h">chronologie</p><div class="frise">`;
-    frise.forEach(j => h += `<div class="jalon"><span class="date">${j.date || '—'}</span>
+    frise.forEach(j => h += `<div class="jalon"><span class="date">${j.date || '-'}</span>
       ${j.evenement} ${badgeSource(j.source, vues)}</div>`);
     h += `</div>`;
   }
 
+  // garde-fou : un chiffre qui ressemble à un prix n'a pas sa place dans l'histoire
+  const unPrix = c => /€|\$|£|\b(eur|usd|gbp|chf)\b|prix|price|retail|tarif/i.test(`${c.libelle} ${c.valeur}`);
+  chiffres.splice(0, chiffres.length, ...chiffres.filter(c => !unPrix(c)));
   if (chiffres.length) {
     h += `<p class="hist-h">chiffres clés</p>`;
     chiffres.forEach(c => h += `<p style="margin:5px 0;font-size:14.5px">
@@ -1191,14 +1209,14 @@ function afficherHistoire(d, vues) {
 
   const surv = (d.a_surveiller || []).filter(Boolean);
   if (surv.length)
-    h += `<div class="info"><b>à surveiller</b> — ce qui pourrait faire bouger la cote,
+    h += `<div class="info"><b>à surveiller</b>, ce qui pourrait faire bouger la cote,
           et que l'antenne contexte (bloc 10) guettera :
           ${surv.map(s => `<span style="display:block;margin-top:4px">• ${s}</span>`).join('')}</div>`;
 
   h += `<p class="etat" style="margin-top:14px">${cites.length} source${cites.length > 1 ? 's' : ''}
         citée${cites.length > 1 ? 's' : ''}, ${verifies} vérifiée${verifies > 1 ? 's' : ''}
         parmi les ${vues.size} page${vues.size > 1 ? 's' : ''} réellement consultée${vues.size > 1 ? 's' : ''}
-        ${cites.length > verifies ? ` — les autres sont signalées en orange` : ''}.</p>`;
+        ${cites.length > verifies ? `, les autres sont signalées en orange` : ''}.</p>`;
 
   $('#sortie-hist').innerHTML = h + `</div>`;
 }
@@ -1211,14 +1229,14 @@ function afficherHistoire(d, vues) {
 const SYS_MARCHE = `Tu cherches sur le web les fiches individuelles d'un objet de collection mises en
 vente ou vendues sur les places de marché : annonce, fiche produit, lot d'enchère.
 
-Méthode : choisis les places de marché propres à cet univers, sur les trois strates — entre
-particuliers, revendeurs authentifiés, enchères — et interroge-les avec l'opérateur site:
+Méthode : choisis les places de marché propres à cet univers, sur les trois strates, entre
+particuliers, revendeurs authentifiés, enchères, et interroge-les avec l'opérateur site:
 (par exemple  site:exemple.com  suivi du nom de l'objet).
 
 Tes requêtes vont du plus précis au plus large, jamais l'inverse :
-  1. d'abord le modèle AVEC ses attributs distinctifs — ceux qui le séparent des autres pièces de
+  1. d'abord le modèle AVEC ses attributs distinctifs, ceux qui le séparent des autres pièces de
      la marque : couleur, matière, référence, taille, édition. Tire-les de la description. Écris-les
-     comme les vendeurs les écrivent, dans la langue du site : doré, gold, or, golden…
+     comme les vendeurs les écrivent, dans la langue du site : doré, gold, or, golden
   2. ensuite le modèle seul, sans attribut
   3. enfin, seulement si ça ne suffit pas, la marque avec le type d'objet et les attributs
 Pars des termes de la signature de recherche qu'on te fournit : ils ont été établis à
@@ -1234,19 +1252,19 @@ Pour chaque fiche :
 - statut : "vendu" si la page indique une vente conclue ou une adjudication, "en_vente" si
   l'article est proposé, "inconnu" sinon
 - correspondance avec l'objet recherché, à juger sur le NOM DU MODÈLE avant tout :
-  "exacte"     — même nom de modèle ET mêmes attributs distinctifs (couleur, matière…)
-  "modele"     — même nom de modèle mais un attribut différent (autre couleur), OU l'un des
+  "exacte" : même nom de modèle ET mêmes attributs distinctifs (couleur, matière)
+  "modele" : même nom de modèle mais un attribut différent (autre couleur), OU l'un des
                  modèles alternatifs plausibles qu'on te fournit
-  "famille"    — même marque, AUTRE nom de modèle. Une fiche qui porte un nom de modèle
+  "famille" : même marque, AUTRE nom de modèle. Une fiche qui porte un nom de modèle
                  différent n'est jamais "modele", même si elle lui ressemble.
-  "comparable" — autre marque, même classe d'objet (voir plus bas)
+  "comparable" : autre marque, même classe d'objet (voir plus bas)
   Dans le doute entre deux niveaux, choisis le plus éloigné. Écarte tout le reste.
 - neuf : true si vendu neuf par un marchand ou la marque, false si occasion
 
 Vise entre 10 et 30 fiches pertinentes. Moins vaut mieux que du hors-sujet.
 
 OBJET INTROUVABLE OU RARE. Si tes recherches ramènent moins de trois fiches exactes ou du même
-modèle — marque confidentielle, marque de façade, objet sans nom — ne t'arrête pas : cherche des
+modèle, marque confidentielle, marque de façade, objet sans nom, ne t'arrête pas : cherche des
 COMPARABLES, comme le ferait un expert. Définis d'abord la classe d'objet à partir de ses
 propriétés : type, matière, mécanisme ou technique, style, époque, qualité de fabrication,
 segment de prix. Puis cherche des fiches d'objets de cette classe, de marques équivalentes. Tu
@@ -1254,8 +1272,8 @@ segment de prix. Puis cherche des fiches d'objets de cette classe, de marques é
 comme l'objet lui-même : il donne un ordre de grandeur.
 
 Termine par une lecture qualitative en trois ou quatre phrases : où l'objet circule, comment
-les canaux se distinguent, ce qui explique les écarts. N'y avance aucun chiffre qui ne figure
-pas dans les fiches listées.
+les canaux se distinguent, ce qui explique les écarts. N'y écris AUCUN prix ni aucun chiffre :
+les prix sont calculés par ailleurs, sur les fiches, et ne doivent apparaître qu'à un seul endroit.
 
 Format :
 {"fiches":[{"plateforme":"...","url":"...","titre":"...","prix":0,"devise":"EUR",
@@ -1277,13 +1295,12 @@ function regler_intensite() {
   if (!haut) { el.textContent = ''; return; }
   if (haut < SEUIL_BAS) {
     $('#approfondi').checked = false;
-    el.innerHTML = `<b>bloc 4 — intensité de veille :</b> objet estimé jusqu'à ${haut}
-      ${f.devise || '€'}, recherche économique retenue : une recherche approfondie coûterait une
-      part sensible de sa valeur. Coche la case si tu veux quand même approfondir.`;
+    el.innerHTML = `<b>bloc 4, intensité de veille :</b> objet de faible valeur, recherche
+      économique retenue ; une recherche approfondie coûterait une part sensible de sa valeur.
+      Coche la case si tu veux quand même approfondir.`;
   } else {
     $('#approfondi').checked = true;
-    el.innerHTML = `<b>bloc 4 — intensité de veille :</b> objet estimé jusqu'à ${haut}
-      ${f.devise || '€'}, recherche approfondie activée.`;
+    el.innerHTML = `<b>bloc 4, intensité de veille :</b> recherche approfondie activée.`;
   }
 }
 
@@ -1306,8 +1323,8 @@ async function lancerMarche() {
   try {
     const d = await appeler(SYS_MARCHE,
       `OBJET : ${profil.description}\n` +
-      `univers : ${profil.univers || '?'} · marque : ${profil.marque || '?'} · ` +
-      `modèle : ${profil.modele || '?'} · référence : ${profil.reference || '?'}\n` +
+      `univers : ${profil.univers || '?'}, marque : ${profil.marque || '?'}, ` +
+      `modèle : ${profil.modele || '?'}, référence : ${profil.reference || '?'}\n` +
       (profil.hypotheses_concurrentes?.length
         ? `modèles alternatifs plausibles : ${profil.hypotheses_concurrentes.join(' ; ')}\n` : '') +
       `signature de recherche, termes précis : ` +
@@ -1353,6 +1370,7 @@ function stats(prix) {
   const s = [...prix].sort((a, b) => a - b);
   const r = { n: s.length, min: s[0], max: s[s.length - 1], med: mediane(s) };
   if (s.length >= 4) { r.q1 = quantile(s, .25); r.q3 = quantile(s, .75); }
+  r.vals = s;
   return r;
 }
 
@@ -1394,21 +1412,23 @@ function estPageDeRecherche(u) {
 
 function niveau(f) {
   const v = f.verif;
-  if (!v) return { cle: 'attente', lib: 'vérification en cours…' };
+  if (f.prix_origine === 'manuel') return { cle: 'confirme', lib: "prix recopié par toi depuis la fiche" };
+  if (!v) return { cle: 'attente', lib: 'vérification en cours' };
   if (v.etat === 'disparue') return { cle: 'disparue', lib: "page disparue aujourd'hui" };
   if (v.etat === 'redirigee')
-    return { cle: 'arevoir', lib: "redirigée vers l'accueil — annonce retirée ou accès filtré" };
+    return { cle: 'arevoir', lib: "redirigée vers l'accueil, annonce retirée ou accès filtré" };
+  if (f.prix_origine === 'manuel') return { cle: 'confirme', lib: "prix recopié par toi depuis la fiche" };
   if (f.prix_origine === 'page') return { cle: 'confirme', lib: "prix lu sur la page aujourd'hui" };
   if (f.prix_origine === 'page_maj')
     return { cle: 'confirme', lib: `prix actuel de la page (indexé à ${f.prix_indexe})` };
   if (v.etat !== 'en_ligne')
-    return { cle: 'nonverif', lib: "non vérifiable aujourd'hui (plateforme protégée) — prix lu par le moteur de recherche" };
+    return { cle: 'nonverif', lib: "non vérifiable aujourd'hui (plateforme protégée), prix lu par le moteur de recherche" };
   let n;
   if (v.prix_trouve === true) n = { cle: 'confirme', lib: "en ligne, prix confirmé aujourd'hui" };
   else if (v.prix_trouve === false)
     n = { cle: 'arevoir', lib: v.rendu_js
       ? "en ligne, page construite en javascript : prix non contrôlable"
-      : "en ligne, prix non retrouvé sur la page — a pu changer" };
+      : "en ligne, prix non retrouvé sur la page, a pu changer" };
   else n = { cle: 'enligne', lib: "en ligne" };
   if ((v.signes_vente || []).length && f.statut !== 'vendu')
     n.vente = v.signes_vente.join(', ');
@@ -1443,19 +1463,31 @@ function rendreMarche() {
       </div>`;
     brancherElargir();
     marche.ref = null;
-    rendreVerdict();
+    marche.retenues = [];
+    rendreSynthese();
     return;
   }
 
   const strict = $('#strict') ? $('#strict').checked : false;
-  const compte = {};
-  fiches.forEach(f => f.prix && (compte[f.devise || 'EUR'] = (compte[f.devise || 'EUR'] || 0) + 1));
-  const dev = Object.entries(compte).sort((a, b) => b[1] - a[1])[0]?.[0] || 'EUR';
+  // Tout est calculé dans ta devise. Une fiche en dollars n'est plus écartée : elle est convertie
+  // au taux de la Banque centrale européenne, et la conversion est indiquée sur la ligne.
+  const dev = lireSituation().devise || 'EUR';
+  [...new Set(fiches.filter(f => f.prix).map(f => f.devise || 'EUR'))]
+    .filter(d => d !== dev && tauxCache[d + dev] === undefined)
+    .forEach(d => obtenirTaux(d, dev).then(() => rendreMarche()));
+  const px = f => {
+    if (!f.prix) return null;
+    const d = f.devise || 'EUR';
+    if (d === dev) return f.prix;
+    const t = tauxCache[d + dev];
+    return t && t.taux ? Math.round(f.prix * t.taux) : null;
+  };
 
   // Chaque exclusion a une raison, affichée sur la ligne : rien n'est grisé sans explication.
   const defaut = f => {
     if (!f.prix) return "prix absent de la fiche";
-    if ((f.devise || 'EUR') !== dev) return `prix en ${f.devise}, calcul en ${dev}`;
+    if (px(f) === null) return tauxCache[(f.devise || 'EUR') + dev] === false
+      ? `taux ${f.devise} vers ${dev} indisponible` : "conversion en cours";
     const n = niveau(f);
     if (n.cle === 'disparue' && f.statut !== 'vendu') return "page disparue";
     // un article neuf « épuisé » garde son prix catalogue ; une annonce d'occasion vendue, non
@@ -1474,24 +1506,24 @@ function rendreMarche() {
   const vendues = fiches.filter(f => f.statut === 'vendu' && retenue(f));
   const offertes = fiches.filter(f => f.statut === 'en_vente' && !f.neuf && retenue(f));
   const neuves = fiches.filter(f => f.neuf && retenue(f));
-  const sv = stats(vendues.map(f => f.prix));
-  const so = stats(offertes.map(f => f.prix));
-  const sn = stats(neuves.map(f => f.prix));
+  const sv = stats(vendues.map(px));
+  const so = stats(offertes.map(px));
+  const sn = stats(neuves.map(px));
   const exactesVendues = vendues.filter(f => f.correspondance === 'exacte').length;
   const comps = fiches.filter(comparable);
-  const sc = stats(comps.map(f => f.prix));
+  const sc = stats(comps.map(px));
 
   let cas, libelle, fond;
-  if (exactesVendues >= 8) { cas = 1; libelle = "cas 1 — cote statistique possible"; fond = 'var(--data)'; }
-  else if (vendues.length >= 3) { cas = 2; libelle = "cas 2 — cote par comparables"; fond = 'var(--clair)'; }
-  else if (offertes.length >= 3) { cas = '8c'; libelle = "tension de l'offre — prix demandés seulement"; fond = 'var(--clair)'; }
-  else if (comps.length >= 3) { cas = '8b'; libelle = "cote par comparables — objets de même classe, pas cet objet"; fond = 'var(--clair)'; }
-  else { cas = 3; libelle = "cas 3 — trop peu de fiches pour une cote défendable"; fond = 'var(--alerte)'; }
+  if (exactesVendues >= 8) { cas = 1; libelle = "cas 1 : cote statistique possible"; fond = 'var(--data)'; }
+  else if (vendues.length >= 3) { cas = 2; libelle = "cas 2 : cote par comparables"; fond = 'var(--clair)'; }
+  else if (offertes.length >= 3) { cas = '8c'; libelle = "tension de l'offre : prix demandés seulement"; fond = 'var(--clair)'; }
+  else if (comps.length >= 3) { cas = '8b'; libelle = "cote par comparables : objets de même classe, pas cet objet"; fond = 'var(--clair)'; }
+  else { cas = 3; libelle = "cas 3 : trop peu de fiches pour une cote défendable"; fond = 'var(--alerte)'; }
   profil.cas = cas;
   const mince = (cas === 3 || cas === '8c') && !$('#approfondi').checked;
   const boutonElargir = mince ? `<div style="margin:12px 0 0;display:flex;gap:10px;align-items:center;
       flex-wrap:wrap"><button id="elargir">élargir la recherche</button>
-      <span class="etat">Sonnet, 10 recherches, environ 0,25 € — avant de conclure à un manque
+      <span class="etat">Sonnet, 10 recherches, environ 0,25 €, avant de conclure à un manque
       de données, c'est souvent la recherche qui était trop courte.</span></div>` : '';
 
   const tally = {};
@@ -1501,10 +1533,11 @@ function rendreMarche() {
   const k = 1 + (profil.effet_facteurs_pct || 0) / 100;
   const ref = sv || so || sc;
   marche.ref = { sv, so, sn, sc, dev, k };
+  marche.retenues = fiches.filter(retenue).map(f => ({ ...f, prix: px(f) }));
 
   let h = `<div class="res">
     <div style="background:${fond};color:${cas === 3 ? '#fff' : 'var(--sombre)'};padding:11px 14px;
-         border:3px solid var(--struct)"><b>${libelle}</b> —
+         border:3px solid var(--struct)"><b>${libelle}</b> -
       ${vendues.length} vente${vendues.length > 1 ? 's' : ''} conclue${vendues.length > 1 ? 's' : ''} et
       ${offertes.length} annonce${offertes.length > 1 ? 's' : ''} d'occasion retenues
       ${strict ? '<b>(prix confirmés aujourd\'hui uniquement)</b>' : ''}.</div>
@@ -1514,57 +1547,41 @@ function rendreMarche() {
       retenue :</b> ${classe}. Ces objets ne sont pas le tien : ils situent un ordre de grandeur,
       à confirmer par l'état et la provenance.</div>` : ''}
     <p style="margin:10px 0 0;font-size:13.5px"><b>recherche :</b> ${ligneDiag}.</p>
+    ${fiches.some(f => f.prix === null) ? `<div class="info" style="margin:10px 0 0">
+      <b>${fiches.filter(f => f.prix === null).length} fiche${fiches.filter(f => f.prix === null).length > 1 ? 's' : ''}
+      sans prix lisible.</b> Ouvre la fiche, recopie le prix affiché dans le champ prévu sur la
+      ligne : il entre aussitôt dans le calcul, marqué « recopié par toi ».</div>` : ''}
     <p style="margin:6px 0 0;font-size:13.5px">
       <b>preuve :</b>
-      ${tally.confirme || 0} prix confirmé${(tally.confirme || 0) > 1 ? 's' : ''} aujourd'hui ·
-      ${tally.arevoir || 0} en ligne à revoir ·
-      ${tally.nonverif || 0} non vérifiable${(tally.nonverif || 0) > 1 ? 's' : ''} ·
+      ${tally.confirme || 0} prix confirmé${(tally.confirme || 0) > 1 ? 's' : ''} aujourd'hui,
+      ${tally.arevoir || 0} en ligne à revoir,
+      ${tally.nonverif || 0} non vérifiable${(tally.nonverif || 0) > 1 ? 's' : ''},
       ${tally.disparue || 0} disparue${(tally.disparue || 0) > 1 ? 's' : ''}
-      ${enCours ? ` · <span class="bloc">${enCours} en cours de vérification</span>` : ''}</p>
+      ${enCours ? `, <span class="bloc">${enCours} en cours de vérification</span>` : ''}</p>
 
     <label style="display:flex;gap:9px;align-items:center;font-weight:400;margin:8px 0 0;font-size:13.5px">
       <input type="checkbox" id="strict" style="width:auto" ${strict ? 'checked' : ''}>
       ne calculer que sur les prix confirmés aujourd'hui</label>
 
-    <div class="synth">
-      ${sv ? `<div><span>ventes conclues · ${sv.n}</span><b>${sv.med} ${dev}</b>
-              <span>de ${sv.min} à ${sv.max}</span></div>` : ''}
-      ${so ? `<div><span>en vente, occasion · ${so.n}</span><b>${so.med} ${dev}</b>
-              <span>de ${so.min} à ${so.max}</span></div>` : ''}
-      ${sn ? `<div><span>neuf, marchands · ${sn.n}</span><b>${sn.med} ${dev}</b>
-              <span>de ${sn.min} à ${sn.max}</span></div>` : ''}
-      ${sc ? `<div style="border-style:dashed"><span>comparables d'occasion · ${sc.n}</span>
-              <b>${sc.med} ${dev}</b><span>de ${sc.min} à ${sc.max} · ordre de grandeur</span></div>` : ''}
-      ${ref && profil.effet_facteurs_pct ? `<div style="background:var(--clair)">
-              <span>ajusté selon tes réponses · ${profil.effet_facteurs_pct > 0 ? '+' : ''}${profil.effet_facteurs_pct} %</span>
-              <b>${Math.round(ref.med * k)} ${dev}</b><span>indicatif, sur la médiane ${sv ? 'des ventes' : 'des annonces'}</span></div>` : ''}
-    </div>`;
-
-  h += graphiqueMesure(fiches.filter(retenue), dev);
-
-  if (sv && so)
-    h += `<p class="aide" style="margin:0 0 6px">Les annonces en cours sont en médiane
-          ${Math.abs(Math.round((so.med / sv.med - 1) * 100))} % ${so.med >= sv.med ? 'au-dessus' : 'en dessous'}
-          des ventes conclues.</p>`;
-  if (!sv && so)
-    h += `<p class="aide" style="margin:0 0 6px">Aucune vente conclue retenue : ces chiffres sont
-          des prix demandés, pas des prix obtenus. Ils bornent la cote par le haut.</p>`;
+    <p class="aide" style="margin:10px 0 0">Les prix sont ceux de chaque fiche, ci-dessous. Leur
+      analyse (fourchettes, médianes, graphique, verdict) est regroupée dans la synthèse, en bas de page.</p>`;
 
   const parPf = {};
   fiches.forEach(f => (parPf[f.plateforme || f.domaine] ||= []).push(f));
   Object.entries(parPf).sort((a, b) => b[1].length - a[1].length).forEach(([pf, lot]) => {
-    const s = stats(lot.filter(retenue).map(f => f.prix));
     h += `<p style="margin:18px 0 4px;font-size:14px;font-weight:700;display:flex;gap:8px;
           align-items:center">${logo(lot[0])}${pf}
-          <span style="color:var(--gris);font-weight:400">${lot.length} fiche${lot.length > 1 ? 's' : ''}
-          ${s ? `· médiane ${s.med} ${dev}` : ''}</span></p>`;
+          <span style="color:var(--gris);font-weight:400">${lot.length} fiche${lot.length > 1 ? 's' : ''}</span></p>`;
     [...lot].sort((a, b) => (a.prix ?? 1e9) - (b.prix ?? 1e9)).forEach(f => {
+      const idx = fiches.indexOf(f);
       const n = niveau(f);
       const pourquoi = raison(f);
       const exclue = !!pourquoi;
       h += `<div class="art" style="border-left-color:${COULEUR_PREUVE[n.cle]};${exclue ? 'background:rgba(16,16,24,.035)' : ''}">
         <div class="px"><a href="${f.url}" target="_blank" rel="noopener">${
-          f.prix !== null ? `${f.prix} ${f.devise || ''}` : 'voir ↗'}</a></div>
+          f.prix !== null ? `${f.prix} ${f.devise || ''}` : 'ouvrir la fiche'}</a>${
+          f.prix !== null && (f.devise || 'EUR') !== dev && px(f) !== null
+            ? `<small style="display:block;color:var(--gris);font-weight:400">soit ${px(f)} ${dev}</small>` : ''}</div>
         <div class="tt">${(f.titre || '').slice(0, 110)}</div>
         <div class="meta">
           <span class="tag ${f.statut === 'vendu' ? 'vendu' : 'envente'}">${
@@ -1574,7 +1591,12 @@ function rendreMarche() {
           <span class="tag" style="background:${COULEUR_PREUVE[n.cle]}">${n.lib}</span>
           ${n.vente ? `<span class="tag" style="background:#f5c26b">${f.neuf ? 'rupture signalée' : 'semble vendue'} : ${n.vente}</span>` : ''}
           ${exclue ? `<span class="tag" style="border-style:dashed">hors calcul : ${pourquoi}</span>` : ''}
-          <br>${f.etat ? f.etat.slice(0, 40) + ' · ' : ''}${f.domaine}${f.age ? ' · indexée ' + f.age : ''}
+          <br>${f.etat ? f.etat.slice(0, 40) + ', ' : ''}${f.domaine}${f.age ? ', indexée ' + f.age : ''}
+          ${f.prix === null ? `<div class="saisie">prix affiché sur la fiche :
+            <input type="number" min="0" step="any" class="pm" data-i="${idx}" placeholder="à recopier">
+            <select class="pmd" data-i="${idx}">${['EUR', 'USD', 'GBP', 'CHF'].map(x =>
+              `<option ${x === (f.devise || dev) ? 'selected' : ''}>${x}</option>`).join('')}</select>
+            <button class="second pmok" data-i="${idx}">ajouter</button></div>` : ''}
         </div></div>`;
     });
   });
@@ -1584,24 +1606,34 @@ function rendreMarche() {
           <p style="margin:0;font-size:14.5px;line-height:1.55">${lecture}</p>`;
 
   h += `<div class="info" style="margin-top:16px"><b>d'où vient chaque donnée</b>
-    <span style="display:block;margin-top:5px">• <b>le lien</b> — adresse renvoyée par la
+    <span style="display:block;margin-top:5px">• <b>le lien</b>, adresse renvoyée par la
       recherche web : l'article existe ou a existé. Une adresse citée sans avoir été consultée
       est écartée${ecartees.length ? ` (${ecartees.length} ici)` : ''}.</span>
-    <span style="display:block;margin-top:4px">• <b>le prix, le statut, la correspondance</b> —
+    <span style="display:block;margin-top:4px">• <b>le prix, le statut, la correspondance</b> -
       lus par le modèle sur la page telle que le moteur de recherche l'a indexée, puis contrôlés
       aujourd'hui par la passerelle, sans IA, quand la plateforme l'accepte : c'est le niveau de
       preuve affiché sur chaque ligne.</span>
-    <span style="display:block;margin-top:4px">• <b>les médianes et les écarts</b> — calculés par
+    <span style="display:block;margin-top:4px">• <b>les médianes et les écarts</b>, calculés par
       le code sur les seules fiches retenues. Une annonce disparue ou qui semble vendue sort du calcul.</span>
-    <span style="display:block;margin-top:4px">• <b>la lecture du marché</b> — interprétation du
+    <span style="display:block;margin-top:4px">• <b>la lecture du marché</b>, interprétation du
       modèle, sans chiffre qui ne figure dans les fiches.</span>
-    <span style="display:block;margin-top:4px">• <b>ce qui n'est pas couvert</b> — les annonces
+    <span style="display:block;margin-top:4px">• <b>ce qui n'est pas couvert</b>, les annonces
       que le moteur de recherche n'a pas indexées : c'est un échantillon, pas un inventaire.</span>
   </div>`;
 
   $('#sortie-marche').innerHTML = h + `</div>`;
   brancherElargir();
-  rendreVerdict();
+  document.querySelectorAll('.pmok').forEach(b => b.onclick = () => {
+    const i = +b.dataset.i;
+    const champ = [...document.querySelectorAll('.pm')].find(x => +x.dataset.i === i);
+    const devise = [...document.querySelectorAll('.pmd')].find(x => +x.dataset.i === i);
+    const v = parseFloat(String(champ?.value || '').replace(',', '.'));
+    if (!v || v <= 0) return;
+    const f = marche.fiches[i];
+    f.prix = v; f.devise = devise?.value || dev; f.prix_origine = 'manuel';
+    rendreMarche();
+  });
+  rendreSynthese();
   const s = $('#strict');
   if (s && s.addEventListener) s.addEventListener('change', rendreMarche);
 }
@@ -1647,8 +1679,8 @@ function rendreVerdict() {
   const ref = typeof marche !== 'undefined' ? marche.ref : null;
 
   if (!s.mode) {
-    el.innerHTML = `<p class="aide">Indique ta situation dans le bloc 1 — achat en réflexion ou
-      objet de ta collection — pour obtenir un verdict.</p>`;
+    el.innerHTML = `<p class="aide">Indique ta situation dans le bloc 1, achat en réflexion ou
+      objet de ta collection, pour obtenir un verdict.</p>`;
     return;
   }
   if (!ref) {
@@ -1679,7 +1711,7 @@ function rendreVerdict() {
       <p class="aide">Un verdict sur une ou deux fiches serait une opinion déguisée en chiffre :
       il en faut au moins trois. Élargir la recherche, ou passer par une expertise.</p>`;
     profil.verdict = { mode: s.mode, verdict: 'indecidable',
-      recommandation: s.mode === 'achat' ? "attendre — pas assez de données" : "maintenir — pas assez de données" };
+      recommandation: s.mode === 'achat' ? "attendre, pas assez de données" : "maintenir, pas assez de données" };
     el.innerHTML = `<div class="reco" style="background:var(--clair)"><span>recommandation</span>
       <b>${profil.verdict.recommandation}</b>
       <small>règle appliquée : moins de trois prix de cet objet trouvés sur le marché</small></div>` + el.innerHTML;
@@ -1696,8 +1728,8 @@ function rendreVerdict() {
   if (s.devise !== dev) {
     const t = tauxCache[dev + s.devise];
     if (t === undefined || t === null) {
-      el.innerHTML = `<div class="attente"><i class="rotor"></i><span>conversion ${dev} → ${s.devise}
-        au taux de la Banque centrale européenne…</span></div>`;
+      el.innerHTML = `<div class="attente"><i class="rotor"></i><span>conversion ${dev} vers ${s.devise}
+        au taux de la Banque centrale européenne</span></div>`;
       if (t === undefined) obtenirTaux(dev, s.devise).then(rendreVerdict);
       return;
     }
@@ -1713,13 +1745,14 @@ function rendreVerdict() {
   const M = r(med), Q1 = r(q1), Q3 = r(q3), D = s.devise, P = s.prix;
 
   const marcheSeul = `<div class="synth">
-      <div><span>valeur de marché · médiane</span><b>${M} ${D}</b>
-        <span>fourchette ${Q1}–${Q3}</span></div>
+      <div><span>valeur de marché, médiane</span><b>${M} ${D}</b>
+        <span>fourchette ${Q1}-${Q3}</span></div>
       <div><span>base de calcul</span><b style="font-size:16px">${base.n} ${source}</b>
         <span>confiance ${confiance}</span></div></div>`;
 
   if (P === null || isNaN(P)) {
     el.innerHTML = `<div class="res">${marcheSeul}
+      ${barrePrix(M, Q1, Q3, (base.vals || []).map(v => v * kk), null, D)}
       <p class="aide" style="margin:0">Saisis ${s.mode === 'achat' ? 'le prix demandé' : 'le prix payé'}
       dans le bloc 1 pour obtenir le verdict.</p></div>`;
     return;
@@ -1727,7 +1760,9 @@ function rendreVerdict() {
 
   // ── position du prix dans le marché ──
   let pos;
+  const MI = (0.5 * M + Q1) / 2;
   if (P < 0.5 * M) pos = 'tres_bas';
+  else if (P < MI) pos = 'tres_bonne';
   else if (P < Q1) pos = 'sous';
   else if (P <= Q3) pos = 'marche';
   else if (P <= 1.5 * M) pos = 'dessus';
@@ -1739,11 +1774,13 @@ function rendreVerdict() {
       tres_bas: () => { titre = "anormalement bas"; fond = 'var(--alerte)';
         texte.push(`Moins de la moitié du prix de marché. Avant d'acheter, vérifie l'authenticité,
           l'état et le vendeur : un prix trop beau est le premier signe d'une contrefaçon ou d'une arnaque.`); },
-      sous: () => { titre = "bonne affaire — sous le marché"; fond = 'var(--data)';
+      tres_bonne: () => { titre = "très bonne affaire, nettement sous le marché"; fond = 'var(--data)';
+        texte.push(`À saisir si l'état et l'authenticité sont confirmés.`); },
+      sous: () => { titre = "bonne affaire, sous le marché"; fond = 'var(--data)';
         texte.push(`À saisir si l'état et l'authenticité sont confirmés.`); },
       marche: () => { titre = "au prix du marché"; fond = 'var(--clair)';
         texte.push(`Ni affaire ni excès : c'est le prix auquel cet objet s'échange.`); },
-      dessus: () => { titre = "au-dessus du marché — à négocier"; fond = '#f5c26b';
+      dessus: () => { titre = "au-dessus du marché, à négocier"; fond = '#f5c26b';
         texte.push(`Une offre autour de ${M} ${D} est défendable, et les fiches du bloc marché
           te donnent de quoi l'argumenter. Au-delà de ${Q3} ${D}, tu paies plus que la plupart des acheteurs.`); },
       trop: () => { titre = "nettement trop cher"; fond = 'var(--alerte)';
@@ -1756,8 +1793,9 @@ function rendreVerdict() {
                        : `moins-value latente : ${ecart} ${D} (${pct} %)`;
     fond = ecart >= 0 ? 'var(--data)' : '#f5c26b';
     texte.push({
-      tres_bas: `Tu l'as payé moins de la moitié de sa valeur de marché : belle trouvaille — à condition
+      tres_bas: `Tu l'as payé moins de la moitié de sa valeur de marché : belle trouvaille, à condition
         que l'authenticité soit confirmée, puisque c'est elle qui porte toute la valeur.`,
+      tres_bonne: `Tu l'as payé nettement sous le prix du marché actuel : un très bon achat.`,
       sous: `Tu l'as payé sous le prix du marché actuel : un bon achat.`,
       marche: `Tu l'as payé au prix du marché actuel.`,
       dessus: `Tu l'as payé au-dessus du marché actuel : la revente couvrirait difficilement ton prix d'achat.`,
@@ -1790,11 +1828,13 @@ function rendreVerdict() {
     ({
       tres_bas: () => { reco = "vérifier avant d'acheter"; fondReco = '#f5c26b';
         regle = "prix inférieur à la moitié de la médiane du marché"; },
+      tres_bonne: () => { reco = "acheter"; fondReco = 'var(--data)';
+        regle = "prix dans la zone très bonne affaire, entre la moitié de la médiane et le premier quartile"; },
       sous: () => { reco = "acheter"; fondReco = 'var(--data)';
         regle = "prix sous le premier quartile du marché"; },
-      marche: () => { reco = "acheter — prix juste"; fondReco = 'var(--data)';
+      marche: () => { reco = "acheter, prix juste"; fondReco = 'var(--data)';
         regle = "prix entre le premier et le troisième quartile du marché"; },
-      dessus: () => { reco = `négocier — viser ${M} ${D}`; fondReco = '#f5c26b';
+      dessus: () => { reco = `négocier, viser ${M} ${D}`; fondReco = '#f5c26b';
         regle = "prix au-dessus du troisième quartile, sans dépasser 1,5 fois la médiane"; },
       trop: () => { reco = "passer"; fondReco = 'var(--alerte)';
         regle = "prix supérieur à 1,5 fois la médiane du marché"; },
@@ -1802,13 +1842,13 @@ function rendreVerdict() {
   } else {
     const gain = P > 0 ? (M / P - 1) * 100 : Infinity;
     if (gain >= 25 && liquide) {
-      reco = "vendre possible — bon moment pour réaliser la plus-value"; fondReco = 'var(--data)';
+      reco = "vendre possible, bon moment pour réaliser la plus-value"; fondReco = 'var(--data)';
       regle = `plus-value d'au moins 25 % et marché liquide (${sv.n} ventes conclues trouvées)`;
     } else if (gain >= 25) {
-      reco = "maintenir — plus-value réelle, mais marché peu liquide"; fondReco = 'var(--clair)';
+      reco = "maintenir, plus-value réelle, mais marché peu liquide"; fondReco = 'var(--clair)';
       regle = "plus-value d'au moins 25 %, mais moins de 3 ventes conclues : vendre prendrait du temps et forcerait le prix";
     } else if (gain <= -15) {
-      reco = "maintenir — vendre maintenant cristalliserait une perte"; fondReco = '#f5c26b';
+      reco = "maintenir, vendre maintenant cristalliserait une perte"; fondReco = '#f5c26b';
       regle = "moins-value de plus de 15 %";
     } else {
       reco = "maintenir"; fondReco = 'var(--clair)';
@@ -1816,7 +1856,7 @@ function rendreVerdict() {
     }
     if (P > 0 && M > P * 1.25) texte.push(`À faire : mettre à jour la valeur déclarée à ton assurance.`);
   }
-  if (confiance === 'faible') regle += " — base fragile, à confirmer";
+  if (confiance === 'faible') regle += ", base fragile, à confirmer";
 
   profil.verdict = { mode: s.mode, prix: P, devise: D, position: pos, titre, recommandation: reco, regle,
     valeur_marche: M, fourchette: [Q1, Q3], base: source, fiches: base.n, confiance,
@@ -1829,17 +1869,18 @@ function rendreVerdict() {
     <div style="background:${fond};color:${fond === 'var(--alerte)' ? '#fff' : 'var(--sombre)'};
          padding:11px 15px;border:3px solid var(--struct);margin-top:10px">
       <b style="font-size:16px">${titre}</b></div>
+    ${barrePrix(M, Q1, Q3, (base.vals || []).map(v => v * kk), P, D)}
     <div class="synth">
       <div><span>${s.mode === 'achat' ? 'prix demandé' : 'prix payé'}</span><b>${P} ${D}</b>
         <span>${s.canal ? LIB_CANAL[s.canal] : '&nbsp;'}</span></div>
-      <div><span>valeur de marché · médiane</span><b>${M} ${D}</b><span>fourchette ${Q1}–${Q3}</span></div>
-      <div><span>écart</span><b>${P > 0 ? `${P >= M ? '+' : ''}${Math.round((P / M - 1) * 100)} %` : '—'}</b>
+      <div><span>valeur de marché, médiane</span><b>${M} ${D}</b><span>fourchette ${Q1}-${Q3}</span></div>
+      <div><span>écart</span><b>${P > 0 ? `${P >= M ? '+' : ''}${Math.round((P / M - 1) * 100)} %` : '-'}</b>
         <span>ton prix face au marché</span></div>
     </div>
     ${texte.map(t => `<p style="margin:0 0 8px;font-size:14.5px;line-height:1.5">${t}</p>`).join('')}
     <p class="etat" style="margin-top:10px"><b>base du verdict :</b> médiane de ${base.n} ${source},
-      trouvées et vérifiées dans le bloc marché · seuils : ${base.q1 !== undefined
-        ? 'quartiles des prix trouvés' : 'médiane ±15 %, trop peu de prix pour des quartiles'} ·
+      trouvées et vérifiées dans le bloc marché, seuils : ${base.q1 !== undefined
+        ? 'quartiles des prix trouvés' : 'médiane ±15 %, trop peu de prix pour des quartiles'},
       confiance ${confiance}. ${noteConv}</p>
     <p class="etat" style="margin-top:6px">Indicateur calculé à partir des prix trouvés et de règles
       explicites, pas un conseil en investissement : l'attachement, la rareté future et
@@ -1861,7 +1902,8 @@ function brancherSituation() {
   });
   ['#s-prix', '#s-devise', '#s-date', '#s-canal'].forEach(id => {
     const x = $(id);
-    if (x) x.oninput = x.onchange = rendreVerdict;
+    if (x) x.oninput = x.onchange = () =>
+      (marche.fiches && marche.fiches.length ? rendreMarche() : rendreVerdict());
   });
 }
 brancherSituation();
@@ -1883,19 +1925,101 @@ function graphiqueMesure(retenues, dev) {
   const COUL = { vendu: 'var(--struct)', neuf: 'var(--ia)', occasion: 'var(--data)' };
   let h = `<p class="hist-h">prix mesurés par plateforme</p>
     <p class="aide" style="margin:0 0 10px">Du moins cher au plus cher des fiches retenues ;
-      le trait noir marque la médiane. <b style="color:var(--ia)">violet</b> : neuf ·
-      <b style="color:#12a2b3">cyan</b> : occasion en vente · <b>noir</b> : ventes conclues.</p>`;
+      le trait noir marque la médiane. <b style="color:var(--ia)">violet</b> : neuf,
+      <b style="color:#12a2b3">cyan</b> : occasion en vente, <b>noir</b> : ventes conclues.</p>`;
   lignes.sort((a, b) => a.med - b.med).forEach(l => {
     h += `<div class="ligne">
       <div class="etiq">${logo(l.lot[0])}<span>${l.pf}</span></div>
       <div class="rail"><i style="left:${pos(l.min)}%;width:${Math.max(pos(l.max) - pos(l.min), 1.5)}%;
         background:${COUL[l.type]}"></i><em style="left:calc(${pos(l.med)}% - 1px)"></em></div>
-      <div class="prix">${l.n > 1 ? `${l.min}–${l.max}` : l.min}<small style="display:block;
-        font-weight:400;color:var(--gris)">méd. ${l.med} · ${l.n} fiche${l.n > 1 ? 's' : ''}</small></div>
+      <div class="prix">${l.n > 1 ? `${l.min}-${l.max}` : l.min}<small style="display:block;
+        font-weight:400;color:var(--gris)">méd. ${l.med}, ${l.n} fiche${l.n > 1 ? 's' : ''}</small></div>
     </div>`;
   });
   return h + `<p class="aide" style="margin:4px 0 12px;text-align:right">en ${dev}</p>`;
 }
+
+/* ---------- synthèse : objet, prix observés, barre de prix, verdict ---------- */
+function rendreSynthese() {
+  const zo = $('#synthese-objet'), zp = $('#synthese-prix');
+  if (!zo || !zp) return rendreVerdict();
+
+  // l'objet
+  if (profil.description) {
+    const photo = images[0] ? `<img src="${images[0].url}" alt="" class="synth-photo">` : '';
+    const nom = [profil.corrections?.marque || profil.marque, profil.corrections?.modele || profil.modele]
+      .filter(Boolean).join(' ');
+    const cm = Math.round((profil.certitude_modele ?? profil.certitude ?? 0) * 100);
+    const cv = Math.round((profil.certitude_variante ?? profil.certitude ?? 0) * 100);
+    const fr = profil.facteurs_retenus || [];
+    zo.innerHTML = `<div class="synth-objet">${photo}<div>
+      <p class="hist-titre" style="font-size:20px">${nom || profil.univers || 'objet'}</p>
+      <p style="margin:0 0 8px;font-size:14px;line-height:1.5">${profil.description}</p>
+      <dl class="kv">
+        ${profil.corrections?.reference || profil.reference
+          ? `<dt>référence</dt><dd>${profil.corrections?.reference || profil.reference}</dd>` : ''}
+        <dt>univers</dt><dd>${profil.univers || '-'}</dd>
+        <dt>état apparent</dt><dd>${profil.etat_apparent || '-'}</dd>
+        <dt>identification</dt><dd>modèle sûr à ${cm} %, déclinaison à ${cv} %</dd>
+        ${fr.length ? `<dt>tu as indiqué</dt><dd>${fr.join(', ')}</dd>` : ''}
+      </dl>
+      ${profil.histoire?.accroche ? `<p style="margin:10px 0 0;font-size:14px;line-height:1.5;
+        font-style:italic">${profil.histoire.accroche}</p>` : ''}
+    </div></div>`;
+  } else zo.innerHTML = '';
+
+  // les prix observés : le seul endroit où ils sont résumés
+  const ref = marche.ref;
+  if (ref) {
+    const carte = (lib, s, note) => s ? `<div><span>${lib}, ${s.n} fiche${s.n > 1 ? 's' : ''}</span>
+      <b>${s.med} ${ref.dev}</b><span>basse ${s.min}, haute ${s.max}${note ? ', ' + note : ''}</span></div>` : '';
+    zp.innerHTML = `<p class="hist-h">prix observés</p>
+      <div class="synth">
+        ${carte('ventes conclues', ref.sv, 'prix obtenus')}
+        ${carte("en vente d'occasion", ref.so, 'prix demandés')}
+        ${carte('neuf chez les marchands', ref.sn, 'prix catalogue')}
+        ${carte('objets comparables', ref.sc, 'ordre de grandeur')}
+      </div>
+      ${!ref.sv && !ref.so && !ref.sn && !ref.sc ? `<p class="aide">Aucun prix exploitable pour l'instant.</p>` : ''}
+      ${graphiqueMesure(marche.retenues || [], ref.dev)}`;
+  } else zp.innerHTML = '';
+
+  rendreVerdict();
+}
+
+/* Barre de prix, à la manière des annonces : des zones de « très bonne affaire » à « trop cher »,
+   tirées des quartiles des prix trouvés, les prix observés en points, et ton prix en repère. */
+function barrePrix(M, Q1, Q3, vals, P, D) {
+  const mi = (0.5 * M + Q1) / 2;
+  const lo = Math.min(0.4 * M, ...(vals.length ? vals : [M]), P ?? Infinity) * 0.95;
+  const hi = Math.max(1.7 * M, ...(vals.length ? vals : [M]), P ?? 0) * 1.03;
+  const x = v => Math.max(0, Math.min(100, ((v - lo) / (hi - lo)) * 100));
+  const zones = [
+    [lo, 0.5 * M, '#d8d8d8', "anormalement bas"],
+    [0.5 * M, mi, '#2e9e6a', "très bonne affaire"],
+    [mi, Q1, '#8fd19e', "bonne affaire"],
+    [Q1, Q3, '#e8edf2', "prix du marché"],
+    [Q3, 1.5 * M, '#f5c26b', "prix élevé"],
+    [1.5 * M, hi, '#ff7aa2', "trop cher"],
+  ].filter(z => z[1] > z[0]);
+  const r = v => Math.round(v);
+  return `<div class="barre-prix">
+    <div class="bp-zones">${zones.map(([a, b, c]) =>
+      `<i style="left:${x(a)}%;width:${x(b) - x(a)}%;background:${c}"></i>`).join('')}
+      ${vals.map(v => `<u style="left:${x(v)}%" title="${r(v)} ${D}"></u>`).join('')}
+      ${P !== null && P !== undefined && !isNaN(P) ? `<s style="left:${x(P)}%"><span>ton prix<br><b>${r(P)} ${D}</b></span></s>` : ''}
+    </div>
+    <div class="bp-legende">${zones.map(([a, b, c, lib]) =>
+      `<span><i style="background:${c}"></i>${lib}${lib === "prix du marché" ? ` : ${r(Q1)} à ${r(Q3)} ${D}` :
+        lib === "très bonne affaire" ? ` : ${r(0.5 * M)} à ${r(mi)} ${D}` :
+        lib === "bonne affaire" ? ` : ${r(mi)} à ${r(Q1)} ${D}` :
+        lib === "prix élevé" ? ` : ${r(Q3)} à ${r(1.5 * M)} ${D}` :
+        lib === "trop cher" ? ` : au-delà de ${r(1.5 * M)} ${D}` : ` : sous ${r(0.5 * M)} ${D}`}</span>`).join('')}
+      <span><u></u>un prix observé</span></div>
+  </div>`;
+}
+
+document.getElementById && ($('#imprimer') || {}).addEventListener?.('click', () => window.print());
 
 function brancherElargir() {
   const b = document.getElementById('elargir');
@@ -1936,115 +2060,9 @@ async function verifierFiches() {
   rendreMarche();
 }
 
-function ouvrable(e) {
-  const terme = e.terme || (profil.requetes || [])[0]?.terme || profil.description || '';
-  return (e.url_modele || '').replace("{q}", encodeURIComponent(terme))
-                             .replace("{page}", e.page_debut || 1);
-}
-
-/* ---------- bloc 5 : routeur ---------- */
-const SYS_ROUTE = `Tu identifies où un objet de collection s'échange réellement, et comment y lire
-les VENTES CONCLUES — pas les annonces en cours.
-
-Un même objet ne se vend pas au même prix selon le canal : un facteur 3 sépare couramment la
-vente entre particuliers du prix d'un revendeur authentifié. Tu dois donc couvrir TROIS strates,
-avec au moins une source dans chacune quand elle existe pour cet objet :
-
-  1. particuliers — places de marché généralistes, prix bas, fort volume
-  2. revendeurs authentifiés — plateformes spécialisées avec expertise, prix hauts
-  3. enchères — résultats adjugés publiés, la donnée la plus fiable pour les pièces rares
-
-Vise SIX points d'entrée au minimum, et inclus AU MOINS UNE source d'annonces en cours : sans
-elle, la liquidité est impossible à mesurer, et la liquidité prime sur le prix. Une annonce à
-500 € sans vente en deux ans n'est pas un prix élevé, c'est une absence de marché.
-
-N'écarte une plateforme majeure de l'univers que si ses pages de résultats sont réellement
-inaccessibles sans compte. L'absence d'API n'est pas un motif d'exclusion : les pages publiques
-de ventes terminées suffisent. Écarte en revanche les espaces communautaires fermés et les
-agrégateurs qui recopient d'autres sources.
-
-Ne retiens pas une maison d'enchères spécialisée dans un autre domaine sous prétexte qu'elle
-vend parfois cet univers : si l'objet est courant, les enchères n'en verront presque aucun.
-
-Pour chaque place de marché, donne le modèle d'URL de recherche qui filtre sur les transactions
-terminées, avec sa pagination. Utilise {q} pour le terme et {page} pour le numéro de page.
-Donne aussi le domaine racine de la plateforme, sans protocole ni chemin.
-
-Donne enfin, pour chaque plateforme, la fourchette dans laquelle CET objet s'y échange
-habituellement. Elle sera différente d'une plateforme à l'autre, et c'est précisément ce qu'on
-cherche à montrer : la même pièce ne vaut pas la même chose entre particuliers et chez un
-revendeur qui l'authentifie et la garantit.
-
-Cette fourchette est un repère de cadrage destiné à écarter les aberrations pendant la collecte.
-Ce n'est pas une cote : la cote ne se construira que sur des ventes réellement conclues.
-
-Format : {"entrees":[{"plateforme":"...","nature":"ventes|annonces",
-"domaine":"exemple.fr",
-"strate":"particuliers|authentifies|encheres",
-"niveau":"exact|modele|famille",
-"terme":"le terme de recherche à employer pour ce niveau",
-"fourchette":{"bas":0,"haut":0,"devise":"EUR"},
-"url_modele":"https://.../?q={q}&page={page}","page_debut":1,"pages_max":20,
-"note":"une phrase, 20 mots maximum",
-"limite":"fenêtre d\'historique ou restriction, 12 mots maximum, ou null"}],
-"ecart_maille":"comment un prix du niveau large se rapporte au niveau exact, une phrase",
-"hors_couverture": null}
-
-Tu ne conclus JAMAIS qu'un objet est incotable. Ce n'est pas ton rôle : cette décision se prend
-après la collecte, en comptant les transactions réellement trouvées. Ici tu ne fais que dire où
-chercher. Un "entrees" vide n'est acceptable que si l'objet ne s'échange sur aucune place de
-marché publique au monde, ce qui est très rare.
-
-Si la référence exacte est trop pointue pour avoir un historique propre — une taille rare, un
-coloris de série, un numéro précis — tu n'abandonnes pas : tu élargis la maille de recherche.
-Trois niveaux, du plus étroit au plus large :
-
-  1. exact — la référence précise, taille et coloris compris
-  2. modele — le même modèle toutes tailles et coloris confondus
-  3. famille — la collaboration, la série ou la gamme entière
-
-Une vente du niveau 2 ou 3 reste un comparable exploitable : il suffit d'appliquer la décote ou
-la prime connue entre les niveaux. C'est infiniment plus utile qu'une absence de réponse.
-
-Donne donc, pour chaque point d'entrée, le niveau de maille auquel il doit être interrogé, et
-couvre les trois niveaux dès que le niveau exact risque d'être maigre. Indique dans "ecart_maille"
-comment un prix du niveau large se rapporte au niveau exact pour cet objet.
-
-Rédige toutes tes réponses en français.`;
-
-$('#router').onclick = async () => {
-  const b = $('#router');
-  b.disabled = true;
-  $('#etat2').textContent = "";
-  const fin2 = attendre('#sortie2', [
-    "inventaire des places de marché de cet univers",
-    "recherche des pages de ventes conclues",
-    "vérification des URL et de la pagination",
-    "classement par strate et cadrage des fourchettes",
-    "encore un instant"
-  ]);
-  try {
-    const d = await appeler(SYS_ROUTE,
-      `Objet : ${profil.description}\nUnivers : ${profil.univers}\nMaille : ${profil.maille}\n` +
-      `Termes retenus : ${(profil.requetes || []).slice(0, 8).map(r => r.terme).join(", ")}`,
-      true, 8000, "claude-haiku-4-5-20251001");
-    profil.entrees = d.entrees || [];
-    fin2();
-    profil.hors_couverture = d.hors_couverture || null;
-    afficherRoutage(d);
-    allume(5);
-    $('#export').disabled = false;
-    $('#collecter').disabled = !(d.entrees || []).some(e => e.nature === "ventes");
-    $('#etat2').textContent = "";
-  } catch (e) {
-    fin2();
-    $('#sortie2').innerHTML = `<div class="warn">échec : ${e.message}</div>`;
-  }
-  b.disabled = false;
-};
-
+/* ---------- outils communs ---------- */
 /* Logo de la plateforme : on passe par le favicon du domaine, ce qui évite
-   d'embarquer une image par place de marché — et donc de coder par plateforme. */
+   d'embarquer une image par place de marché, et donc de coder par plateforme. */
 function logo(e) {
   const dom = (e.domaine || "").replace(/^https?:\/\//, '').replace(/\/.*$/, '');
   if (!dom) return `<i class="pastille"></i>`;
@@ -2052,138 +2070,6 @@ function logo(e) {
           alt="" onerror="this.replaceWith(Object.assign(document.createElement('i'),
           {className:'pastille'}))">`;
 }
-
-const LIB_STRATE = {
-  particuliers: "entre particuliers",
-  authentifies: "revendeurs authentifiés",
-  encheres: "enchères"
-};
-
-function afficherRoutage(d) {
-  if (!d.entrees || !d.entrees.length) {
-    $('#sortie2').innerHTML = `<div class="warn">aucun point d'entrée proposé.
-      ${d.hors_couverture || ""}
-      Ce n'est pas un verdict : le hors couverture se prononce après la collecte, en comptant
-      les transactions trouvées. Relancer, ou élargir la description de l'objet.</div>`;
-    return;
-  }
-  const ventes = d.entrees.filter(e => e.nature === "ventes").length;
-  const annonces = d.entrees.length - ventes;
-  const strates = new Set(d.entrees.map(e => e.strate).filter(Boolean));
-  const niveaux = new Set(d.entrees.map(e => e.niveau).filter(Boolean));
-
-  let h = `<div class="res">
-    ${d.tronque ? `<div class="info">réponse du modèle tronquée : seules les plateformes
-      complètes ont été retenues. Relancer pour la liste entière.</div>` : ''}
-    <h3>${d.entrees.length} points d'entrée
-    — ${ventes} en ventes conclues, ${annonces} en annonces
-    — ${strates.size} strate${strates.size > 1 ? 's' : ''} sur 3</h3>`;
-
-  // ---- comparateur : une échelle commune, une barre par plateforme ----
-  const chiffrees = d.entrees.filter(e => e.fourchette && e.fourchette.haut > 0);
-  if (chiffrees.length > 1) {
-    const bas = Math.min(...chiffrees.map(e => e.fourchette.bas));
-    const haut = Math.max(...chiffrees.map(e => e.fourchette.haut));
-    const dev = chiffrees[0].fourchette.devise || "EUR";
-    const pos = v => ((v - bas) / (haut - bas || 1)) * 100;
-
-    h += `<p style="margin:14px 0 3px;font-size:13px;font-weight:700">fourchettes estimées par le
-      modèle — non mesurées</p>
-      <p class="aide" style="margin:0 0 10px">Ces barres viennent des connaissances générales du
-      modèle et d'extraits de recherche, pas de prix constatés. Elles servent seulement à écarter
-      les aberrations pendant la collecte. Les prix mesurés, fiche par fiche, sont dans le bloc
-      marché.</p>`;
-
-    chiffrees.sort((a, b) => a.fourchette.bas - b.fourchette.bas).forEach(e => {
-      h += `<div class="ligne">
-        <div class="etiq">${logo(e)}<span>${e.plateforme}</span></div>
-        <div class="rail"><i style="left:${pos(e.fourchette.bas)}%;
-             width:${Math.max(pos(e.fourchette.haut) - pos(e.fourchette.bas), 1.5)}%"></i></div>
-        <div class="prix">${e.fourchette.bas}–${e.fourchette.haut}</div>
-      </div>`;
-    });
-    h += `<p class="aide" style="margin:6px 0 0;text-align:right">en ${dev}</p>`;
-  }
-
-  // ---- détail par strate ----
-  ['particuliers', 'authentifies', 'encheres', undefined].forEach(s => {
-    const lot = d.entrees.filter(e => e.strate === s);
-    if (!lot.length) return;
-    h += `<p style="margin:18px 0 6px;font-size:12.5px;font-weight:700;color:var(--gris)">
-          ${LIB_STRATE[s] || "non classé"}</p>`;
-    lot.forEach(e => {
-      const f = e.fourchette || {};
-      h += `<div style="margin:10px 0;border-left:4px solid ${
-        e.nature === 'ventes' ? 'var(--data)' : 'var(--ia)'};padding-left:10px;font-size:14px">
-        <div style="display:flex;align-items:center;gap:8px">
-          ${logo(e)}<b>${e.plateforme}</b>
-          <span style="font-size:12.5px;color:var(--gris)">${e.nature} · ${e.pages_max} pages</span>
-          ${e.niveau ? `<span class="puce" style="margin:0;font-size:11.5px;background:${
-            e.niveau === 'exact' ? 'var(--data)' : 'var(--clair)'}">${e.niveau}</span>` : ''}
-          ${f.haut ? `<span class="puce" style="margin:0 0 0 auto;border-style:dashed">${f.bas}–${f.haut} ${f.devise || ''} · estimé</span>` : ''}
-        </div>
-        <a href="${ouvrable(e)}" target="_blank" rel="noopener"
-           style="font-size:12.5px;display:inline-block;margin-top:4px;color:var(--ia)">ouvrir cette
-           recherche ↗</a>
-        ${e.note ? `<em style="font-size:12.5px;display:block;margin-top:3px">${e.note}</em>` : ''}
-        ${e.limite ? `<em style="font-size:12.5px;color:var(--alerte);display:block">limite : ${e.limite}</em>` : ''}
-      </div>`;
-    });
-  });
-
-  if (ventes === 0)
-    h += `<div class="warn">aucune source de ventes conclues : cet objet ira en tension
-          de l'offre (bloc 8c), pas en cote.</div>`;
-  if (annonces === 0)
-    h += `<div class="warn">aucune source d'annonces en cours : la liquidité ne pourra pas
-          être mesurée. Rotation, profondeur d'intérêt et écart annonce-cote resteront vides.</div>`;
-  if (d.ecart_maille && niveaux.size > 1)
-    h += `<div class="info"><b>maille élargie :</b> ${d.ecart_maille}</div>`;
-  if (strates.size < 3 && ventes > 0)
-    h += `<div class="info">${strates.size} strate${strates.size > 1 ? 's' : ''} couverte${
-          strates.size > 1 ? 's' : ''} sur 3. La fourchette de sortie sera partielle :
-          un facteur 3 sépare le prix entre particuliers du prix marchand.</div>`;
-  $('#sortie2').innerHTML = h + `</div>`;
-}
-
-/* ---------- bloc 6 : collecte réelle, via la passerelle ---------- */
-const SYS_EXTRACT = `Tu extrais des transactions depuis le texte brut d'une page de place de marché.
-
-AVANT TOUT, un filtre de pertinence. Une page de résultats contient presque toujours des articles
-qui ne correspondent PAS à l'objet recherché : autres modèles de la marque, suggestions, articles
-sponsorisés, "vous aimerez aussi". Tu ne retiens QUE les lignes qui décrivent réellement l'objet
-décrit ci-dessous.
-
-Pour chaque ligne retenue, tu indiques dans "correspondance" à quel point elle colle, en
-jugeant sur le NOM DU MODÈLE avant tout :
-  "exacte"   — même nom de modèle ET mêmes attributs distinctifs (couleur, matière, édition)
-  "modele"   — même nom de modèle avec un attribut différent, ou un modèle alternatif plausible
-  "famille"  — même marque, AUTRE nom de modèle. Une ligne qui porte un autre nom de modèle
-               n'est jamais "modele", même si elle lui ressemble.
-N'invente pas la correspondance : si le libellé ne permet pas de trancher, mets "famille".
-
-Écarte purement et simplement tout ce qui n'entre dans aucun de ces trois cas. Une page qui ne
-contient rien de pertinent doit rendre des listes vides — c'est une réponse correcte et utile,
-bien plus qu'une moyenne calculée sur des articles sans rapport.
-
-Ne retiens comme VENTE que ce qui est explicitement conclu : vendu, adjugé, sold, transaction
-terminée avec un prix effectif. Un prix affiché sur une offre en cours n'est PAS une vente.
-Ne retiens comme ANNONCE que les offres en cours : elles servent à mesurer la liquidité.
-
-Les liens de la page apparaissent sous la forme [[url]] juste avant le texte qu'ils portent.
-Utilise-les pour renseigner url_source. Une ligne sans url_source est inutilisable : ne la
-produis pas. N'invente aucun prix, aucune date. Un champ absent vaut null.
-
-Format : {"ventes":[{"objet":"...","prix":0,"devise":"EUR","date_vente":"AAAA-MM-JJ|null",
-"url_source":"...","etat":"...|null","correspondance":"exacte|modele|famille"}],
-"annonces":[{"objet":"...","prix_demande":0,"devise":"EUR","url_source":"...",
-"correspondance":"exacte|modele|famille","neuf":true,
-"jours_en_ligne":null,"exemplaires_vendus":null,"suiveurs":null}],
-"ecartes":0}
-
-"neuf" vaut true si l'article est vendu à l'état neuf par un marchand ou la marque elle-même,
-false s'il s'agit d'occasion entre particuliers ou en dépôt-vente.
-"ecartes" compte les articles présents sur la page que tu as écartés comme non pertinents.`;
 
 async function lirePage(url) {
   const r = await fetch(PASSERELLE, {
@@ -2194,314 +2080,10 @@ async function lirePage(url) {
   return r.ok ? r.json() : { texte: "", statut: 0 };
 }
 
-$('#collecter').onclick = async () => {
-  const b = $('#collecter');
-  b.disabled = true;
-  const pages = +$('#profondeur').value;
-  // on interroge TOUTES les sources : les annonces prouvent la liquidité et le prix demandé
-  const sources = profil.entrees || [];
-  const termeDefaut = (profil.requetes || [])[0]?.terme || profil.description;
-  const ventes = [], annonces = [], journal = [];
-  const total = sources.length * pages;
-  let faites = 0, arret = false, ecartes = 0;
-  const bloquees = new Set();
-  const vusPage = new Set();
-
-  $('#avance').style.display = 'block';
-  $('#journal').innerHTML = '';
-  $('#stop').style.display = 'inline-block';
-  $('#stop').onclick = () => { arret = true; $('#etat3').textContent = "arrêt demandé…"; };
-
-  // Une source protégée n'est pas une panne : c'est un fait de marché à documenter.
-  // Les confondre ferait conclure à tort qu'un objet ne se vend nulle part.
-  const lisible = (p) => {
-    if (p.motif === "mur anti-robot") return ["bloc", "protégée contre les robots"];
-    if (p.statut === 403 || p.statut === 401) return ["bloc", "accès refusé aux robots"];
-    if (p.statut === 429) return ["bloc", "trop de requêtes, à réessayer plus tard"];
-    if (p.motif && p.motif.startsWith("page rendue")) return ["bloc", "page construite en javascript"];
-    if (p.motif === "recherche sans résultat") return ["vide", "aucun résultat pour ce terme"];
-    if (p.statut === 404) return ["vide", "page inexistante"];
-    if (p.statut === 0) return ["ko", "injoignable"];
-    if (p.motif) return ["vide", p.motif];
-    return ["vide", `page trop courte (${p.octets_texte || 0} car.)`];
-  };
-
-  const SIGNE = { ok: "✓", bloc: "⊘", vide: "–", ko: "×" };
-  const tracer = (nom, etat, detail) => {
-    $('#journal').insertAdjacentHTML('beforeend',
-      `<div class="${etat === 'vide' ? 'vide' : ''}"><b>${nom}</b>
-       <span class="${etat}">${SIGNE[etat] || '·'}</span><em>${detail}</em></div>`);
-    $('#journal').scrollTop = 1e6;
-  };
-
-  for (const e of sources) {
-    if (arret) break;
-    let lues = 0, vides = 0, trouve = 0;
-    for (let n = (e.page_debut || 1); n < (e.page_debut || 1) + pages; n++) {
-      if (arret) break;
-      $('#etat3').textContent = `${e.plateforme}${e.niveau ? ` (${e.niveau})` : ''} · page ${n} — ${faites}/${total}`;
-      const terme = e.terme || termeDefaut;
-      const url = e.url_modele.replace("{q}", encodeURIComponent(terme))
-                              .replace("{page}", n);
-      const p = await lirePage(url);
-      faites++;
-      $('#barre').style.width = Math.round(faites / total * 100) + '%';
-
-      if (!p.texte || p.texte.length < 500) {
-        const [etat, texte] = lisible(p);
-        tracer(`${e.plateforme} p${n}`, etat, texte);
-        if (etat === "bloc") { bloquees.add(e.plateforme); break; }  // inutile d'insister
-        if (++vides >= 2) break;
-        continue;
-      }
-      // Certaines plateformes ignorent le paramètre de page et resservent la même
-      // liste : sans ce garde-fou, on compterait quatre fois les mêmes annonces.
-      const sceau = e.plateforme + "|" + p.texte.length + "|" + p.texte.slice(0, 400);
-      if (vusPage.has(sceau)) {
-        tracer(`${e.plateforme} p${n}`, 'vide', "page identique à la précédente, pagination sans effet");
-        break;
-      }
-      lues++;
-      try {
-        const d = await appeler(SYS_EXTRACT,
-          `OBJET RECHERCHÉ : ${profil.description}\n` +
-          `marque : ${profil.marque || '?'} · modèle : ${profil.modele || '?'} · ` +
-          `référence : ${profil.reference || '?'}\n` +
-          (profil.hypotheses_concurrentes?.length
-            ? `modèles alternatifs plausibles : ${profil.hypotheses_concurrentes.join(' ; ')}\n` : '') +
-          `niveau de maille demandé : ${e.niveau || 'exact'}\n\n` +
-          `plateforme : ${e.plateforme}\nnature attendue : ${e.nature}\nurl : ${url}\n\n${p.texte.slice(0, 16000)}`,
-          false, 6000, "claude-haiku-4-5-20251001");
-        const nv = (d.ventes || []).length, na = (d.annonces || []).length;
-        trouve += nv + na;
-        vusPage.add(sceau);
-        (d.ventes || []).forEach(v => ventes.push({ ...v, plateforme: e.plateforme,
-                       strate: e.strate, domaine: e.domaine,
-                       niveau: normNiveau(v.correspondance || e.niveau) }));
-        (d.annonces || []).forEach(a => annonces.push({ ...a, plateforme: e.plateforme,
-                       lien_page: !a.url_source || normaliser(a.url_source) === normaliser(url),
-                       strate: e.strate, domaine: e.domaine,
-                       niveau: normNiveau(a.correspondance || e.niveau) }));
-        ecartes += (d.ecartes || 0);
-        tracer(`${e.plateforme} p${n}`, 'ok',
-               `${nv} vente(s), ${na} annonce(s)` +
-               (d.ecartes ? ` · ${d.ecartes} écarté(s)` : ''));
-      } catch (err) {
-        tracer(`${e.plateforme} p${n}`, 'ko', 'extraction illisible');
-      }
-    }
-    journal.push({ plateforme: e.plateforme, pages: lues, trouve,
-                   bloque: lues === 0, protegee: bloquees.has(e.plateforme) });
-  }
-
-  $('#barre').style.width = '100%';
-  $('#stop').style.display = 'none';
-  $('#etat3').textContent = "";
-
-  const lues = journal.filter(j => j.pages > 0).length;
-  $('#journal').insertAdjacentHTML('beforeend',
-    `<div class="bilan">
-       <span><b>${lues}</b> source${lues > 1 ? 's' : ''} lue${lues > 1 ? 's' : ''}</span>
-       <span class="bloc"><b>${bloquees.size}</b> protégée${bloquees.size > 1 ? 's' : ''}</span>
-       <span><b>${faites}</b> page${faites > 1 ? 's' : ''} interrogée${faites > 1 ? 's' : ''}</span>
-       ${ecartes ? `<span><b>${ecartes}</b> article${ecartes > 1 ? 's' : ''} écarté${
-          ecartes > 1 ? 's' : ''} comme non pertinent${ecartes > 1 ? 's' : ''}</span>` : ''}
-       ${arret ? '<span class="ko">collecte interrompue</span>' : ''}
-     </div>`);
-  profil.ventes = dedoublonner(ventes);
-  profil.annonces = dedoublonner(annonces, "prix_demande");
-  profil.ecartes_non_pertinents = ecartes;
-  profil.journal_collecte = journal;
-  afficherVentes(profil.ventes, annonces, journal);
-  allume(9);
-  b.disabled = false;
-};
-
-/* "exact" vient du routeur, "exacte" de l'extraction : même sens, un seul mot. */
-const normNiveau = n => !n || n === 'exact' ? 'exacte' : n;
-/* Un autre modèle de la marque peut s'afficher pour le contexte, jamais entrer dans un prix. */
-const horsFamille = x => !['famille', 'comparable'].includes(normNiveau(x.niveau || x.correspondance));
-
-function dedoublonner(liste, champ = "prix") {
-  const vus = new Set();
-  return liste.filter(x => {
-    const p = x[champ];
-    // À défaut d'URL propre, le couple libellé + prix suffit à repérer un doublon.
-    const c = ((x.url_source || "").split("?")[0] || (x.objet || "").slice(0, 60)) + "|" + p;
-    if (!p || vus.has(c)) return false;
-    vus.add(c); return true;
-  });
-}
-
 function mediane(t) {
   if (!t.length) return null;
   const s = [...t].sort((a, b) => a - b), m = s.length >> 1;
   return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
-}
-
-function afficherVentes(ventes, annonces, journal) {
-  if (!ventes.length && !annonces.length) {
-    const prot = journal.filter(j => j.protegee).map(j => j.plateforme);
-    $('#sortie4').innerHTML = `<div class="warn">aucune donnée récupérée.
-      ${prot.length ? `${prot.join(", ")} refuse${prot.length > 1 ? 'nt' : ''} les robots : ` : ''}
-      une source inaccessible n'est pas une absence de marché. Le journal dit laquelle est
-      dans quel cas — il faut les distinguer avant de conclure au hors couverture.</div>`;
-    return;
-  }
-  if (!ventes.length) {
-    const exa = annonces.filter(a => normNiveau(a.niveau) === "exacte").length;
-    const detailAutres = (liste) => liste.length ? `<details style="margin-top:12px">
-      <summary style="cursor:pointer;font-weight:700;font-size:13.5px">voir les ${liste.length}
-        annonces d'autres modèles (hors calcul)</summary>
-      ${liste.slice(0, 80).map(a => `<p style="margin:4px 0;font-size:13px;opacity:.8">
-        <a href="${a.url_source}" target="_blank" rel="noopener">${a.prix_demande} ${a.devise || ''}</a>
-        — ${(a.objet || '').slice(0, 80)} · ${a.plateforme}${a.lien_page ? ' · <em>lien vers la page de résultats</em>' : ''}</p>`).join('')}
-      </details>` : '';
-    const duModele = annonces.filter(horsFamille);
-    const autresMod = annonces.filter(a => !horsFamille(a));
-    $('#sortie4').innerHTML = `<div class="warn">aucune vente conclue. ${annonces.length} annonces
-      relevées sur les pages lues, dont <b>${duModele.length} de ce modèle</b>${exa ? ` (${exa} sur la
-      référence exacte)` : ''} ; les ${autresMod.length} autres sont d'autres modèles de la marque,
-      affichés à part et hors calcul. Sans transaction sourcée, pas de cote : cet objet reste en
-      tension de l'offre (bloc 8c).</div>`
-      + `<div class="res">${(() => { let x = ''; const pa = {};
-         annonces.forEach(a => (pa[a.plateforme] ||= []).push(a));
-         Object.entries(pa).forEach(([p, lot]) => {
-           const prix = lot.filter(horsFamille).map(a => +a.prix_demande).filter(Boolean).sort((u, v) => u - v);
-           if (!prix.length) return;
-           const bas = lot.filter(horsFamille).find(a => +a.prix_demande === prix[0]);
-           const haut = lot.filter(horsFamille).find(a => +a.prix_demande === prix[prix.length - 1]);
-           x += `<p style="margin:9px 0 3px;font-weight:700;display:flex;gap:8px;
-                 align-items:center;font-size:13.5px">${logo(lot[0])}${p}
-                 <span style="color:var(--gris);font-weight:400">${prix.length} annonces</span></p>
-             <p style="margin:0 0 0 10px;font-size:13.5px;border-left:3px solid var(--ia);
-                padding-left:10px">
-               moins cher <a href="${bas.url_source}" target="_blank" rel="noopener"
-                 style="color:var(--ia);font-weight:700">${prix[0]} ${bas.devise || 'EUR'}</a> ·
-               médian <b>${mediane(prix)}</b> ·
-               plus cher <a href="${haut.url_source}" target="_blank" rel="noopener"
-                 style="color:var(--ia);font-weight:700">${prix[prix.length - 1]}</a></p>`;
-         }); return x; })()}${detailAutres(annonces.filter(a => !horsFamille(a)))}
-      ${annonces.some(a => a.lien_page) ? `<p class="etat" style="margin-top:10px">Sur certaines
-        plateformes, les liens mènent à la page de résultats et non à l'article : la page est construite
-        en JavaScript et ne contient pas le lien de chaque annonce. Le bloc marché, lui, ne retient
-        que des fiches d'article.</p>` : ''}</div>`;
-    return;
-  }
-
-  const exactes = ventes.filter(v => normNiveau(v.niveau) === "exacte");
-  const cas = exactes.length >= 12 ? 1 : (ventes.filter(horsFamille).length >= 3 ? 2 : 3);
-  profil.cas = cas;
-
-  const LIB_CAS = {
-    1: ["cas 1 — automatisable", "assez de ventes sur la référence exacte pour une cote statistique"],
-    2: ["cas 2 — assisté", "trop peu de ventes exactes : la cote s'établit par comparables, avec la décote de maille"],
-    3: ["cas 3 — hors couverture", "moins de trois transactions tous niveaux confondus : aucune cote défendable"]
-  };
-
-  const parPlateforme = {};
-  ventes.forEach(v => (parPlateforme[v.plateforme] ||= []).push(v));
-
-  let h = `<div class="res">
-    <div style="background:${cas === 1 ? 'var(--data)' : cas === 2 ? 'var(--clair)' : 'var(--alerte)'};
-         color:${cas === 3 ? '#fff' : 'var(--sombre)'};padding:11px 14px;margin-bottom:12px;
-         border:3px solid var(--struct)">
-      <b>${LIB_CAS[cas][0]}</b> — ${LIB_CAS[cas][1]}.
-      ${exactes.length} vente${exactes.length > 1 ? 's' : ''} sur la référence exacte,
-      ${ventes.length - exactes.length} par élargissement de maille.
-    </div>
-    <h3>${ventes.length} ventes conclues,
-    ${Object.keys(parPlateforme).length} plateformes — chaque prix est cliquable</h3>`;
-
-  const meds = [];
-  Object.entries(parPlateforme).forEach(([p, lot]) => {
-    const prix = lot.filter(horsFamille).map(v => +v.prix).filter(Boolean);
-    const autres = lot.length - lot.filter(horsFamille).length;
-    if (!prix.length) {
-      h += `<p style="margin:16px 0 5px;font-size:13.5px;font-weight:700;display:flex;
-            align-items:center;gap:8px;opacity:.6">${logo(lot[0])}${p}
-            <span style="font-weight:400">${lot.length} vente${lot.length > 1 ? 's' : ''},
-            toutes d'autres modèles — hors calcul</span></p>`;
-      return;
-    }
-    const med = mediane(prix);
-    meds.push({ p, med, n: prix.length, dom: lot[0].domaine });
-    h += `<p style="margin:16px 0 5px;font-size:13.5px;font-weight:700;display:flex;
-          align-items:center;gap:8px">${logo(lot[0])}${p}
-          <span style="color:var(--gris);font-weight:400">${prix.length} vente${prix.length > 1 ? 's' : ''}
-          de ce modèle · médiane ${med} ${lot[0].devise || 'EUR'} ·
-          ${Math.min(...prix)}–${Math.max(...prix)}${autres ? ` · ${autres} d'autres modèles, hors calcul` : ''}</span></p>`;
-    lot.sort((a, b) => a.prix - b.prix).slice(0, 12).forEach(v => {
-      h += `<p style="margin:3px 0;font-size:13.5px;padding-left:10px;
-            border-left:3px solid var(--data);${horsFamille(v) ? '' : 'opacity:.45'}">
-        <a href="${v.url_source}" target="_blank" rel="noopener"
-           style="color:var(--ia);font-weight:700">${v.prix} ${v.devise || 'EUR'}</a>
-        — ${(v.objet || '').slice(0, 70)}
-        ${v.niveau && v.niveau !== "exact" ? `<span class="puce" style="margin:0 0 0 5px;
-          font-size:11px;padding:0 5px">${v.niveau}</span>` : ''}
-        ${v.date_vente ? `<span style="color:var(--gris)"> · ${v.date_vente}</span>` : ''}
-        ${v.etat ? `<span style="color:var(--gris)"> · ${v.etat.slice(0, 30)}</span>` : ''}</p>`;
-    });
-    if (lot.length > 12)
-      h += `<p style="margin:3px 0 0;font-size:12.5px;color:var(--gris);padding-left:13px">
-            + ${lot.length - 12} autres dans le profil JSON</p>`;
-  });
-
-  if (meds.length > 1) {
-    const bas = Math.min(...meds.map(m => m.med)), haut = Math.max(...meds.map(m => m.med));
-    h += `<div class="info"><b>écart réel entre canaux : ${(haut / (bas || 1)).toFixed(1)}×</b>
-      — médiane de ${bas} sur ${meds.find(m => m.med === bas).p}, ${haut} sur
-      ${meds.find(m => m.med === haut).p}. Cet écart est mesuré sur des transactions, pas estimé.</div>`;
-  }
-
-  if (annonces.length) {
-    const pa = {};
-    annonces.forEach(a => (pa[a.plateforme] ||= []).push(a));
-    const neuves = annonces.filter(a => a.neuf).length;
-    h += `<p style="margin:20px 0 6px;font-size:13.5px;font-weight:700">
-          ${annonces.length} annonces en cours — prix demandés, jamais une cote</p>`;
-    if (neuves)
-      h += `<p class="aide" style="margin:0 0 8px">${neuves} sur ${annonces.length} sont du
-            neuf vendu par un marchand : c'est un prix catalogue, pas un prix de marché
-            secondaire. À ne pas confondre avec une cote d'occasion.</p>`;
-    Object.entries(pa).forEach(([p, lot]) => {
-      const prix = lot.filter(horsFamille).map(a => +a.prix_demande).filter(Boolean).sort((x, y) => x - y);
-      if (!prix.length) return;
-      const bas = lot.filter(horsFamille).find(a => +a.prix_demande === prix[0]);
-      const haut = lot.filter(horsFamille).find(a => +a.prix_demande === prix[prix.length - 1]);
-      const nx = lot.filter(a => normNiveau(a.niveau) === "exacte").length;
-      h += `<p style="margin:9px 0 3px;font-size:13.5px;font-weight:700;display:flex;
-            gap:8px;align-items:center">${logo(lot[0])}${p}
-            <span style="color:var(--gris);font-weight:400">${prix.length} annonces
-            ${nx ? `· ${nx} sur la référence exacte` : '· aucune sur la référence exacte'}</span></p>
-        <p style="margin:0 0 0 10px;font-size:13.5px;border-left:3px solid var(--ia);
-           padding-left:10px">
-          moins cher <a href="${bas.url_source}" target="_blank" rel="noopener"
-            style="color:var(--ia);font-weight:700">${prix[0]} ${bas.devise || 'EUR'}</a> ·
-          médian <b>${mediane(prix)}</b> ·
-          plus cher <a href="${haut.url_source}" target="_blank" rel="noopener"
-            style="color:var(--ia);font-weight:700">${prix[prix.length - 1]} ${haut.devise || 'EUR'}</a>
-        </p>`;
-    });
-  }
-
-  const liq = annonces.filter(a => a.jours_en_ligne && a.exemplaires_vendus !== null);
-  if (liq.length) {
-    const rot = mediane(liq.map(a => a.exemplaires_vendus / a.jours_en_ligne * 30));
-    h += `<div class="info"><b>liquidité :</b> ${annonces.length} annonces actives,
-          rotation médiane ${rot} vente(s) par mois et par annonce.</div>`;
-  } else if (annonces.length) {
-    h += `<div class="info"><b>liquidité :</b> ${annonces.length} annonces actives relevées,
-          mais sans compteur de ventes ni ancienneté exploitable sur ces pages.</div>`;
-  }
-
-  const prot = journal.filter(j => j.protegee).map(j => j.plateforme);
-  if (prot.length)
-    h += `<div class="info"><b>sources protégées :</b> ${prot.join(", ")}. Ces plateformes
-          refusent les robots. Ce n'est pas une absence de marché — c'est une limite de
-          couverture, à documenter côté client plutôt qu'à interpréter comme un vide.</div>`;
-
-  $('#sortie4').innerHTML = h + `</div>`;
 }
 
 /* ---------- export ---------- */
