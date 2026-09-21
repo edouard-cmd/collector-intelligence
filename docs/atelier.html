@@ -97,6 +97,18 @@
   #journal b{min-width:150px}
   #journal em{color:var(--gris);font-style:normal}
   .ok{color:var(--ia);font-weight:700}
+  .hist-titre{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px;line-height:1.15}
+  .hist-accroche{font-size:16px;line-height:1.55;margin:0 0 16px}
+  .frise{border-left:3px solid var(--struct);margin:14px 0 18px 6px;padding-left:18px}
+  .jalon{position:relative;margin-bottom:13px;font-size:14.5px;line-height:1.45}
+  .jalon::before{content:"";position:absolute;left:-26px;top:5px;width:11px;height:11px;
+    background:var(--ia);border:2px solid var(--struct)}
+  .jalon .date{font-weight:800;display:block;font-size:13.5px}
+  .src{font-size:12px;margin-left:4px;white-space:nowrap}
+  .src a{color:var(--ia)}
+  .src.douteuse,.src.douteuse a{color:#b26a00}
+  .src.absente{color:var(--gris)}
+  .hist-h{font-size:13px;font-weight:800;margin:16px 0 6px}
   .vm{display:flex;gap:12px;align-items:flex-start;margin-top:10px;font-size:14px;
     padding-top:10px;border-top:1px solid rgba(16,16,24,.15)}
   .vm button{padding:7px 12px;font-size:13.5px;white-space:nowrap;flex:0 0 auto}
@@ -148,6 +160,15 @@
     <span class="etat" id="etat1"></span>
   </div>
   <div id="sortie1"></div>
+</fieldset>
+
+<fieldset>
+  <legend>histoire du modèle</legend>
+  <p class="aide">D'où vient ce modèle, pourquoi il est recherché, ce qui a fait bouger sa cote.
+     Chaque fait daté renvoie à sa source ; une source que le modèle n'a pas réellement
+     consultée est signalée. S'active une fois l'objet identifié, environ 0,20 €.</p>
+  <button id="raconter" class="second" disabled>raconter l'histoire</button>
+  <div id="sortie-hist"></div>
 </fieldset>
 
 <fieldset>
@@ -220,7 +241,7 @@
 
 <script>
 const PASSERELLE = "https://collector-passerelle.edouard-e8b.workers.dev";
-let images = [], profil = {}, cout = 0;
+let images = [], profil = {}, cout = 0, dernierBrut = null;
 const MAX_VUES = 8, COTE_MAX = 1568;
 
 const $ = s => document.querySelector(s);
@@ -304,6 +325,7 @@ async function appeler(systeme, contenu, recherche, plafond, modele) {
   });
   if (!r.ok) throw new Error((await r.text()).slice(0, 300));
   const d = await r.json();
+  dernierBrut = d;
   chiffrer(d.usage, d.content, corps.model);
   let t = d.content.filter(b => b.type === "text").map(b => b.text).join("\n").trim();
   t = t.replace(/^```(?:json)?/m, '').replace(/```$/m, '').trim();
@@ -531,6 +553,7 @@ défaut visible sur une vue doit peser sur l'état retenu.`
     fin1();
     profil = Object.assign(profil, d);
     afficherIdentite(d);
+    $('#raconter').disabled = false;
     allume(4);
     $('#router').disabled = false;
     $('#etat1').textContent = "";
@@ -647,6 +670,142 @@ function afficherIdentite(d) {
     document.querySelectorAll('.fv').forEach(c => c.onchange = recalc);
     recalc();
   }
+}
+
+/* ---------- histoire du modèle ---------- */
+const SYS_HIST = `Tu racontes l'histoire d'un MODÈLE d'objet de collection à sa propriétaire, une
+collectionneuse. Pas l'histoire de son exemplaire à elle : celle du modèle, de sa création, de
+sa place dans son univers, de ce qui le rend désirable.
+
+Ton récit doit être juste avant d'être beau. Chaque fait daté ou chiffré doit venir des pages
+que tu consultes avec la recherche web, et tu donnes l'URL exacte de la page qui l'établit. Si
+tu ne trouves pas de source pour un fait, ne l'affirme pas : omets-le. Une frise de quatre jalons
+sourcés vaut mieux qu'une frise de dix dont la moitié est approximative.
+
+Si la déclinaison exacte est incertaine, raconte l'histoire du modèle et signale en une phrase
+les variantes possibles, sans trancher à la place de l'identification.
+
+Écris en français, dans un registre sobre et vivant, sans superlatifs publicitaires.
+
+Format :
+{"titre":"le nom du modèle, tel qu'on le désigne",
+ "accroche":"deux ou trois phrases qui donnent envie d'en savoir plus",
+ "frise":[{"date":"AAAA ou AAAA-MM","evenement":"une phrase","source":"url ou null"}],
+ "createur":"personne, maison ou studio à l'origine du modèle, ou null",
+ "chiffres":[{"libelle":"prix de lancement, tirage, ...","valeur":"...","source":"url ou null"}],
+ "pourquoi_recherche":"un paragraphe : ce qui fait la désirabilité et la valeur de ce modèle",
+ "anecdote":"un fait marquant et sourcé, ou null",
+ "a_surveiller":["événement à venir ou signal qui pourrait faire bouger la cote"],
+ "variantes":"une phrase si la déclinaison est incertaine, sinon null"}
+
+Entre 4 et 10 jalons dans la frise, dans l'ordre chronologique.`;
+
+/* Une source citée n'est crédible que si le modèle a réellement consulté la page.
+   On compare chaque URL citée aux pages rendues par la recherche web : celles qui
+   n'y figurent pas sont signalées, pas masquées. */
+function pagesConsultees(brut) {
+  const vues = new Set();
+  (brut?.content || []).forEach(b => {
+    if (b.type === "web_search_tool_result" && Array.isArray(b.content))
+      b.content.forEach(r => r.url && vues.add(normaliser(r.url)));
+  });
+  return vues;
+}
+
+function normaliser(u) {
+  try {
+    const x = new URL(u);
+    return (x.hostname.replace(/^www\./, '') + x.pathname.replace(/\/$/, '')).toLowerCase();
+  } catch { return ''; }
+}
+
+function badgeSource(url, vues) {
+  if (!url || !/^https?:\/\//i.test(url))
+    return `<span class="src absente">· non sourcé</span>`;
+  let dom = '';
+  try { dom = new URL(url).hostname.replace(/^www\./, ''); } catch {}
+  const ok = vues.has(normaliser(url));
+  return `<span class="src ${ok ? '' : 'douteuse'}">·
+    <a href="${url}" target="_blank" rel="noopener">${dom}</a>${ok ? '' : ' — non vérifiée'}</span>`;
+}
+
+$('#raconter').onclick = async () => {
+  const b = $('#raconter');
+  b.disabled = true;
+  const fin = attendre('#sortie-hist', [
+    "recherche des origines du modèle",
+    "lecture des pages consultées",
+    "reconstitution de la chronologie",
+    "vérification des dates et des chiffres",
+    "encore un instant"
+  ]);
+  try {
+    const d = await appeler(SYS_HIST,
+      `Modèle identifié : ${profil.description}\n` +
+      `univers : ${profil.univers || '?'} · marque : ${profil.marque || '?'} · ` +
+      `modèle : ${profil.modele || '?'} · référence : ${profil.reference || '?'}\n` +
+      (profil.hypotheses_concurrentes?.length
+        ? `déclinaisons possibles : ${profil.hypotheses_concurrentes.join(' ; ')}\n` : ''),
+      true, 6000);
+    const vues = pagesConsultees(dernierBrut);
+    fin();
+    profil.histoire = d;
+    afficherHistoire(d, vues);
+  } catch (e) {
+    fin();
+    $('#sortie-hist').innerHTML = `<div class="warn">échec : ${e.message}</div>`;
+  }
+  b.disabled = false;
+};
+
+function afficherHistoire(d, vues) {
+  const frise = (d.frise || []).filter(j => j && j.evenement);
+  const chiffres = (d.chiffres || []).filter(c => c && c.valeur);
+  const tous = [...frise.map(j => j.source), ...chiffres.map(c => c.source)];
+  const cites = tous.filter(u => u && /^https?:/i.test(u));
+  const verifies = cites.filter(u => vues.has(normaliser(u))).length;
+
+  let h = `<div class="res">
+    <p class="hist-titre">${d.titre || profil.modele || 'Histoire du modèle'}</p>
+    ${d.createur ? `<p style="margin:0 0 10px;color:var(--gris);font-size:14px">par ${d.createur}</p>` : ''}
+    ${d.accroche ? `<p class="hist-accroche">${d.accroche}</p>` : ''}`;
+
+  if (d.variantes)
+    h += `<div class="info" style="margin:0 0 14px">${d.variantes}</div>`;
+
+  if (frise.length) {
+    h += `<p class="hist-h">chronologie</p><div class="frise">`;
+    frise.forEach(j => h += `<div class="jalon"><span class="date">${j.date || '—'}</span>
+      ${j.evenement} ${badgeSource(j.source, vues)}</div>`);
+    h += `</div>`;
+  }
+
+  if (chiffres.length) {
+    h += `<p class="hist-h">chiffres clés</p>`;
+    chiffres.forEach(c => h += `<p style="margin:5px 0;font-size:14.5px">
+      <b>${c.libelle}</b> : ${c.valeur} ${badgeSource(c.source, vues)}</p>`);
+  }
+
+  if (d.pourquoi_recherche)
+    h += `<p class="hist-h">pourquoi il est recherché</p>
+          <p style="margin:0;font-size:14.5px;line-height:1.55">${d.pourquoi_recherche}</p>`;
+
+  if (d.anecdote)
+    h += `<p class="hist-h">à raconter</p>
+          <p style="margin:0;font-size:14.5px;line-height:1.55">${d.anecdote}</p>`;
+
+  const surv = (d.a_surveiller || []).filter(Boolean);
+  if (surv.length)
+    h += `<div class="info"><b>à surveiller</b> — ce qui pourrait faire bouger la cote,
+          et que l'antenne contexte (bloc 10) guettera :
+          ${surv.map(s => `<span style="display:block;margin-top:4px">• ${s}</span>`).join('')}</div>`;
+
+  h += `<p class="etat" style="margin-top:14px">${cites.length} source${cites.length > 1 ? 's' : ''}
+        citée${cites.length > 1 ? 's' : ''}, ${verifies} vérifiée${verifies > 1 ? 's' : ''}
+        parmi les ${vues.size} page${vues.size > 1 ? 's' : ''} réellement consultée${vues.size > 1 ? 's' : ''}
+        ${cites.length > verifies ? ` — les autres sont signalées en orange` : ''}.</p>`;
+
+  $('#sortie-hist').innerHTML = h + `</div>`;
 }
 
 /* ---------- bloc 5 : routeur ---------- */
