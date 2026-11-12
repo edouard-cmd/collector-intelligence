@@ -104,6 +104,10 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS anomalies_email ON anomalies(email, date)`,
   `CREATE TABLE IF NOT EXISTS sante (jour TEXT PRIMARY KEY, essais INTEGER DEFAULT 0, reussites INTEGER DEFAULT 0,
      nouvelles INTEGER DEFAULT 0, alerte_envoyee INTEGER DEFAULT 0, maj_le TEXT)`,
+  `CREATE TABLE IF NOT EXISTS credits (email TEXT PRIMARY KEY, solde INTEGER NOT NULL DEFAULT 0, cree_le TEXT)`,
+  `CREATE TABLE IF NOT EXISTS mouvements_credits (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL,
+     date TEXT, delta INTEGER NOT NULL, solde INTEGER, motif TEXT, ref TEXT UNIQUE)`,
+  `CREATE INDEX IF NOT EXISTS mouvements_credits_email ON mouvements_credits(email, id)`,
 ];
 
 let basePrete = null;
@@ -306,6 +310,7 @@ async function lireEspace(u, env) {
     anomalies: anomalies.results.map(a => ({ ...a, explication: lireJSONsur(a.explication) })),
     sante: sante.results,
     config: { email: !!(env.BREVO_API_KEY && env.EMAIL_EXPEDITEUR), rythmes: Object.keys(RYTHMES) },
+    credits: await lireCredits(db, u, env),
     version: VERSION,
   };
 }
@@ -314,6 +319,115 @@ async function noter(db, email, type, message, objet_id, lot_id) {
   await db.prepare(`INSERT INTO journal (email, date, type, message, objet_id, lot_id)
                     VALUES (?, ?, ?, ?, ?, ?)`)
     .bind(email, maintenant(), type, message, objet_id || null, lot_id || null).run();
+}
+
+/* ---------- les crédits ----------
+   Une recherche lancée coûte un crédit, la recherche approfondie deux ; l'avis de l'expert et la
+   veille du matin sont inclus. Le solde vit ici, dans la base : une page ne peut pas se créditer
+   elle-même. Un crédit n'est retiré qu'une fois la recherche réussie : un échec ne coûte rien.
+   Les packs se vendent par des liens de paiement Stripe (variables STRIPE_LIEN_DECOUVERTE, ...) ;
+   le webhook /stripe crédite le compte quand le paiement est confirmé, une seule fois par paiement. */
+const TARIFS = { identification: 1, marche: 1, marche_approfondi: 2, histoire: 1, avis: 0,
+                 veille: 1, encheres: 1, encheres_approfondie: 2 };
+const LIB_TARIF = { identification: "identification d'un objet", marche: "recherche des prix",
+  marche_approfondi: "recherche des prix approfondie", histoire: "histoire du modèle", avis: "avis de l'expert",
+  veille: "veille lancée à la main", encheres: "recherche d'enchères", encheres_approfondie: "recherche d'enchères approfondie" };
+const PACKS = {
+  decouverte:     { nom: "Découverte",     credits: 20,  offerts: 0,  prix: 9 },
+  collectionneur: { nom: "Collectionneur", credits: 50,  offerts: 10, prix: 19 },
+  passion:        { nom: "Passion",        credits: 120, offerts: 30, prix: 39 },
+};
+const creditsBienvenue = env => env.CREDITS_BIENVENUE !== undefined && env.CREDITS_BIENVENUE !== "" &&
+  Number.isFinite(+env.CREDITS_BIENVENUE) ? Math.max(0, Math.round(+env.CREDITS_BIENVENUE)) : 10;
+const estAdmin = (email, env) => { const e = String(email || "").toLowerCase();
+  return listeEnv(env.ADMINS).some(a => a.startsWith("@") ? e.endsWith(a) : a === e); };
+const plCredits = n => `${n} crédit${Math.abs(n) > 1 ? "s" : ""}`;
+
+async function soldeDe(db, email, env) {
+  const c = await db.prepare(`SELECT solde FROM credits WHERE email = ?`).bind(email).first();
+  if (c) return c.solde;
+  const b = creditsBienvenue(env), t = maintenant();
+  const r = await db.prepare(`INSERT OR IGNORE INTO credits (email, solde, cree_le) VALUES (?, ?, ?)`).bind(email, b, t).run();
+  if (r.meta?.changes && b) await db.prepare(`INSERT INTO mouvements_credits (email, date, delta, solde, motif) VALUES (?, ?, ?, ?, ?)`)
+    .bind(email, t, b, b, `${plCredits(b)} offerts à l'ouverture de ton espace`).run();
+  return (await db.prepare(`SELECT solde FROM credits WHERE email = ?`).bind(email).first()).solde;
+}
+
+async function lireCredits(db, u, env) {
+  const solde = await soldeDe(db, u.email, env);
+  const m = await db.prepare(`SELECT date, delta, solde, motif FROM mouvements_credits WHERE email = ? ORDER BY id DESC LIMIT 40`)
+    .bind(u.email).all();
+  const packs = Object.fromEntries(Object.entries(PACKS).map(([k, p]) =>
+    [k, { ...p, lien: /^https:\/\/(buy|checkout)\.stripe\.com\//.test(env[`STRIPE_LIEN_${k.toUpperCase()}`] || "")
+      ? env[`STRIPE_LIEN_${k.toUpperCase()}`] : null }]));
+  return { solde, mouvements: m.results, tarifs: TARIFS, packs, admin: estAdmin(u.email, env) };
+}
+
+async function debiterCredits(db, email, action, env, detail) {
+  if (!Object.prototype.hasOwnProperty.call(TARIFS, action)) throw new Erreur(400, "action inconnue");
+  const cout = TARIFS[action];
+  const avant = await soldeDe(db, email, env);
+  if (!cout) return { solde: avant, cout: 0 };
+  const r = await db.prepare(`UPDATE credits SET solde = solde - ? WHERE email = ? AND solde >= ?`).bind(cout, email, cout).run();
+  if (!r.meta?.changes) throw new Erreur(402, avant ? `il te reste ${plCredits(avant)}, il en faut ${cout}` : "tu n'as plus de crédits");
+  const solde = (await db.prepare(`SELECT solde FROM credits WHERE email = ?`).bind(email).first()).solde;
+  await db.prepare(`INSERT INTO mouvements_credits (email, date, delta, solde, motif) VALUES (?, ?, ?, ?, ?)`)
+    .bind(email, maintenant(), -cout, solde, LIB_TARIF[action] + (detail ? `, ${court(String(detail), 80)}` : "")).run();
+  return { solde, cout };
+}
+
+// le solde avant l'action : on ne lance pas une recherche qu'on ne pourra pas payer
+async function verifierSolde(db, email, action, env) {
+  const cout = TARIFS[action] || 0, solde = await soldeDe(db, email, env);
+  if (solde < cout) throw new Erreur(402, solde ? `il te reste ${plCredits(solde)}, il en faut ${cout}` : "tu n'as plus de crédits");
+  return solde;
+}
+
+async function crediter(db, email, n, motif, ref, env) {
+  await soldeDe(db, email, env);
+  try {
+    await db.batch([
+      db.prepare(`INSERT INTO mouvements_credits (email, date, delta, motif, ref) VALUES (?, ?, ?, ?, ?)`).bind(email, maintenant(), n, motif, ref || null),
+      db.prepare(`UPDATE credits SET solde = solde + ? WHERE email = ?`).bind(n, email),
+    ]);
+  } catch (e) {
+    if (ref && /UNIQUE/i.test(e.message || "")) return { deja: true };
+    throw e;
+  }
+  const solde = (await db.prepare(`SELECT solde FROM credits WHERE email = ?`).bind(email).first()).solde;
+  await db.prepare(`UPDATE mouvements_credits SET solde = ? WHERE id = (SELECT MAX(id) FROM mouvements_credits WHERE email = ?)`).bind(solde, email).run();
+  await noter(db, email, "credits", motif);
+  return { solde };
+}
+
+// Stripe : la signature prouve que l'événement vient bien de Stripe, avec le secret du webhook
+async function webhookStripe(req, env) {
+  if (!env.STRIPE_WEBHOOK_SECRET) throw new Erreur(503, "paiement non configuré (STRIPE_WEBHOOK_SECRET)");
+  const brut = await req.text();
+  const sig = req.headers.get("Stripe-Signature") || "";
+  const t = (sig.match(/(?:^|,)t=(\d+)/) || [])[1];
+  const v1 = [...sig.matchAll(/(?:^|,)v1=([0-9a-f]+)/g)].map(x => x[1]);
+  if (!t || !v1.length || Math.abs(Date.now() / 1000 - +t) > 300) throw new Erreur(400, "signature Stripe absente ou périmée");
+  const enc = new TextEncoder();
+  const cle = await crypto.subtle.importKey("raw", enc.encode(env.STRIPE_WEBHOOK_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const mac = [...new Uint8Array(await crypto.subtle.sign("HMAC", cle, enc.encode(`${t}.${brut}`)))]
+    .map(b => b.toString(16).padStart(2, "0")).join("");
+  const egal = (a, b) => a.length === b.length && [...a].reduce((x, c, i) => x | (c.charCodeAt(0) ^ b.charCodeAt(i)), 0) === 0;
+  if (!v1.some(v => egal(v, mac))) throw new Erreur(400, "signature Stripe invalide");
+  const ev = JSON.parse(brut);
+  if (ev.type !== "checkout.session.completed" && ev.type !== "checkout.session.async_payment_succeeded") return { ok: true, ignore: ev.type };
+  const s = ev.data?.object || {};
+  if (s.payment_status !== "paid") return { ok: true, ignore: "paiement pas encore encaissé" };
+  let email = null;
+  try { email = s.client_reference_id ? atob(s.client_reference_id.replace(/-/g, "+").replace(/_/g, "/")).toLowerCase() : null; } catch {}
+  if (!email || !email.includes("@")) email = (s.customer_details?.email || s.customer_email || "").toLowerCase();
+  const pack = PACKS[s.metadata?.pack] ? s.metadata.pack
+    : Object.keys(PACKS).find(k => PACKS[k].prix * 100 === s.amount_total);
+  if (!email || !pack) { console.error("paiement Stripe sans compte ou sans pack", s.id); return { ok: false, erreur: "compte ou pack introuvable" }; }
+  const P = PACKS[pack], db = await base(env);
+  const r = await crediter(db, email, P.credits + P.offerts,
+    `pack ${P.nom} : ${plCredits(P.credits)}${P.offerts ? ` + ${P.offerts} offerts` : ""}`, s.id, env);
+  return { ok: true, ...r };
 }
 
 async function enregistrerObjet(u, id, corps, env) {
@@ -1360,8 +1474,12 @@ async function aiguiller(req, env, cors) {
       autorises: listeEnv(env.AUTORISES).length, session: !!(env.SESSION_SECRET && env.SESSION_SECRET.length >= 24),
       ia: !!env.ANTHROPIC_API_KEY, origines: listeEnv(env.ORIGINES).length,
       email: !!(env.BREVO_API_KEY && env.EMAIL_EXPEDITEUR), prestataire: !!env.EMAIL_PRESTATAIRE,
+      paiement: !!env.STRIPE_WEBHOOK_SECRET,
     }, 200, cors);
   }
+
+  // Stripe appelle ce point sans session : c'est la signature qui fait foi
+  if (chemin === "/stripe" && m === "POST") return json(await webhookStripe(req, env), 200, cors);
 
   if (chemin === "/auth/google" && m === "POST") {
     const c = await lireCorps(req);
@@ -1383,6 +1501,18 @@ async function aiguiller(req, env, cors) {
   if (chemin === "/moi") return json({ utilisateur: u }, 200, cors);
   if (chemin === "/espace" && m === "GET") return json(await lireEspace(u, env), 200, cors);
   if (chemin === "/ia" && m === "POST") return proxyIA(req, env, cors);
+  if (chemin === "/credits" && m === "GET") return json(await lireCredits(await base(env), u, env), 200, cors);
+  if (chemin === "/credits/consommer" && m === "POST") {
+    const c = await lireCorps(req);
+    return json({ ok: true, ...(await debiterCredits(await base(env), u.email, c.action, env, c.detail)) }, 200, cors);
+  }
+  if (chemin === "/credits/offrir" && m === "POST") {
+    if (!estAdmin(u.email, env)) throw new Erreur(403, "réservé à l'administrateur");
+    const c = await lireCorps(req), n = Math.round(+c.credits), email = String(c.email || "").trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !(n > 0 && n <= 1000)) throw new Erreur(400, "adresse ou nombre de crédits invalide");
+    return json({ ok: true, ...(await crediter(await base(env), email, n,
+      `${plCredits(n)} offerts${c.motif ? ", " + court(String(c.motif), 80) : ""}`, null, env)) }, 200, cors);
+  }
 
   if (p[0] === "objets" && p[1]) {
     if (!p[2] && m === "PUT") return json(await enregistrerObjet(u, p[1], await lireCorps(req), env), 200, cors);
@@ -1395,9 +1525,12 @@ async function aiguiller(req, env, cors) {
       const db = await base(env);
       const o = await db.prepare(`SELECT id, email, donnees FROM objets WHERE id = ? AND email = ?`).bind(p[1], u.email).first();
       if (!o) throw new Erreur(404, "objet introuvable");
-      const bilan = await veillerObjet(db, env, { ...o, donnees: lireJSONsur(o.donnees) || {} });
+      await verifierSolde(db, u.email, "veille", env);
+      const dn = lireJSONsur(o.donnees) || {};
+      const bilan = await veillerObjet(db, env, { ...o, donnees: dn });
       await noterSante(db, { essais: 1, reussites: bilan.erreur ? 0 : 1, nouvelles: bilan.nouvelles || 0 });
-      return json({ ok: !bilan.erreur, bilan }, 200, cors);
+      const credits = bilan.erreur ? null : await debiterCredits(db, u.email, "veille", env, dn.nom);
+      return json({ ok: !bilan.erreur, bilan, credits }, 200, cors);
     }
   }
   if (p[0] === "photos" && p[1]) {

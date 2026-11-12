@@ -65,6 +65,37 @@ Sans Brevo, tout marche, mais les alertes restent dans l'espace et son journal.
 7. Vérifier : `https://collector-espace.edouard-e8b.workers.dev/sante`. Chaque ligne doit être à
    `true` ou à un nombre supérieur à zéro.
 
+## 3 bis. Les crédits et leur paiement (10 min, quand on ouvre la vente)
+
+Une recherche lancée coûte un crédit, la recherche approfondie deux ; l'avis de l'expert et la
+veille du matin sont inclus. Chaque nouveau compte reçoit 10 crédits offerts. Le solde vit dans
+la base du coffre ; l'espace a une rubrique « Crédits » (solde, packs, historique).
+
+Les packs sont écrits dans `espace-worker.js` (constante `PACKS`) : Découverte 20 crédits pour
+9 €, Collectionneur 50 + 10 offerts pour 19 €, Passion 120 + 30 offerts pour 39 €.
+
+1. Stripe, « Liens de paiement », un lien par pack, au prix du pack. Dans chaque lien, onglet
+   « Après le paiement » : rediriger vers
+   `https://edouard-cmd.github.io/collector-intelligence/docs/espace.html?paiement=ok`.
+   Dans « Métadonnées » du lien : clé `pack`, valeur `decouverte`, `collectionneur` ou `passion`.
+2. Stripe, « Développeurs », « Webhooks », « Ajouter un endpoint » :
+   `https://collector-espace.edouard-e8b.workers.dev/stripe`, événements
+   `checkout.session.completed` et `checkout.session.async_payment_succeeded`. Copier le
+   « Secret de signature » (`whsec_...`).
+3. Cloudflare, worker `collector-espace`, « Variables and Secrets » :
+
+   | Nom | Type | Valeur |
+   |---|---|---|
+   | `STRIPE_WEBHOOK_SECRET` | Secret | le `whsec_...` de l'étape 2 |
+   | `STRIPE_LIEN_DECOUVERTE` | Text | le lien `https://buy.stripe.com/...` du pack Découverte |
+   | `STRIPE_LIEN_COLLECTIONNEUR` | Text | celui du pack Collectionneur |
+   | `STRIPE_LIEN_PASSION` | Text | celui du pack Passion |
+   | `ADMINS` | Text | les adresses qui peuvent offrir des crédits depuis la rubrique, `edouard@cobound.fr` |
+   | `CREDITS_BIENVENUE` | Text | facultatif, 10 par défaut |
+
+Tant que les liens ne sont pas renseignés, les boutons « Recharger » restent grisés et la rubrique
+l'annonce ; l'administrateur peut toujours offrir des crédits à la main.
+
 ## 4. GitHub : la page (2 min)
 
 « Add file », « Upload files », glisser les dossiers `docs` et `passerelle` fournis :
