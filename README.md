@@ -6,9 +6,15 @@ Livraison prévue mi-septembre 2026.
 
 ## Contenu
 
-- `docs/schema.html` — schéma d'architecture, source unique de vérité.
+- `docs/schema.html` : schéma d'architecture, source unique de vérité.
   Trois niveaux : plan d'ensemble, zoom routeur d'univers, zoom catalogue
   et adaptateurs. Contient aussi les trous ouverts et le journal des versions.
+- `docs/atelier.html` : l'atelier, estimation d'un objet à partir de photos.
+- `docs/espace.html` : l'espace collectionneur, derrière une connexion Google. Collection,
+  veille quotidienne des ventes conclues, cote sur douze mois, tendance et projection,
+  anomalies expliquées, paliers, e-mails, enchères suivies, tableau de bord.
+- `passerelle/espace-worker.js` : le coffre de l'espace (worker Cloudflare et base D1).
+  Installation pas à pas, sans Terminal : `passerelle/INSTALLATION.md`.
 
 ## Convention de travail
 
@@ -24,5 +30,5 @@ complète, une fois la structure stabilisée.
 ## État
 
 Le schéma évolue à chaque faille identifiée. La section « trous ouverts »
-liste ce qui est connu et non encore traité — elle se vide au fil des
+liste ce qui est connu et non encore traité : elle se vide au fil des
 versions, elle ne doit jamais être supprimée.
