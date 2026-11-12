@@ -408,6 +408,14 @@
   .veille-reglage{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
   .veille-reglage>div{min-width:150px}
   .veille-reglage label{margin:0 0 6px}
+  .veille-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+  .veille-active{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:14px;color:var(--encre)}
+  .veille-active::before{content:"";width:8px;height:8px;border-radius:50%;background:#247b50}
+  .veille-active.en-pause::before{background:#d9a800}
+  .veille-cout{font-size:13px;color:var(--gris)}
+  .veille-tout-de-suite{font-size:13px;color:var(--gris);margin-left:auto}
+  .veille-tout-de-suite button.lien{font-size:13px}
+  @media (max-width:600px){.veille-tout-de-suite{margin-left:0;flex-basis:100%}}
   .anomalie{border:1px solid var(--bord);border-radius:var(--r-carte);padding:14px 16px;margin-bottom:10px;font-size:14px}
   .anomalie .entete{display:flex;gap:10px;align-items:flex-start}
   .anomalie .entete i{width:12px;height:12px;flex:0 0 12px;margin-top:4px;background:var(--rose);
@@ -873,7 +881,7 @@ function dateFr(s, court) {
 const pct = x => (x > 0 ? '+' : '') + Math.round(x * 100) + '\u202f%';
 /* Les coûts d'IA se comptent en crédits, jamais en euros : 1 crédit = 1 recherche lancée, la
    recherche approfondie en vaut deux. Même tableau que dans l'atelier : le changer ici et là-bas. */
-const CREDITS = { veille: 1, encheres: 1, encheres_approfondie: 2 };
+const CREDITS = { veille: 1, veille_programmee: 1, encheres: 1, encheres_approfondie: 2 };
 let creditsSession = 0;
 const libCredits = n => `${n} crédit${n > 1 ? 's' : ''}`;
 
@@ -1109,7 +1117,8 @@ const ventesDe = id => d.transactions.filter(t => t.objet_id === id);
 const lotsDe = id => d.lots.filter(l => l.objet_id === id);
 const nomDe = o => o?.donnees?.nom || [o?.donnees?.marque, o?.donnees?.modele].filter(Boolean).join(' ') || 'objet sans nom';
 const modeDe = o => o.donnees?.situation?.mode === 'achat' ? 'achat' : 'collection';
-const rythmeDe = o => o.donnees?.rythme || (modeDe(o) === 'achat' ? 'arretee' : 'quotidienne');
+// un objet n'est surveillé que si sa veille a été programmée : chaque passage coûte un crédit
+const rythmeDe = o => o.donnees?.rythme || 'arretee';
 const LIB_BASE = { obtenu: 'ventes conclues', demande: 'prix demandés', comparable: 'objets comparables', neuf: 'prix neufs', neuf_ref: 'prix neufs' };
 const LIB_RYTHME = { quotidienne: 'chaque jour', hebdomadaire: 'chaque semaine', mensuelle: 'chaque mois', annuelle: 'chaque année', arretee: 'arrêtée' };
 const JOURS_RYTHME = { quotidienne: 1, hebdomadaire: 7, mensuelle: 30, annuelle: 365 };
@@ -1117,7 +1126,7 @@ const JOURS_SEMAINE = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samed
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 // même règle que le coffre (veilleDue dans espace-worker.js) : le jour choisi, ou en rattrapage s'il a été manqué
 function veilleDue(dn, derniere, quand) {
-  const r = dn.rythme || (dn.situation?.mode === 'achat' ? 'arretee' : 'quotidienne'), j = JOURS_RYTHME[r];
+  const r = dn.rythme || 'arretee', j = JOURS_RYTHME[r];
   if (!j) return false;
   if (!derniere) return true;
   const depuis = (quand - Date.parse(derniere)) / 864e5;
@@ -1131,45 +1140,96 @@ function veilleDue(dn, derniere, quand) {
   return leJour || depuis >= j + 1;
 }
 // le prochain matin où la veille passera (elle part du coffre vers 7 h 15, heure de Paris)
-function prochaineVeille(o) {
+function prochaineVeille(o, dn = o.donnees) {
   const der = (d.veille || {})[o.id]?.derniere_veille || null;
   const q = new Date(); q.setUTCHours(6, 17, 0, 0);
   if (q < new Date()) q.setUTCDate(q.getUTCDate() + 1);
-  for (let k = 0; k < 400; k++, q.setUTCDate(q.getUTCDate() + 1)) if (veilleDue(o.donnees, der, q)) return new Date(q);
+  for (let k = 0; k < 400; k++, q.setUTCDate(q.getUTCDate() + 1)) if (veilleDue(dn, der, q)) return new Date(q);
   return null;
 }
 const libJour = q => { const dem = new Date(); dem.setDate(dem.getDate() + 1);
   return q.toDateString() === new Date().toDateString() ? 'ce matin' : q.toDateString() === dem.toDateString() ? 'demain matin'
     : q.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long',
         ...(q.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) + ' au matin'; };
-// le réglage de la fiche : la fréquence, puis le jour qui va avec
+
+/* Le réglage de la veille dans la fiche. On choisit la fréquence et le jour, puis on démarre :
+   rien n'est enregistré tant que le bouton n'est pas pressé. Le réglage en cours de choix vit
+   dans brouillonVeille ; il disparaît quand on démarre, qu'on annule ou qu'on change de fiche. */
+let brouillonVeille = null;
+const PASSAGES_MOIS = { quotidienne: 30, hebdomadaire: 4, mensuelle: 1 };
+const p2 = n => String(n).padStart(2, '0');
+const reglageEnregistre = o => ({ rythme: rythmeDe(o), jour_veille: String(o.donnees.jour_veille ?? '') });
+// le jour d'aujourd'hui sert de départ quand on choisit une fréquence
+function jourParDefaut(r) {
+  const auj = new Date();
+  if (r === 'hebdomadaire') return String(((auj.getDay() + 6) % 7) + 1);
+  if (r === 'mensuelle') return String(Math.min(auj.getDate(), 28));
+  if (r === 'annuelle') return `${p2(auj.getMonth() + 1)}-${p2(Math.min(auj.getDate(), 28))}`;
+  return '';
+}
+function reglageAffiche(o) {
+  if (brouillonVeille?.id === o.id) return brouillonVeille;
+  const e = reglageEnregistre(o);
+  if (e.rythme !== 'arretee') return e;
+  // une veille arrêtée repart sur son dernier réglage, sinon sur chaque mois à partir d'aujourd'hui
+  const avant = o.donnees.rythme_avant;
+  return JOURS_RYTHME[avant] ? { rythme: avant, jour_veille: e.jour_veille || jourParDefaut(avant) } : { rythme: 'mensuelle', jour_veille: jourParDefaut('mensuelle') };
+}
+function lireReglage(o) {
+  const avant = reglageAffiche(o), r = $('#vr-rythme').value;
+  if (r !== avant.rythme) return { id: o.id, rythme: r, jour_veille: jourParDefaut(r) };
+  const jv = r === 'annuelle' ? `${p2($('#vr-mois').value)}-${p2($('#vr-jour').value)}` : $('#vr-jour') ? $('#vr-jour').value : '';
+  return { id: o.id, rythme: r, jour_veille: jv };
+}
+// le coût estimé de la fréquence choisie, calculé ici : un crédit par passage
+const PAR_RYTHME = { quotidienne: ['jour', 'environ 30 par mois'], hebdomadaire: ['semaine', 'environ 4 par mois'],
+                     mensuelle: ['mois', ''], annuelle: ['an', ''] };
+function coutVeille(r) {
+  const c = CREDITS.veille_programmee, [unite, mois] = PAR_RYTHME[r] || [];
+  if (!c) return 'inclus';
+  return `${nCredits(c)} par ${unite}${mois ? `, ${c > 1 ? mois.replace(/\d+/, n => n * c) : mois}` : ''}`;
+}
 function reglageVeille(o) {
-  const r = rythmeDe(o), jv = String(o.donnees.jour_veille ?? '');
+  const enr = reglageEnregistre(o), aff = reglageAffiche(o), jv = aff.jour_veille;
+  const programmee = enr.rythme !== 'arretee';
+  const modifie = aff.rythme !== enr.rythme || aff.jour_veille !== enr.jour_veille;
   const opt = (v, t, sel) => `<option value="${v}" ${sel ? 'selected' : ''}>${t}</option>`;
   let jour = '';
-  if (r === 'hebdomadaire') jour = `<div><label for="vr-jour">Le jour</label><select id="vr-jour" data-veille-regle>
+  if (aff.rythme === 'hebdomadaire') jour = `<div><label for="vr-jour">Le jour</label><select id="vr-jour" data-veille-regle>
       ${/^[1-7]$/.test(jv) ? '' : opt('', 'tous les 7 jours', true)}${JOURS_SEMAINE.map((n, i) => opt(i + 1, n, jv === String(i + 1))).join('')}</select></div>`;
-  if (r === 'mensuelle') jour = `<div><label for="vr-jour">Le jour du mois</label><select id="vr-jour" data-veille-regle>
+  if (aff.rythme === 'mensuelle') jour = `<div><label for="vr-jour">Le jour du mois</label><select id="vr-jour" data-veille-regle>
       ${/^([1-9]|1\d|2[0-8])$/.test(jv) ? '' : opt('', 'tous les 30 jours', true)}${Array.from({ length: 28 }, (_, i) => opt(i + 1, i ? `le ${i + 1}` : 'le 1er', jv === String(i + 1))).join('')}</select></div>`;
-  if (r === 'annuelle') {
+  if (aff.rythme === 'annuelle') {
     const [mm, jj] = /^\d{2}-\d{2}$/.test(jv) ? jv.split('-').map(Number) : [0, 0];
     jour = `<div><label for="vr-jour">Le jour</label><select id="vr-jour" data-veille-regle>${Array.from({ length: 28 }, (_, i) => opt(i + 1, i ? i + 1 : '1er', jj === i + 1)).join('')}</select></div>
       <div><label for="vr-mois">Le mois</label><select id="vr-mois" data-veille-regle>${MOIS.map((n, i) => opt(i + 1, n, mm === i + 1)).join('')}</select></div>`;
   }
-  const q = prochaineVeille(o);
+  const q = prochaineVeille(o, { ...o.donnees, rythme: aff.rythme, jour_veille: aff.jour_veille || null });
+  const solde = d.credits?.solde, manque = solde != null && solde < CREDITS.veille_programmee;
+  const quand = `${programmee && !modifie ? 'Prochain passage' : 'Premier passage'} ${q ? esc(libJour(q)) : 'bientôt'}`;
+  const id = esc(o.id);
+  const cout = `<span class="veille-cout">${coutVeille(aff.rythme)}</span>`;
+  const actions = !programmee ? `<button data-programmer-veille="${id}">Démarrer la veille</button>${cout}`
+    : modifie ? `<button data-programmer-veille="${id}">Enregistrer ce réglage</button><button class="second" data-annuler-veille="${id}">Annuler</button>${cout}`
+    : `<span class="veille-active${manque ? ' en-pause' : ''}">${manque ? 'Veille en pause' : 'Veille en marche'}</span>${cout}<button class="second" data-arreter-veille="${id}">Arrêter la veille</button>`;
   return `<div class="veille-reglage"><div><label for="vr-rythme">Fréquence</label><select id="vr-rythme" data-veille-regle>
-      ${['quotidienne', 'hebdomadaire', 'mensuelle', 'annuelle', 'arretee'].map(k => opt(k, LIB_RYTHME[k].replace(/^./, c => c.toUpperCase()), r === k)).join('')}</select></div>${jour}</div>
-    ${r === 'arretee' ? '' : `<p class="aide" style="margin:8px 0 0">Prochain passage ${q ? esc(libJour(q)) : 'bientôt'}. Les passages programmés sont inclus, sans crédit.</p>`}`;
+      ${['quotidienne', 'hebdomadaire', 'mensuelle', 'annuelle'].map(k => opt(k, LIB_RYTHME[k].replace(/^./, c => c.toUpperCase()), aff.rythme === k)).join('')}</select></div>${jour}</div>
+    <p class="aide" style="margin:8px 0 0">${quand}.</p>
+    ${manque ? `<p class="aide" style="margin:4px 0 0">Il te reste ${nCredits(solde)} : la veille attendra ta prochaine recharge.${plusDeCredits('crédit')}</p>` : ''}
+    <div class="veille-actions">${actions}
+      <span class="veille-tout-de-suite"><button class="lien" data-veille="${id}">Vérifier tout de suite</button> ${libCredits(CREDITS.veille)}</span></div>`;
 }
-// enregistre le réglage ; en passant à la semaine, au mois ou à l'année, le jour d'aujourd'hui sert de départ
-async function changerVeille(id) {
-  const r = $('#vr-rythme').value, auj = new Date(), p2 = n => String(n).padStart(2, '0');
-  const changeDeRythme = r !== rythmeDe(objet(id));
-  let jv = null;
-  if (r === 'hebdomadaire') jv = !changeDeRythme && $('#vr-jour') ? $('#vr-jour').value || null : String(((auj.getDay() + 6) % 7) + 1);
-  if (r === 'mensuelle') jv = !changeDeRythme && $('#vr-jour') ? $('#vr-jour').value || null : String(Math.min(auj.getDate(), 28));
-  if (r === 'annuelle') jv = !changeDeRythme && $('#vr-mois') ? `${p2($('#vr-mois').value)}-${p2($('#vr-jour').value)}` : `${p2(auj.getMonth() + 1)}-${p2(Math.min(auj.getDate(), 28))}`;
-  await majDonnees(id, dn => ({ ...dn, rythme: r, jour_veille: jv }));
+const rendreReglageVeille = o => {
+  const bloc = $('#veille-bloc'); if (!bloc) return;
+  const f = document.activeElement?.id;
+  bloc.innerHTML = reglageVeille(o);
+  if (f && $('#' + f)) $('#' + f).focus();
+};
+// enregistre le réglage choisi (ou l'arrêt), puis redessine la fiche à la même hauteur
+async function enregistrerVeille(id, reglage) {
+  await majDonnees(id, dn => ({ ...dn, rythme: reglage.rythme, jour_veille: reglage.jour_veille || null,
+    rythme_avant: reglage.rythme === 'arretee' ? (JOURS_RYTHME[dn.rythme] ? dn.rythme : dn.rythme_avant || null) : null }));
+  brouillonVeille = null;
   const ouverte = $('#dlg-fiche').open && ficheOuverte === id, y = $('#dlg-fiche').scrollTop;
   rendreVue();
   if (ouverte) { ouvrirFiche(id); $('#dlg-fiche').scrollTop = y; }
@@ -1214,6 +1274,7 @@ const aSurveiller = o => sens(o.id) === 'baisse' || anomaliesDe(o.id).some(a => 
 function voyant(o) {
   const v = (d.veille || {})[o.id], r = rythmeDe(o);
   if (r === 'arretee') return { c: 'gris', t: 'veille arrêtée' };
+  if (d.credits && d.credits.solde < CREDITS.veille_programmee) return { c: 'jaune', t: 'veille en pause, plus de crédits' };
   if (!v || !v.derniere_veille) return { c: 'jaune', t: 'première veille au prochain matin' };
   if (v.echecs >= 3) return { c: 'rouge', t: `${v.echecs} échecs de veille de suite` };
   if (v.echecs > 0) return { c: 'jaune', t: 'dernière veille en échec, nouvel essai demain' };
@@ -1263,7 +1324,7 @@ function rendreTitre() {
     encheres: d.lots.length ? `${s(d.lots.length, 'lot')} ${d.lots.length > 1 ? 'suivis' : 'suivi'}, dont ${suivis} à venir ou en cours.`
       : 'Aucun lot suivi pour le moment.',
     journal: 'Ce qui est arrivé à ta collection, du plus récent au plus ancien.',
-    credits: "Une recherche lancée, un crédit. La recherche approfondie en compte deux ; l'avis de l'expert et la veille du matin sont inclus.",
+    credits: "Une recherche lancée, un crédit. La recherche approfondie en compte deux ; et chaque passage de veille programmée aussi. L'avis de l'expert est inclus.",
   }[vue];
   const objets = vue === 'collection' || vue === 'guette';
   $('#ajouter-objet').hidden = !objets;
@@ -1439,7 +1500,7 @@ function rendreObjets() {
       <h3>${mode === 'achat' ? 'Rien en vue pour le moment' : 'Ta collection commence ici'}</h3>
       <p>${mode === 'achat'
         ? "Photographie un objet que tu aimerais acquérir : l'atelier l'identifie, retrouve les enchères qui le proposent et te dit où en sont les prix."
-        : "Photographie un objet : l'atelier l'identifie et trouve ses ventes réelles, puis il arrive ici avec sa cote, et la veille du matin prend le relais."}</p>
+        : "Photographie un objet : l'atelier l'identifie et trouve ses ventes réelles, puis il arrive ici avec sa cote, et tu peux démarrer sa veille."}</p>
       <div class="boutons"><a class="bouton" href="${lienAjout()}">Ajouter un objet</a></div>
       <p class="aide" style="margin-top:14px">Tu as déjà toutes ses informations ? <button class="lien" data-ajout="${mode}">L'ajouter à la main</button></p></div>`;
     $('#pied-objets').hidden = true;
@@ -1783,6 +1844,7 @@ function ouvrirFiche(id) {
   const o = objet(id);
   if (!o) return;
   const memeFiche = $('#dlg-fiche').open && ficheOuverte === id;
+  if (!memeFiche) brouillonVeille = null;
   ficheOuverte = id;
   const dn = o.donnees, s = dn.situation || {}, c = coteDe(id), e = ecartDe(o), q = qualification(o), est = dernierReleve(id);
   const ventes = ventesDe(id).slice().sort((a, b) => (b.date || b.cree_le || '').localeCompare(a.date || a.cree_le || ''));
@@ -1860,12 +1922,11 @@ function ouvrirFiche(id) {
     </div>
 
     <div class="section"><h4>Veille des ventes conclues</h4>
-      ${reglageVeille(o)}
-      <div class="veille-ligne" style="margin-top:10px">${point(vo)}<span>${esc(vo.t.replace(/^./, c => c.toUpperCase()))}.
+      <div id="veille-bloc">${reglageVeille(o)}</div>
+      <div class="veille-ligne" style="margin-top:12px">${point(vo)}<span>${esc(vo.t.replace(/^./, c => c.toUpperCase()))}.
         ${v?.bilan && !v.bilan.erreur ? `Dernier passage : ${v.bilan.proposees} vente${v.bilan.proposees > 1 ? 's' : ''} proposée${v.bilan.proposees > 1 ? 's' : ''}, ${v.bilan.nouvelles} retenue${v.bilan.nouvelles > 1 ? 's' : ''}${Object.keys(v.bilan.ecartees || {}).length ? ` (écartées : ${Object.entries(v.bilan.ecartees).map(([k, n]) => `${n} ${k}`).join(', ')})` : ''}.` : ''}
         ${v?.bilan?.erreur ? `Dernière erreur : ${esc(v.bilan.erreur)}.` : ''}</span></div>
-      <div id="fiche-veille" style="margin-top:10px"><button class="second petit" data-veille="${esc(id)}">Vérifier maintenant</button>
-        <span class="aide" style="margin-left:8px">${libCredits(CREDITS.veille)}</span></div>
+      <div id="fiche-veille" style="margin-top:10px"></div>
     </div>
 
     ${dossierHtml.histoire}
@@ -2161,7 +2222,7 @@ function ouvrirEdition(id, mode) {
   $$('input[name=ed-mode]').forEach(r => r.checked = r.value === m);
   $('#ed-devise').value = s.devise || 'EUR';
   $('#ed-canal').value = s.canal || '';
-  $('#ed-rythme').value = dn.rythme || (m === 'achat' ? 'arretee' : 'quotidienne');
+  $('#ed-rythme').value = dn.rythme || 'arretee';
   $('#ed-etat').innerHTML = '';
   majLibellePrix();
   peindrePhotoEdition(o ? photos.get(o.id) : null);
@@ -2760,11 +2821,20 @@ async function rangerArrivee(a, cible) {
 /* ---------- aiguillage des clics ---------- */
 
 document.addEventListener('click', e => {
+  const bv = e.target.closest('[data-programmer-veille],[data-annuler-veille],[data-arreter-veille]');
+  if (bv) {
+    const v = bv.dataset, o = objet(v.programmerVeille || v.annulerVeille || v.arreterVeille);
+    if (!o) return;
+    if (v.annulerVeille) { brouillonVeille = null; return rendreReglageVeille(o); }
+    bv.disabled = true;
+    const reglage = v.arreterVeille ? { rythme: 'arretee', jour_veille: o.donnees.jour_veille } : reglageAffiche(o);
+    return enregistrerVeille(o.id, reglage).catch(err => { alert(err.message); bv.disabled = false; });
+  }
   const b = e.target.closest('[data-fiche],[data-ajout],[data-modifier],[data-supprimer],[data-chercher],[data-suivre-pour],[data-relire],[data-resultat],[data-retirer-lot],[data-retirer-vente],[data-fermer],[data-veille],[data-ajout-photo],[data-suppr-photo],[data-voir],[data-note],[data-suppr-note],[data-aller]');
   if (!b) return;
   const x = b.dataset;
   if ('fermer' in x) return b.closest('dialog')?.close();
-  if (x.aller) return allerA(x.aller);
+  if (x.aller) { b.closest('dialog')?.close(); return allerA(x.aller); }
   if (x.fiche) return ouvrirFiche(x.fiche);
   if (x.ajout) return ouvrirEdition(null, x.ajout);
   if (x.modifier) return ouvrirEdition(x.modifier);
@@ -2806,7 +2876,11 @@ document.addEventListener('click', e => {
   }
 });
 document.addEventListener('change', e => {
-  if (e.target.closest('[data-veille-regle]') && ficheOuverte) return changerVeille(ficheOuverte).catch(err => alert(err.message));
+  if (e.target.closest('[data-veille-regle]') && ficheOuverte) {
+    const o = objet(ficheOuverte);
+    brouillonVeille = lireReglage(o);
+    return rendreReglageVeille(o);
+  }
   const coche = e.target.closest('[data-coche]');
   if (coche && ficheOuverte) {
     const i = +coche.dataset.coche;
