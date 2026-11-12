@@ -67,8 +67,9 @@ Sans Brevo, tout marche, mais les alertes restent dans l'espace et son journal.
 
 ## 3 bis. Les crédits et leur paiement (10 min, quand on ouvre la vente)
 
-Une recherche lancée coûte un crédit, la recherche approfondie deux ; l'avis de l'expert et la
-veille du matin sont inclus. Chaque nouveau compte reçoit 10 crédits offerts. Le solde vit dans
+Une recherche lancée coûte un crédit, la recherche approfondie deux, et chaque passage de veille
+programmée un crédit ; l'avis de l'expert est inclus. La veille ne tourne que sur les objets où la
+collectionneuse l'a démarrée, et se met en pause quand le solde est à zéro. Chaque nouveau compte reçoit 10 crédits offerts. Le solde vit dans
 la base du coffre ; l'espace a une rubrique « Crédits » (solde, packs, historique).
 
 Les packs sont écrits dans `espace-worker.js` (constante `PACKS`) : Découverte 20 crédits pour

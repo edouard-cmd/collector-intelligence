@@ -326,16 +326,16 @@ async function noter(db, email, type, message, objet_id, lot_id) {
 }
 
 /* ---------- les crédits ----------
-   Une recherche lancée coûte un crédit, la recherche approfondie deux ; l'avis de l'expert et la
-   veille du matin sont inclus. Le solde vit ici, dans la base : une page ne peut pas se créditer
+   Une recherche lancée coûte un crédit, la recherche approfondie deux, et chaque passage de veille
+   programmée un crédit ; l'avis de l'expert est inclus. Une veille sans crédit se met en pause. Le solde vit ici, dans la base : une page ne peut pas se créditer
    elle-même. Un crédit n'est retiré qu'une fois la recherche réussie : un échec ne coûte rien.
    Les packs se vendent par des liens de paiement Stripe (variables STRIPE_LIEN_DECOUVERTE, ...) ;
    le webhook /stripe crédite le compte quand le paiement est confirmé, une seule fois par paiement. */
 const TARIFS = { identification: 1, marche: 1, marche_approfondi: 2, histoire: 1, avis: 0,
-                 veille: 1, encheres: 1, encheres_approfondie: 2 };
+                 veille: 1, veille_programmee: 1, encheres: 1, encheres_approfondie: 2 };
 const LIB_TARIF = { identification: "identification d'un objet", marche: "recherche des prix",
   marche_approfondi: "recherche des prix approfondie", histoire: "histoire du modèle", avis: "avis de l'expert",
-  veille: "veille lancée à la main", encheres: "recherche d'enchères", encheres_approfondie: "recherche d'enchères approfondie" };
+  veille: "veille lancée à la main", veille_programmee: "veille programmée", encheres: "recherche d'enchères", encheres_approfondie: "recherche d'enchères approfondie" };
 const PACKS = {
   decouverte:     { nom: "Découverte",     credits: 20,  offerts: 0,  prix: 9 },
   collectionneur: { nom: "Collectionneur", credits: 50,  offerts: 10, prix: 19 },
@@ -1289,7 +1289,8 @@ Format :
 {"ventes":[{"plateforme":"...","url":"...","titre":"...","prix":0,"devise":"EUR","date_vente":null,
   "correspondance":"exacte|modele|famille"}]}`;
 
-const rythmeDe = dn => dn.rythme || (dn.situation?.mode === "achat" ? "arretee" : "quotidienne");
+// un objet n'est surveillé que si sa veille a été démarrée : chaque passage coûte un crédit
+const rythmeDe = dn => dn.rythme || "arretee";
 
 function estPageDeRecherche(u) {
   try {
@@ -1398,23 +1399,36 @@ function veilleDue(dn, derniere, quand = new Date()) {
 }
 
 /* Le matin : les objets dont le rythme de veille est échu, les plus anciens d'abord, trois à
-   la fois, avec un plafond pour que la facture reste prévisible. */
+   la fois, avec un plafond pour que la facture reste prévisible. Chaque passage réussi coûte
+   un crédit à son propriétaire ; un compte sans crédit est sauté (veille en pause) et l'objet
+   reste dû, il repassera le premier matin où le compte aura été rechargé. */
 async function veilleQuotidienne(env, email) {
   const db = await base(env);
   const q = db.prepare(`SELECT o.id, o.email, o.donnees, v.derniere_veille FROM objets o
                         LEFT JOIN veille v ON v.objet_id = o.id ${email ? "WHERE o.email = ?" : ""}`);
   const { results } = await (email ? q.bind(email) : q).all();
-  const dus = results.map(r => ({ ...r, donnees: lireJSONsur(r.donnees) || {} }))
+  const cout = TARIFS.veille_programmee, reste = new Map(), bilan = { essais: 0, reussites: 0, nouvelles: 0, en_pause: 0 };
+  const dus = [];
+  for (const r of results.map(r => ({ ...r, donnees: lireJSONsur(r.donnees) || {} }))
     .filter(r => veilleDue(r.donnees, r.derniere_veille))
-    .sort((a, b) => (a.derniere_veille || "").localeCompare(b.derniere_veille || ""))
-    .slice(0, Math.min(+env.LIMITE_VEILLE || 20, 100));
-  const bilan = { essais: 0, reussites: 0, nouvelles: 0 };
+    .sort((a, b) => (a.derniere_veille || "").localeCompare(b.derniere_veille || ""))) {
+    if (cout) {
+      if (!reste.has(r.email)) reste.set(r.email, await soldeDe(db, r.email, env));
+      if (reste.get(r.email) < cout) { bilan.en_pause++; continue; }
+      reste.set(r.email, reste.get(r.email) - cout);
+    }
+    dus.push(r);
+    if (dus.length >= Math.min(+env.LIMITE_VEILLE || 20, 100)) break;
+  }
   const file = [...dus];
   const travailleur = async () => {
     while (file.length) {
-      const b = await veillerObjet(db, env, file.shift());
+      const o = file.shift(), b = await veillerObjet(db, env, o);
       bilan.essais++;
-      if (!b.erreur) bilan.reussites++;
+      if (!b.erreur) {
+        bilan.reussites++;
+        if (cout) await debiterCredits(db, o.email, "veille_programmee", env, o.donnees.nom).catch(() => {});
+      }
       bilan.nouvelles += b.nouvelles || 0;
     }
   };
