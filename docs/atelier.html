@@ -1123,7 +1123,6 @@ celle du nouveau modèle.`;
     }));
     contenu.push({ type: "text", text: texte });
     const d = await appeler(SYS_ID, contenu, 5, 8000);
-    debiter('identification');
     const vuesId = pagesConsultees(dernierBrut);
 
     fin1();
@@ -1131,6 +1130,7 @@ celle du nouveau modèle.`;
     const histoireNeuve = d.histoire && (d.histoire.frise || []).length ? d.histoire : null;
     delete d.histoire;
     profil = Object.assign(profil, d);
+    debiter('identification');          // une fois le nom connu, pour que l'historique dise quel objet
     profil.histoire = histoireNeuve || histoirePrecedente || null;
     afficherIdentite(d);
 
