@@ -365,6 +365,42 @@
     background:var(--encre);color:#fff;border:1px solid var(--encre);font-weight:600;font-size:14px;text-decoration:none;white-space:nowrap}
   a.bouton.second{background:var(--surface);color:var(--encre);border-color:var(--filet-fort)}
   .pied-objets{margin:0;padding:12px 20px 16px;border-top:1px solid var(--filet);font-size:13px;color:var(--gris)}
+  /* le dossier de l'atelier dans la fiche */
+  .puits .sous-dd{font-weight:400;font-size:12px;color:var(--gris);margin-top:2px}
+  .repere{margin-top:14px;padding:14px 16px;border:1px solid var(--bord);border-radius:var(--r-carte)}
+  .repere>span{display:block;font-size:13px;color:var(--gris)}
+  .repere>b{display:block;font-size:20px;font-weight:600;line-height:1.25;margin-top:2px}
+  .repere>b::first-letter,.decision::first-letter{text-transform:uppercase}
+  .titre-repere{margin:4px 0 0;font-weight:500}
+  details.repli{margin-top:14px;border-top:1px solid var(--filet);padding-top:10px}
+  .section>details.repli{border-top:0;padding-top:0;margin-top:0}
+  details.repli>summary{cursor:pointer;font-weight:600;font-size:14px;list-style:none;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+  details.repli>summary::-webkit-details-marker{display:none}
+  details.repli>summary::before{content:"";width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+    transform:rotate(-45deg);transition:transform 160ms var(--ease-out);flex:none;align-self:center;margin-right:2px}
+  details.repli[open]>summary::before{transform:rotate(45deg)}
+  .section>details.repli>summary h4{font-size:16px;font-weight:600;margin:0}
+  .fiche-atelier{display:grid;grid-template-columns:132px minmax(0,1fr);gap:4px 16px;padding:10px 0;border-top:1px solid var(--filet);font-size:14px}
+  details.repli>summary+.fiche-atelier{margin-top:8px}
+  .fiche-atelier .px{text-align:right;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;align-items:flex-end}
+  .fiche-atelier .px b{font-weight:600}
+  .fiche-atelier .px small{font-size:12px;color:var(--gris);white-space:nowrap}
+  .fiche-atelier .tt a{text-decoration:none;font-weight:500}
+  .fiche-atelier .tt a:hover{text-decoration:underline}
+  .fiche-atelier .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--gris);margin-top:4px}
+  .fiche-atelier.hors{color:var(--gris)}
+  .fiche-atelier.hors .px b{font-weight:500}
+  .avis-fiche p{margin:6px 0 0}
+  .decision{display:block;font-size:20px;font-weight:600}
+  .sous-titre{margin:16px 0 6px;font-size:13px;font-weight:600}
+  .liste-fx{list-style:none;margin:0;padding:0}
+  .liste-fx li{display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-top:1px solid var(--filet)}
+  .liste-fx li:first-child{border-top:0}
+  .liste-fx b{font-variant-numeric:tabular-nums;flex:none}
+  .frise{border-left:1px solid var(--bord);margin:4px 0 0 3px;padding-left:16px}
+  .jalon{position:relative;margin:0 0 10px;font-size:14px;line-height:1.5}
+  .jalon::before{content:"";position:absolute;left:-20.5px;top:7px;width:8px;height:8px;border-radius:50%;background:var(--encre)}
+  @media(max-width:620px){.fiche-atelier{grid-template-columns:104px minmax(0,1fr);gap:4px 12px}.fiche-atelier .px small{white-space:normal}}
   /* chargement et échec : la mise en page finale garde sa place, sans scintillement */
   .os{display:inline-block;max-width:100%;border-radius:3px;background:var(--actif);vertical-align:middle}
   .echec{display:inline-flex;gap:10px;flex-wrap:wrap;align-items:baseline;color:#831c4a;font-weight:500}
@@ -740,7 +776,7 @@ const aujourdhui = () => new Date().toISOString().slice(0, 10);
 
 function prix(v, dev = 'EUR') {
   if (v === null || v === undefined || isNaN(v)) return '-';
-  try { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: dev || 'EUR', maximumFractionDigits: 0 }).format(v); }
+  try { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: dev || 'EUR', currencyDisplay: 'narrowSymbol', maximumFractionDigits: 0 }).format(v); }
   catch { return Math.round(v) + ' ' + (dev || ''); }
 }
 function dateFr(s, court) {
@@ -1371,6 +1407,90 @@ function rendreJournal() {
     : `<p class="vide-bloc">Le journal se remplit au fil des ajouts et des résultats d'enchères.</p>`;
 }
 
+/* ---------- le dossier de l'atelier, gardé dans la fiche ----------
+   Tout ce que l'analyse a établi le jour où l'objet est entré : le marché observé (annonces et
+   ventes, avec leur lien), le repère calculé, l'avis de l'expert, l'histoire du modèle. Les montants
+   sont dans ta devise ; un prix lu dans une autre devise garde, à côté, ce qui était écrit sur la page. */
+function prixExact(v, dev = 'EUR') {
+  if (v === null || v === undefined || isNaN(v)) return '-';
+  try { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: dev || 'EUR', currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: Number.isInteger(+v) ? 0 : 2, maximumFractionDigits: 2 }).format(v); }
+  catch { return v + ' ' + (dev || ''); }
+}
+const pctAtelier = v => (v > 0 ? '+' : '') + v + ' %';
+
+function lectureVente(t, o) {
+  const m = /, ([\d.]+) ([A-Z]{3}) sur la page/.exec(t.preuve || '');
+  if (m) return { principal: prix(t.prix, t.devise), note: `${prixExact(+m[1], m[2])} sur la page, converti au taux BCE` };
+  const dv = o.donnees.situation?.devise || o.donnees.dossier?.devise || 'EUR', tx = o.donnees.dossier?.taux?.[t.devise];
+  if (t.devise !== dv && tx?.taux) return { principal: '≈ ' + prix(t.prix * tx.taux, dv), note: `${prixExact(t.prix, t.devise)} sur la page, au taux BCE${tx.date ? ' du ' + dateFr(tx.date) : ''}` };
+  return { principal: prix(t.prix, t.devise), note: '' };
+}
+
+function sectionsDossier(o) {
+  const ds = o.donnees.dossier;
+  if (!ds) return { marche: '', avis: '', histoire: '' };
+  const D = ds.devise || 'EUR', m = ds.marche || {}, r = m.resume || {}, v = ds.verdict, quand = dateFr(ds.date);
+  const bloc = (lib, s, nature) => s ? `<div><dt>${lib}</dt><dd>${prix(s.med, D)}</dd>
+      <dd class="sous-dd">${s.n} fiche${s.n > 1 ? 's' : ''}, de ${prix(s.min, D)} à ${prix(s.max, D)}, ${nature}</dd></div>` : '';
+  const resume = [bloc('Ventes conclues', r.ventes, 'prix obtenus'), bloc("Annonces d'occasion", r.annonces, 'prix demandés'),
+                  bloc('Neuf', r.neuf, 'prix catalogue'), bloc('Objets comparables', r.comparables, 'ordre de grandeur')].join('');
+  const fiches = (m.fiches || []).slice().sort((a, b) => (a.statut === 'vendu' ? 0 : 1) - (b.statut === 'vendu' ? 0 : 1)
+    || (a.converti ?? 1e9) - (b.converti ?? 1e9));
+  const ligne = f => {
+    const etranger = f.prix != null && f.devise !== D && f.converti != null;
+    return `<div class="fiche-atelier${f.hors_calcul ? ' hors' : ''}">
+      <div class="px">${f.prix == null ? '<span class="tiret">-</span>' : `<b>${prixExact(etranger ? f.converti : f.prix, etranger ? D : f.devise)}</b>${etranger ? `<small>${prixExact(f.prix, f.devise)} sur la page</small>` : ''}`}</div>
+      <div class="tt">${lienSur(f.url) ? `<a href="${esc(lienSur(f.url))}" target="_blank" rel="noopener noreferrer">${esc(f.titre || domaine(f.url))}</a>` : esc(f.titre || '')}
+        <div class="meta"><span class="badge ${f.statut === 'vendu' ? 'b-a_venir' : ''}">${f.statut === 'vendu' ? 'vendu' : f.statut === 'en_vente' ? 'en vente' : 'statut ?'}</span>
+          ${f.neuf ? '<span class="badge">neuf</span>' : ''}
+          <span>${esc([f.plateforme, f.etat, { exacte: 'même objet', modele: 'même modèle', famille: 'autre modèle', comparable: 'comparable' }[f.correspondance]].filter(Boolean).join(', '))}</span></div>
+        ${f.hors_calcul ? `<div class="meta">hors calcul : ${esc(f.hors_calcul)}</div>` : ''}</div></div>`;
+  };
+  const marche = `<div class="section"><h4>Le marché lors de l'analyse<small>atelier, le ${esc(quand)}</small></h4>
+    ${resume ? `<dl class="puits">${resume}</dl>` : '<p class="aide">Aucun prix exploitable n\'avait été trouvé.</p>'}
+    ${v ? `<div class="repere"><span>Repère calculé par l'atelier</span><b>${esc(v.recommandation || '')}</b>
+        ${v.titre ? `<p class="titre-repere">${esc(v.titre)}</p>` : ''}
+        ${v.valeur_marche ? `<p class="aide" style="margin:6px 0 0">${v.mode === 'achat' ? 'Prix demandé' : 'Prix payé'} ${prix(v.prix, v.devise)}, valeur de marché ${prix(v.valeur_marche, v.devise)}${v.fourchette?.[0] != null ? `, fourchette ${prix(v.fourchette[0], v.devise)} à ${prix(v.fourchette[1], v.devise)}` : ''}, sur ${v.fiches} ${esc(v.base || 'fiches')}, confiance ${esc(v.confiance || '?')}.</p>` : ''}
+        ${(v.texte || []).map(x => `<p style="margin:8px 0 0">${esc(String(x).replace(/\s+/g, ' '))}</p>`).join('')}
+        ${v.regle ? `<p class="aide" style="margin:8px 0 0">Règle appliquée : ${esc(v.regle)}.</p>` : ''}</div>` : ''}
+    ${m.lecture ? `<p class="lecture">${esc(m.lecture)}</p>` : ''}
+    ${fiches.length ? `<details class="repli"><summary>Les ${fiches.length} fiche${fiches.length > 1 ? 's' : ''} trouvée${fiches.length > 1 ? 's' : ''}, avec leur lien
+        ${m.diag?.recherches ? `<span class="aide">${m.diag.recherches} recherches web, ${m.diag.pages || '?'} pages consultées</span>` : ''}</summary>
+        ${fiches.map(ligne).join('')}</details>` : ''}
+  </div>`;
+
+  const a = ds.avis, fx = ds.identification?.facteurs || [], retenus = ds.identification?.facteurs_retenus || [];
+  const avis = a || fx.length ? `<div class="section"><h4>Avis de l'expert<small>${a?.date ? 'le ' + esc(dateFr(a.date)) : ''}</small></h4>
+    ${a ? `<div class="avis-fiche">${a.decision ? `<b class="decision">${esc(a.decision)}</b>` : ''}
+      ${a.phrase ? `<p style="font-weight:600">${esc(a.phrase)}</p>` : ''}
+      ${a.raisonnement ? `<p>${esc(a.raisonnement)}</p>` : ''}
+      ${a.argument_negociation ? `<p><b>Pour négocier :</b> ${esc(a.argument_negociation)}</p>` : ''}
+      ${a.si_authentique ? `<p><b>Si l'authenticité est confirmée :</b> ${esc(a.si_authentique)}</p>` : ''}
+      <p class="aide">Avis rédigé par l'IA à partir des seuls prix observés et de ton prix, sans aucun chiffre qui ne figure dans l'analyse. Pas un conseil en investissement.</p></div>` : ''}
+    ${fx.length ? `<p class="sous-titre">Ce qui fait varier son prix</p><ul class="liste-fx">${fx.map(f => `<li><span>${esc(f.question)}${retenus.some(x => String(x).includes(String(f.question).slice(0, 20))) ? ' <span class="badge b-a_venir">tu l\'as indiqué</span>' : ''}</span>
+        <b class="${f.effet_pct >= 0 ? 'hausse' : 'baisse'}">${pctAtelier(f.effet_pct)}</b></li>`).join('')}</ul>` : ''}
+  </div>` : '';
+
+  const h = ds.histoire;
+  const source = u => lienSur(u) ? ` <a class="aide" href="${esc(lienSur(u))}" target="_blank" rel="noopener noreferrer">${esc(domaine(u))}</a>` : '';
+  const unPrix = c => /€|\$|£|\b(eur|usd|gbp|chf)\b|prix|price|retail|tarif/i.test(`${c.libelle} ${c.valeur}`);
+  const histoire = h && (h.accroche || (h.frise || []).length) ? `<div class="section"><details class="repli"><summary><h4 style="display:inline">Histoire du modèle</h4>
+      <span class="aide">${esc(h.titre || '')}</span></summary>
+    ${h.createur ? `<p class="aide" style="margin:10px 0 0">par ${esc(h.createur)}</p>` : ''}
+    ${h.accroche ? `<p class="lecture" style="font-style:normal">${esc(h.accroche)}</p>` : ''}
+    ${h.variantes ? `<p class="info" style="font-size:13.5px">${esc(h.variantes)}</p>` : ''}
+    ${(h.frise || []).filter(j => j && j.evenement).length ? `<p class="sous-titre">Chronologie</p><div class="frise">${h.frise.filter(j => j && j.evenement).map(j =>
+      `<div class="jalon"><b>${esc(j.date || '-')}</b> ${esc(j.evenement)}${source(j.source)}</div>`).join('')}</div>` : ''}
+    ${(h.chiffres || []).filter(c => c && c.valeur && !unPrix(c)).length ? `<p class="sous-titre">Chiffres clés</p>${h.chiffres.filter(c => c && c.valeur && !unPrix(c)).map(c =>
+      `<p style="margin:4px 0"><b>${esc(c.libelle || '')}</b> : ${esc(c.valeur)}${source(c.source)}</p>`).join('')}` : ''}
+    ${h.pourquoi_recherche ? `<p class="sous-titre">Pourquoi il est recherché</p><p style="margin:0">${esc(h.pourquoi_recherche)}</p>` : ''}
+    ${h.anecdote ? `<p class="sous-titre">À raconter</p><p style="margin:0">${esc(h.anecdote)}</p>` : ''}
+    ${(h.a_surveiller || []).filter(Boolean).length ? `<p class="sous-titre">À surveiller</p><ul class="liste-fx">${h.a_surveiller.filter(Boolean).map(s => `<li><span>${esc(s)}</span></li>`).join('')}</ul>` : ''}
+  </details></div>` : '';
+  return { marche, avis, histoire };
+}
+
 /* ---------- la fiche d'un objet ---------- */
 
 let ficheOuverte = null;
@@ -1392,6 +1512,7 @@ function ouvrirFiche(id) {
   $('#fiche-titre').textContent = nomDe(o);
   const tend = c.tendance || {};
   const libTend = { hausse: 'en hausse', baisse: 'en baisse', stable: 'stable' }[tend.sens];
+  const dossierHtml = sectionsDossier(o);
 
   $('#fiche-corps').innerHTML = `
     <div class="fiche-haut">
@@ -1438,13 +1559,15 @@ function ouvrirFiche(id) {
         ${a.type !== 'palier' && a.explication?.hypotheses ? `<p class="aide" style="margin:6px 0 0">Hypothèses, pas des faits établis, et jamais un conseil en investissement.</p>` : ''}
       </div>`).join('')}</div>` : ''}
 
+    ${dossierHtml.marche}
+    ${dossierHtml.avis}
     <div class="section"><h4>Évolution de la cote</h4>${graphique(o)}</div>
 
     <div class="section"><h4>Ventes conclues de référence<small>${ventes.length}</small></h4>
       ${ventes.length ? ventes.map(t => `<div class="vente">
-          <b>${prix(t.prix, t.devise)}</b>
+          <b>${lectureVente(t, o).principal}</b>
           <span>${lienSur(t.url_source) ? `<a href="${esc(lienSur(t.url_source))}" target="_blank" rel="noopener noreferrer">${esc(t.libelle || t.plateforme || domaine(t.url_source))}</a>` : esc(t.libelle)}
-            <span class="src"><br>${esc(t.plateforme || domaine(t.url_source))}, ${t.date ? 'vendue le ' + esc(dateFr(t.date)) : 'date inconnue, trouvée le ' + esc(dateFr(t.cree_le))}, ${esc(ORIG[t.origine] || t.origine)}${t.verifie === 1 ? ', prix relu sur la page' : ''}${t.frais_inclus === 1 ? ', frais inclus' : t.frais_inclus === 0 ? ', hors frais' : ''}${['famille', 'comparable'].includes(t.correspondance) ? ', autre modèle, hors cote' : ''}</span></span>
+            <span class="src"><br>${esc(t.plateforme || domaine(t.url_source))}, ${t.date ? 'vendue le ' + esc(dateFr(t.date)) : 'date inconnue, trouvée le ' + esc(dateFr(t.cree_le))}, ${esc(ORIG[t.origine] || t.origine)}${t.verifie === 1 ? ', prix relu sur la page' : ''}${t.frais_inclus === 1 ? ', frais inclus' : t.frais_inclus === 0 ? ', hors frais' : ''}${['famille', 'comparable'].includes(t.correspondance) ? ', autre modèle, hors cote' : ''}${lectureVente(t, o).note ? ', ' + esc(lectureVente(t, o).note) : ''}</span></span>
           <button class="second petit" data-retirer-vente="${esc(t.id)}" title="retirer cette vente">Retirer</button></div>`).join('')
         : `<p class="aide">Aucune vente conclue enregistrée. Elles arrivent de l'atelier, de la veille du matin et des enchères suivies.</p>`}
     </div>
@@ -1465,7 +1588,8 @@ function ouvrirFiche(id) {
         <span class="aide" style="margin-left:8px">environ 0,05 €, une minute</span></div>
     </div>
 
-    ${dn.avis_phrase || dn.histoire_accroche ? `<div class="section"><h4>Ce qu'il faut savoir</h4>
+    ${dossierHtml.histoire}
+    ${!dn.dossier && (dn.avis_phrase || dn.histoire_accroche) ? `<div class="section"><h4>Ce qu'il faut savoir</h4>
       ${dn.avis_phrase ? `<p style="margin:0 0 6px;font-weight:600">${esc(dn.avis_phrase)}</p>` : ''}
       ${dn.histoire_accroche ? `<p class="lecture" style="margin:0">${esc(dn.histoire_accroche)}</p>` : ''}</div>` : ''}
 
@@ -2170,7 +2294,15 @@ async function rangerArrivee(a, cible) {
       if (a.photo && !objet(id).a_photo) { await api('/photos/' + encodeURIComponent(id), { method: 'PUT', corps: { data: a.photo } }); photos.set(id, a.photo); }
     }
     if (a.releve) await api('/releves', { method: 'POST', corps: { ...a.releve, objet_id: id } });
-    if (a.ventes?.length) await api('/transactions', { method: 'POST', corps: { transactions: a.ventes.map(v => ({ ...v, objet_id: id, origine: 'atelier' })) } });
+    if (a.ventes?.length) {
+      const cleU = u => { try { const x = new URL(u); return (x.hostname.replace(/^www\./, '') + x.pathname.replace(/\/+$/, '')).toLowerCase(); } catch { return ''; } };
+      const neuves = new Map(a.ventes.map(v => [cleU(v.url_source), v]));
+      for (const t of d.transactions.filter(t => t.objet_id === id && t.origine === 'atelier' && neuves.has(cleU(t.url_source)))) {
+        const v = neuves.get(cleU(t.url_source));
+        if (t.devise !== v.devise || t.prix !== v.prix) await api('/transactions/' + encodeURIComponent(t.id), { method: 'DELETE' });
+      }
+      await api('/transactions', { method: 'POST', corps: { transactions: a.ventes.map(v => ({ ...v, objet_id: id, origine: 'atelier' })) } });
+    }
     localStorage.removeItem('lc_vers_espace');
     galeries.delete(id);
     vue = (cible ? modeDe(objet(cible)) : (a.objet.situation?.mode === 'achat' ? 'achat' : 'collection')) === 'achat' ? 'guette' : 'collection';

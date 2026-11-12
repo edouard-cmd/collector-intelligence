@@ -124,6 +124,7 @@
   .puce{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:var(--r-puce);
     font-size:12px;font-weight:600;margin:0 4px 6px 0;background:var(--actif);color:var(--encre)}
   .puce.large{background:var(--releve);color:var(--gris);font-weight:500}
+  .puce small{margin-left:6px;font-size:11px;font-weight:500;color:var(--gris);text-transform:uppercase}
   .jauge{height:4px;border-radius:2px;background:var(--bord);margin-top:6px;overflow:hidden;max-width:220px}
   .jauge i{display:block;height:100%;background:var(--bleu)}
   .warn{background:var(--rose-pale);color:#831c4a;border:1px solid #f3c6da;padding:10px 14px;font-size:14px;font-weight:600;
@@ -2118,7 +2119,7 @@ function rendreVerdict() {
   verdictCtx = { mode: s.mode, canal: s.canal, prix: P, devise: D, source, n: base.n, confiance,
     mediane: M, q1: Q1, q3: Q3, position: titre, repere: reco, regle };
   profil.verdict = { mode: s.mode, prix: P, devise: D, position: pos, titre, recommandation: reco, regle,
-    valeur_marche: M, fourchette: [Q1, Q3], base: source, fiches: base.n, confiance,
+    valeur_marche: M, fourchette: [Q1, Q3], base: source, fiches: base.n, confiance, texte: texte.slice(),
     date: new Date().toISOString().slice(0, 10) };
 
   el.innerHTML = `<div class="res">
@@ -2565,13 +2566,46 @@ async function versEspace() {
   const releve = base ? { date: jour, base: lib, nature, n: base.n, mediane: r(base.med), q1: r(base.q1),
     q3: r(base.q3), min: r(base.min), max: r(base.max), devise: ref.dev, confiance } : null;
   // les ventes conclues de CET objet, au prix et dans la devise écrits sur la fiche
+  // La devise de l'analyse est celle de la collectionneuse. Une vente lue en livres ou en dollars
+  // entre convertie au taux de référence de la Banque centrale européenne, comme dans l'analyse,
+  // et le prix exact lu sur la page reste écrit dans sa preuve.
+  const dev = ref?.dev || s.devise || 'EUR';
+  const enDev = f => {
+    const d0 = f.devise || 'EUR';
+    if (d0 === dev) return { prix: f.prix, devise: dev, note: '' };
+    const tx = tauxCache[d0 + dev];
+    if (!tx || !tx.taux) return { prix: f.prix, devise: d0, note: '' };
+    const v = Math.round(f.prix * tx.taux * 100) / 100;
+    return { prix: v, devise: dev, note: `, ${f.prix} ${d0} sur la page, converti au taux BCE${tx.date ? ' du ' + tx.date : ''} (1 ${d0} = ${tx.taux} ${dev})` };
+  };
   const ventes = (marche.fiches || []).filter(f => f.statut === 'vendu' && f.url && f.prix &&
       ['exacte', 'modele'].includes(f.correspondance) && marche.raison && !marche.raison(f))
-    .map(f => ({ prix: f.prix, devise: f.devise || 'EUR', url_source: f.url, plateforme: f.plateforme || null,
+    .map(f => { const c = enDev(f); return { prix: c.prix, devise: c.devise, url_source: f.url, plateforme: f.plateforme || null,
                  libelle: f.titre || null, correspondance: f.correspondance, date: null,
                  // même niveau de preuve que dans l'atelier : « confirmé » veut dire prix relu sur la page ou recopié
                  verifie: niveau(f).cle === 'confirme' ? 1 : 0,
-                 preuve: 'atelier, le ' + jour + ' : ' + niveau(f).lib }));
+                 preuve: 'atelier, le ' + jour + ' : ' + niveau(f).lib + c.note }; });
+  // Le dossier de l'atelier : tout ce que l'analyse a établi, pour que la fiche de l'espace le garde.
+  const st = x => x ? { n: x.n, med: x.med, min: x.min, max: x.max, q1: x.q1 ?? null, q3: x.q3 ?? null } : null;
+  const taux = {};
+  Object.entries(tauxCache).forEach(([k, tx]) => { if (tx && tx.taux && k.slice(3) === dev) taux[k.slice(0, 3)] = { taux: tx.taux, date: tx.date || null }; });
+  const dossier = {
+    date: jour, devise: dev, taux,
+    marche: {
+      lecture: marche.lecture || '', diag: marche.diag || {},
+      resume: ref ? { ventes: st(ref.sv), annonces: st(ref.so), neuf: st(ref.sn), comparables: st(ref.sc) } : null,
+      fiches: (marche.fiches || []).filter(f => f.url).slice(0, 40).map(f => ({
+        titre: f.titre ? String(f.titre).slice(0, 160) : null, url: f.url, plateforme: f.plateforme || f.domaine || null,
+        prix: f.prix ?? null, devise: f.devise || 'EUR', converti: f.prix ? enDev(f).prix : null,
+        statut: f.statut || null, neuf: !!f.neuf, correspondance: f.correspondance || null, etat: f.etat ? String(f.etat).slice(0, 60) : null,
+        preuve: niveau(f).lib, hors_calcul: marche.raison ? marche.raison(f) : null })) },
+    verdict: profil.verdict || null,
+    avis: profil.avis ? { decision: profil.avis.decision || null, phrase: profil.avis.phrase || null, raisonnement: profil.avis.raisonnement || null,
+      argument_negociation: profil.avis.argument_negociation || null, si_authentique: profil.avis.si_authentique || null, date: profil.avis.date || jour } : null,
+    histoire: profil.histoire || null,
+    identification: { certitude_modele: profil.certitude_modele ?? profil.certitude ?? null, certitude_variante: profil.certitude_variante ?? profil.certitude ?? null,
+      facteurs: (profil.facteurs_valeur || []).filter(f => f && f.question).slice(0, 8), facteurs_retenus: profil.facteurs_retenus || [] },
+  };
   const marque = profil.corrections?.marque || profil.marque || null;
   const modele = profil.corrections?.modele || profil.modele || null;
   const nom = nomObjet();
@@ -2600,7 +2634,7 @@ async function versEspace() {
                           : { bas: null, haut: null, devise: null };
         })() },
       notes: $('#contexte').value.trim() || null,
-      situation: { mode: s.mode || 'collection', prix: s.prix, devise: s.devise, date: s.date, canal: s.canal } },
+      situation: { mode: s.mode || 'collection', prix: s.prix, devise: s.devise, date: s.date, canal: s.canal }, dossier },
     releve, ventes,
   };
   try {
