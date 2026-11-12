@@ -29,7 +29,6 @@
   body{margin:0;background:var(--fond);color:var(--marine);
     font:15px/1.55 var(--texte)}
   a{color:var(--marine);text-decoration-color:var(--rose);text-underline-offset:2px}
-  a:hover{color:var(--rose)}
   code{background:var(--marine-pale);padding:1px 5px;border-radius:5px;font-size:.92em}
   .wrap{max-width:1140px;margin:0 auto;padding:10px 18px 80px;
     display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:26px;align-items:start}
@@ -53,7 +52,6 @@
   .etoile.e-b{background:var(--bleu)} .etoile.e-r{background:var(--rose);transform:translateY(6px)}
   .lien-espace{font-weight:700;font-size:13px;text-decoration:none;border:2px solid var(--marine);
     border-radius:999px;padding:6px 14px;white-space:nowrap}
-  .lien-espace:hover{background:var(--marine);color:#fff}
   @media(max-width:620px){
     .lien-espace{margin-left:auto}
     header.marque{padding:12px 16px;gap:10px}
@@ -78,17 +76,17 @@
   textarea{min-height:92px;resize:vertical}
   button{font:inherit;font-weight:700;font-size:14px;background:var(--marine);color:#fff;
     border:2px solid var(--marine);border-radius:999px;padding:10px 22px;cursor:pointer;
-    transition:background .15s,border-color .15s,color .15s}
-  button:hover:not(:disabled):not(.crayon){background:var(--rose);border-color:var(--rose);color:#fff}
+    transition:background-color 150ms ease,border-color 150ms ease,color 150ms ease,transform 160ms var(--ease-out)}
+  button:active:not(:disabled){transform:scale(.97)}
   button.second{background:#fff;color:var(--marine)}
-  button.second:hover:not(:disabled){background:var(--marine-pale);border-color:var(--marine);color:var(--marine)}
   button:focus-visible{outline:3px solid var(--bleu);outline-offset:2px}
   button:disabled{opacity:.38;cursor:not-allowed}
 
   /* dépôt des photos */
   #zone{border:2px dashed var(--filet-fort);border-radius:16px;padding:26px;text-align:center;
-    cursor:pointer;background:var(--fond);transition:background .15s,border-color .15s}
-  #zone:hover{border-color:var(--marine)}
+    cursor:pointer;background:var(--fond);
+    transition:background-color 150ms ease,border-color 150ms ease,transform 160ms var(--ease-out)}
+  #zone:active{transform:scale(.99)}
   #zone.over{background:var(--bleu-pale);border-color:var(--bleu)}
   #zonetxt{font-family:var(--titre);font-size:21px;line-height:1.25}
   #galerie{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:center}
@@ -105,7 +103,8 @@
   .chaine{position:sticky;top:22px}
   .chaine-titre{font-family:var(--titre);font-size:21px;margin:0 0 10px}
   .b{border:2px solid var(--marine);border-radius:12px;background:#fff;padding:8px 12px;margin-bottom:7px;
-    opacity:.34;display:flex;gap:10px;align-items:baseline;transition:opacity .2s}
+    opacity:.34;display:flex;gap:10px;align-items:baseline;
+    transition:opacity 220ms var(--ease-out),background-color 220ms ease,color 220ms ease}
   .b.on{opacity:1}
   .b.on.ia{background:var(--marine);color:#fff}
   .b.on.data{background:var(--bleu);color:var(--marine)}
@@ -150,12 +149,12 @@
   .attente{display:flex;align-items:center;gap:11px;margin-top:12px;
     border:1.5px solid var(--filet-fort);border-radius:12px;background:#fff;padding:11px 14px}
   .rotor{width:19px;height:19px;flex:0 0 19px;border:3px solid var(--marine-pale);
-    border-top-color:var(--rose);border-radius:50%;animation:tourne .8s linear infinite}
+    border-top-color:var(--rose);border-radius:50%;animation:tourne .6s linear infinite}
   @keyframes tourne{to{transform:rotate(360deg)}}
   .attente span{font-size:14px;font-weight:700}
   .attente em{font-size:13px;color:var(--gris);font-style:normal;margin-left:auto;
     font-variant-numeric:tabular-nums}
-  @media(prefers-reduced-motion:reduce){.rotor{animation:none}}
+  @media(prefers-reduced-motion:reduce){.rotor{animation-duration:1.6s}}
   .ok{color:var(--bleu-texte);font-weight:700}
   .choix{display:flex;gap:10px;flex-wrap:wrap}
   .saisie{margin-top:7px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--marine)}
@@ -209,7 +208,6 @@
   input[type=checkbox]{accent-color:var(--marine)}
   .crayon{border:0;background:none;padding:0 5px;font-size:16px;cursor:pointer;
     color:var(--bleu-texte);box-shadow:none;vertical-align:baseline;border-radius:6px}
-  .crayon:hover{color:var(--rose);background:none}
   .crayon:focus-visible{outline:3px solid var(--bleu);outline-offset:1px}
   .edit input{display:inline-block;width:auto;min-width:220px;max-width:100%;padding:5px 9px;
     font-size:14.5px;margin:2px 6px 4px 0}
@@ -219,7 +217,6 @@
   .art{display:grid;grid-template-columns:112px 1fr;gap:4px 12px;padding:9px 10px 9px 12px;
     border-left:4px solid var(--bleu);border-radius:0 10px 10px 0;margin:6px 0;font-size:13.5px}
   .art .px a{font-weight:800;font-size:15px;color:var(--marine)}
-  .art .px a:hover{color:var(--rose)}
   .art .px{white-space:nowrap;line-height:1.25}
   .art .px a{white-space:normal}
   .art .tt{overflow:hidden}
@@ -261,6 +258,24 @@
   pre{background:var(--marine);color:#fff;padding:13px;border-radius:12px;overflow:auto;font-size:12.5px;
     max-height:300px;margin:12px 0 0}
   .etat{font-size:13px;color:var(--gris);margin-top:10px}
+
+  /* ---------- le toucher (Emil Kowalski) : courbes franches, retour à la pression, survols réservés à la souris ---------- */
+  :root{--ease-out:cubic-bezier(.23,1,.32,1)}
+  @media (hover:hover) and (pointer:fine){
+    a:hover{color:var(--rose)}
+    .lien-espace:hover{background:var(--marine);color:#fff}
+    button:hover:not(:disabled):not(.crayon){background:var(--rose);border-color:var(--rose);color:#fff}
+    button.second:hover:not(:disabled){background:var(--marine-pale);border-color:var(--marine);color:var(--marine)}
+    #zone:hover{border-color:var(--marine)}
+    .crayon:hover{color:var(--rose);background:none}
+    .art .px a:hover{color:var(--rose)}
+  }
+  .crayon:active:not(:disabled){transform:none}
+  /* la croix des vignettes garde une zone de toucher de 44 px */
+  .vig button::before{content:"";position:absolute;inset:-10px}
+  @media (prefers-reduced-motion:reduce){
+    button:active:not(:disabled),#zone:active{transform:none}
+  }
 </style>
 </head>
 <body>
