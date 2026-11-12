@@ -364,11 +364,30 @@
   .vente .src{font-size:12.5px;color:var(--gris)}
   .vente a{text-decoration:none;font-weight:500}
   .vente a:hover{text-decoration:underline}
-  .graphe{border:1px solid var(--bord);border-radius:var(--r-carte);padding:12px 14px}
-  .graphe svg{width:100%;height:auto;display:block}
+  .graphe{border:1px solid var(--bord);border-radius:var(--r-carte);padding:14px 16px 12px;position:relative}
+  .graphe svg{width:100%;height:auto;display:block;overflow:visible;touch-action:pan-y}
+  .graphe svg text{font-variant-numeric:tabular-nums}
+  .graphe .cible{cursor:pointer;outline:none}
+  .graphe .cible:focus-visible{stroke:var(--bleu-texte);stroke-width:2}
+  .graphe-tete{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--gris);margin-bottom:6px}
+  .plages{display:inline-flex;border:1px solid var(--filet-fort);border-radius:var(--r-ctrl);overflow:hidden}
+  .plages button{height:28px;padding:0 10px;font-size:12.5px;font-weight:500;background:var(--surface);color:var(--gris);border:0;border-radius:0}
+  .plages button+button{border-left:1px solid var(--filet-fort)}
+  .plages button[aria-pressed="true"]{background:var(--actif);color:var(--encre);font-weight:600}
+  .infobulle{position:absolute;z-index:5;pointer-events:none;background:var(--surface);border:1px solid var(--bord);border-radius:var(--r-ctrl);
+    padding:8px 10px;font-size:12.5px;line-height:1.45;box-shadow:0 8px 24px rgba(19,31,106,.12);min-width:150px;max-width:260px} /* taste-skill-ignore : elle flotte */
+  .infobulle b{display:block;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  .infobulle .quoi{display:flex;align-items:center;gap:6px;color:var(--encre)}
+  .infobulle .quoi i{flex:none;width:12px;height:0;border-top:2px solid}
+  .infobulle .ou{color:var(--gris)}
+  .infobulle .clic{color:var(--bleu-texte);font-weight:600;margin-top:2px}
   .cle-graphe{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--gris);margin-top:8px}
   .cle-graphe span{display:flex;align-items:center;gap:6px}
-  .cle-graphe i{display:inline-block;width:10px;height:10px;border-radius:50%}
+  .cle-graphe svg{width:auto;flex:none}
+  table.chiffres{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  table.chiffres th{text-align:left;font-weight:500;color:var(--gris);font-size:12px;padding:4px 8px 6px 0;border-bottom:1px solid var(--bord)}
+  table.chiffres td{padding:6px 8px 6px 0;border-bottom:1px solid var(--filet);vertical-align:top}
+  table.chiffres td.n,table.chiffres th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   .choix{display:flex;gap:8px;flex-wrap:wrap}
   .choix label{display:flex;gap:8px;align-items:center;font-weight:500;font-size:14px;margin:0;height:38px;
     border:1px solid var(--filet-fort);border-radius:var(--r-ctrl);background:#fff;padding:0 13px;cursor:pointer}
@@ -386,6 +405,9 @@
   button.mini::before{content:"";position:absolute;inset:-12px}
   .note-datee button.mini{position:relative;top:auto;right:auto;flex:0 0 20px}
   .veille-ligne{display:flex;gap:10px;align-items:baseline;font-size:14px;line-height:1.5}
+  .veille-reglage{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .veille-reglage>div{min-width:150px}
+  .veille-reglage label{margin:0 0 6px}
   .anomalie{border:1px solid var(--bord);border-radius:var(--r-carte);padding:14px 16px;margin-bottom:10px;font-size:14px}
   .anomalie .entete{display:flex;gap:10px;align-items:flex-start}
   .anomalie .entete i{width:12px;height:12px;flex:0 0 12px;margin-top:4px;background:var(--rose);
@@ -738,8 +760,8 @@
           <div><label for="ed-bas">Fourchette, bas</label><input type="number" id="ed-bas" min="0" step="any"></div>
           <div><label for="ed-haut">Fourchette, haut</label><input type="number" id="ed-haut" min="0" step="any"></div>
           <div><label for="ed-rythme">Rythme de veille</label>
-            <select id="ed-rythme"><option value="quotidienne">Chaque matin</option><option value="hebdomadaire">Chaque semaine</option>
-              <option value="mensuelle">Chaque mois</option><option value="arretee">Arrêtée</option></select></div>
+            <select id="ed-rythme"><option value="quotidienne">Chaque jour</option><option value="hebdomadaire">Chaque semaine</option>
+              <option value="mensuelle">Chaque mois</option><option value="annuelle">Chaque année</option><option value="arretee">Arrêtée</option></select></div>
         </div>
       </div>
     </div>
@@ -1089,7 +1111,69 @@ const nomDe = o => o?.donnees?.nom || [o?.donnees?.marque, o?.donnees?.modele].f
 const modeDe = o => o.donnees?.situation?.mode === 'achat' ? 'achat' : 'collection';
 const rythmeDe = o => o.donnees?.rythme || (modeDe(o) === 'achat' ? 'arretee' : 'quotidienne');
 const LIB_BASE = { obtenu: 'ventes conclues', demande: 'prix demandés', comparable: 'objets comparables', neuf: 'prix neufs', neuf_ref: 'prix neufs' };
-const LIB_RYTHME = { quotidienne: 'chaque matin', hebdomadaire: 'chaque semaine', mensuelle: 'chaque mois', arretee: 'arrêtée' };
+const LIB_RYTHME = { quotidienne: 'chaque jour', hebdomadaire: 'chaque semaine', mensuelle: 'chaque mois', annuelle: 'chaque année', arretee: 'arrêtée' };
+const JOURS_RYTHME = { quotidienne: 1, hebdomadaire: 7, mensuelle: 30, annuelle: 365 };
+const JOURS_SEMAINE = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+// même règle que le coffre (veilleDue dans espace-worker.js) : le jour choisi, ou en rattrapage s'il a été manqué
+function veilleDue(dn, derniere, quand) {
+  const r = dn.rythme || (dn.situation?.mode === 'achat' ? 'arretee' : 'quotidienne'), j = JOURS_RYTHME[r];
+  if (!j) return false;
+  if (!derniere) return true;
+  const depuis = (quand - Date.parse(derniere)) / 864e5;
+  if (!(depuis >= 0.5)) return false;
+  const jv = String(dn.jour_veille ?? '');
+  const leJour = r === 'hebdomadaire' && /^[1-7]$/.test(jv) ? ((quand.getUTCDay() + 6) % 7) + 1 === +jv
+    : r === 'mensuelle' && /^([1-9]|1\d|2[0-8])$/.test(jv) ? quand.getUTCDate() === +jv
+    : r === 'annuelle' && /^\d{2}-\d{2}$/.test(jv) ? quand.toISOString().slice(5, 10) === jv
+    : null;
+  if (leJour === null) return depuis >= j - 0.5;
+  return leJour || depuis >= j + 1;
+}
+// le prochain matin où la veille passera (elle part du coffre vers 7 h 15, heure de Paris)
+function prochaineVeille(o) {
+  const der = (d.veille || {})[o.id]?.derniere_veille || null;
+  const q = new Date(); q.setUTCHours(6, 17, 0, 0);
+  if (q < new Date()) q.setUTCDate(q.getUTCDate() + 1);
+  for (let k = 0; k < 400; k++, q.setUTCDate(q.getUTCDate() + 1)) if (veilleDue(o.donnees, der, q)) return new Date(q);
+  return null;
+}
+const libJour = q => { const dem = new Date(); dem.setDate(dem.getDate() + 1);
+  return q.toDateString() === new Date().toDateString() ? 'ce matin' : q.toDateString() === dem.toDateString() ? 'demain matin'
+    : q.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long',
+        ...(q.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) + ' au matin'; };
+// le réglage de la fiche : la fréquence, puis le jour qui va avec
+function reglageVeille(o) {
+  const r = rythmeDe(o), jv = String(o.donnees.jour_veille ?? '');
+  const opt = (v, t, sel) => `<option value="${v}" ${sel ? 'selected' : ''}>${t}</option>`;
+  let jour = '';
+  if (r === 'hebdomadaire') jour = `<div><label for="vr-jour">Le jour</label><select id="vr-jour" data-veille-regle>
+      ${/^[1-7]$/.test(jv) ? '' : opt('', 'tous les 7 jours', true)}${JOURS_SEMAINE.map((n, i) => opt(i + 1, n, jv === String(i + 1))).join('')}</select></div>`;
+  if (r === 'mensuelle') jour = `<div><label for="vr-jour">Le jour du mois</label><select id="vr-jour" data-veille-regle>
+      ${/^([1-9]|1\d|2[0-8])$/.test(jv) ? '' : opt('', 'tous les 30 jours', true)}${Array.from({ length: 28 }, (_, i) => opt(i + 1, i ? `le ${i + 1}` : 'le 1er', jv === String(i + 1))).join('')}</select></div>`;
+  if (r === 'annuelle') {
+    const [mm, jj] = /^\d{2}-\d{2}$/.test(jv) ? jv.split('-').map(Number) : [0, 0];
+    jour = `<div><label for="vr-jour">Le jour</label><select id="vr-jour" data-veille-regle>${Array.from({ length: 28 }, (_, i) => opt(i + 1, i ? i + 1 : '1er', jj === i + 1)).join('')}</select></div>
+      <div><label for="vr-mois">Le mois</label><select id="vr-mois" data-veille-regle>${MOIS.map((n, i) => opt(i + 1, n, mm === i + 1)).join('')}</select></div>`;
+  }
+  const q = prochaineVeille(o);
+  return `<div class="veille-reglage"><div><label for="vr-rythme">Fréquence</label><select id="vr-rythme" data-veille-regle>
+      ${['quotidienne', 'hebdomadaire', 'mensuelle', 'annuelle', 'arretee'].map(k => opt(k, LIB_RYTHME[k].replace(/^./, c => c.toUpperCase()), r === k)).join('')}</select></div>${jour}</div>
+    ${r === 'arretee' ? '' : `<p class="aide" style="margin:8px 0 0">Prochain passage ${q ? esc(libJour(q)) : 'bientôt'}. Les passages programmés sont inclus, sans crédit.</p>`}`;
+}
+// enregistre le réglage ; en passant à la semaine, au mois ou à l'année, le jour d'aujourd'hui sert de départ
+async function changerVeille(id) {
+  const r = $('#vr-rythme').value, auj = new Date(), p2 = n => String(n).padStart(2, '0');
+  const changeDeRythme = r !== rythmeDe(objet(id));
+  let jv = null;
+  if (r === 'hebdomadaire') jv = !changeDeRythme && $('#vr-jour') ? $('#vr-jour').value || null : String(((auj.getDay() + 6) % 7) + 1);
+  if (r === 'mensuelle') jv = !changeDeRythme && $('#vr-jour') ? $('#vr-jour').value || null : String(Math.min(auj.getDate(), 28));
+  if (r === 'annuelle') jv = !changeDeRythme && $('#vr-mois') ? `${p2($('#vr-mois').value)}-${p2($('#vr-jour').value)}` : `${p2(auj.getMonth() + 1)}-${p2(Math.min(auj.getDate(), 28))}`;
+  await majDonnees(id, dn => ({ ...dn, rythme: r, jour_veille: jv }));
+  const ouverte = $('#dlg-fiche').open && ficheOuverte === id, y = $('#dlg-fiche').scrollTop;
+  rendreVue();
+  if (ouverte) { ouvrirFiche(id); $('#dlg-fiche').scrollTop = y; }
+}
 const joursDepuis = s => (Date.now() - Date.parse(String(s).length === 10 ? s + 'T12:00:00' : s)) / 864e5;
 const fourchette = c => c.q1 != null ? [c.q1, c.q3] : [c.min, c.max];
 
@@ -1133,7 +1217,7 @@ function voyant(o) {
   if (!v || !v.derniere_veille) return { c: 'jaune', t: 'première veille au prochain matin' };
   if (v.echecs >= 3) return { c: 'rouge', t: `${v.echecs} échecs de veille de suite` };
   if (v.echecs > 0) return { c: 'jaune', t: 'dernière veille en échec, nouvel essai demain' };
-  const j = { quotidienne: 1, hebdomadaire: 7, mensuelle: 30 }[r] || 1;
+  const j = JOURS_RYTHME[r] || 1;
   if (joursDepuis(v.derniere_veille) > 2 * j + 1) return { c: 'jaune', t: `veille en retard, dernière le ${dateFr(v.derniere_veille)}` };
   return { c: 'vert', t: `veille à jour, dernière le ${dateFr(v.derniere_veille)}` };
 }
@@ -1776,11 +1860,12 @@ function ouvrirFiche(id) {
     </div>
 
     <div class="section"><h4>Veille des ventes conclues</h4>
-      <div class="veille-ligne">${point(vo)}<span>${esc(vo.t)}. Rythme : ${esc(LIB_RYTHME[rythmeDe(o)])}.
+      ${reglageVeille(o)}
+      <div class="veille-ligne" style="margin-top:10px">${point(vo)}<span>${esc(vo.t.replace(/^./, c => c.toUpperCase()))}.
         ${v?.bilan && !v.bilan.erreur ? `Dernier passage : ${v.bilan.proposees} vente${v.bilan.proposees > 1 ? 's' : ''} proposée${v.bilan.proposees > 1 ? 's' : ''}, ${v.bilan.nouvelles} retenue${v.bilan.nouvelles > 1 ? 's' : ''}${Object.keys(v.bilan.ecartees || {}).length ? ` (écartées : ${Object.entries(v.bilan.ecartees).map(([k, n]) => `${n} ${k}`).join(', ')})` : ''}.` : ''}
         ${v?.bilan?.erreur ? `Dernière erreur : ${esc(v.bilan.erreur)}.` : ''}</span></div>
-      <div id="fiche-veille" style="margin-top:8px"><button class="second petit" data-veille="${esc(id)}">Lancer la veille maintenant</button>
-        <span class="aide" style="margin-left:8px">${libCredits(CREDITS.veille)}, une minute</span></div>
+      <div id="fiche-veille" style="margin-top:10px"><button class="second petit" data-veille="${esc(id)}">Vérifier maintenant</button>
+        <span class="aide" style="margin-left:8px">${libCredits(CREDITS.veille)}</span></div>
     </div>
 
     ${dossierHtml.histoire}
@@ -1819,6 +1904,7 @@ function ouvrirFiche(id) {
       <button class="second danger" data-supprimer="${esc(id)}" style="margin-left:auto">Supprimer l'objet</button>
     </div>`;
   if (!$('#dlg-fiche').open) $('#dlg-fiche').showModal();
+  brancherGraphe(id);
   if (!memeFiche) $('#dlg-fiche').scrollTop = 0;
   if (!galeries.has(id) && o.a_photo) {
     galeries.set(id, []);
@@ -1838,66 +1924,220 @@ async function majDonnees(id, change) {
   o.donnees = donnees;
 }
 
-/* Le graphique de l'objet : la cote jour après jour (médiane et fourchette), les estimations
-   de l'atelier, les ventes conclues en points, ton prix en pointillés, et la projection de la
-   tendance en tirets. Rien n'est lissé : un point, c'est un chiffre stocké avec sa source. */
+/* Le graphique de l'objet, précis et utilisable : la cote jour après jour avec sa fourchette, les
+   ventes conclues, les estimations de l'atelier, ton prix et la projection de la tendance. Chaque
+   point se survole ou se parcourt au clavier pour lire son prix exact, sa date et sa source ; une
+   vente s'ouvre d'un clic. Les mêmes chiffres sont dans le tableau dessous. Rien n'est lissé : un
+   point, c'est un chiffre stocké avec sa source. Couleurs validées (dataviz) : cote #3b4aa3, ventes
+   #059be1 ; les repères (ton prix, projection, aujourd'hui) restent en gris, ce ne sont pas des données. */
+const SERIE = { cote: '#3b4aa3', vente: '#059be1', repere: '#575e86' };
+let plageGraphe = 'tout';
+const etatsGraphes = new Map();
+const pasRond = brut => { const p = Math.pow(10, Math.floor(Math.log10(brut || 1))); return [1, 2, 2.5, 5, 10].map(k => k * p).find(v => v >= brut) || brut; };
+
+// les repères de dates : des jours sur deux mois, des mois sur trois ans, des années au-delà
+function reperesTemps(x0, x1, place) {
+  const J = 864e5, span = (x1 - x0) / J, max = Math.max(3, Math.floor(place / 86)), out = [];
+  if (span <= 100) {
+    const pas = [1, 2, 7, 14, 21, 28].find(k => span / k <= max) || 28;
+    const t = new Date(x0); t.setHours(12, 0, 0, 0);
+    if (pas >= 7) while (t.getDay() !== 1) t.setDate(t.getDate() + 1);
+    for (; t.getTime() <= x1; t.setDate(t.getDate() + pas))
+      if (t.getTime() >= x0) out.push([t.getTime(), t.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })]);
+  } else if (span <= 1100) {
+    const pas = [1, 2, 3, 6].find(k => span / 30.44 / k <= max) || 6;
+    const t = new Date(new Date(x0).getFullYear(), new Date(x0).getMonth(), 1);
+    for (; t.getTime() <= x1; t.setMonth(t.getMonth() + 1))
+      if (t.getTime() >= x0 && t.getMonth() % pas === 0)
+        out.push([t.getTime(), t.toLocaleDateString('fr-FR', { month: 'short', ...(t.getMonth() === 0 || !out.length ? { year: 'numeric' } : {}) })]);
+  } else {
+    const pas = Math.max(1, Math.ceil(span / 365.25 / max));
+    for (let a = new Date(x0).getFullYear(); new Date(a, 0, 1).getTime() <= x1; a++)
+      if (new Date(a, 0, 1).getTime() >= x0 && a % pas === 0) out.push([new Date(a, 0, 1).getTime(), String(a)]);
+  }
+  return out;
+}
+
 function graphique(o) {
   const c = coteDe(o.id), s = o.donnees.situation || {};
   const dev = c.devise || dernierReleve(o.id)?.devise || s.devise || 'EUR';
-  const cotes = relevesDe(o.id).filter(r => r.source === 'collecte' && r.devise === dev);
-  const estim = estimationsAtelier(o.id).filter(r => r.devise === dev);
-  const ventes = ventesDe(o.id).filter(t => t.devise === dev && !['famille', 'comparable'].includes(t.correspondance))
-    .map(t => ({ ...t, x: Date.parse((t.date || t.cree_le || '').slice(0, 10) + 'T12:00:00'), datee: !!t.date })).filter(t => !isNaN(t.x));
-  const proj = c.projection;
-  const xs = [...cotes.map(r => Date.parse(r.date)), ...estim.map(r => Date.parse(r.date)), ...ventes.map(t => t.x),
-              ...(proj ? [Date.now(), Date.parse(proj.date)] : [])].filter(x => !isNaN(x));
-  if (!xs.length) return `<p class="aide">Le graphique apparaîtra avec la première vente conclue.</p>`;
-  const valeurs = [...cotes.flatMap(r => [r.q1 ?? r.min ?? r.mediane, r.q3 ?? r.max ?? r.mediane]), ...estim.map(r => r.mediane),
-                   ...ventes.map(t => t.prix), ...(proj ? [proj.bas, proj.haut, proj.depart] : [])];
-  if (s.prix && (s.devise || 'EUR') === dev) valeurs.push(s.prix);
-  let x0 = Math.min(...xs), x1 = Math.max(...xs);
-  if (x1 - x0 < 30 * 864e5) { x0 -= 15 * 864e5; x1 += 15 * 864e5; }
-  let y0 = Math.min(...valeurs), y1 = Math.max(...valeurs);
-  const marge = (y1 - y0) * .12 || y1 * .15 || 10; y0 = Math.max(0, y0 - marge); y1 += marge;
-  const brutPas = (y1 - y0) / 4, p10 = Math.pow(10, Math.floor(Math.log10(brutPas || 1)));
-  const pasY = [1, 2, 2.5, 5, 10].map(k => k * p10).find(v => v >= brutPas) || brutPas;
-  y0 = Math.floor(y0 / pasY) * pasY; y1 = Math.ceil(y1 / pasY) * pasY;
-  const W = 760, H = 270, G = 66, D = 18, T = 14, B = 34;
-  const X = x => G + (W - G - D) * (x - x0) / (x1 - x0);
-  const Y = y => T + (H - T - B) * (1 - (y - y0) / (y1 - y0));
+  const J = 864e5, auj = Date.now(), qui = modeDe(o) === 'achat' ? 'prix demandé' : 'ton prix';
+  const jour = x => Date.parse(String(x || '').slice(0, 10) + 'T12:00:00');
+  const toutesCotes = relevesDe(o.id).filter(r => r.source === 'collecte' && r.devise === dev && r.mediane > 0)
+    .map(r => ({ type: 'cote', x: jour(r.date), y: r.mediane, bas: r.q1 ?? r.min ?? r.mediane, haut: r.q3 ?? r.max ?? r.mediane, r }));
+  const toutesEstim = estimationsAtelier(o.id).filter(r => r.devise === dev && r.mediane > 0)
+    .map(r => ({ type: 'estimation', x: jour(r.date), y: r.mediane, bas: r.q1 ?? r.mediane, haut: r.q3 ?? r.mediane, r }));
+  const toutesVentes = ventesDe(o.id).filter(t => t.devise === dev && !['famille', 'comparable'].includes(t.correspondance) && t.prix > 0)
+    .map(t => ({ type: 'vente', x: jour(t.date || t.cree_le), y: t.prix, datee: !!t.date, t })).filter(p => !isNaN(p.x));
+  const P = s.prix > 0 && (s.devise || 'EUR') === dev ? s.prix : null;
+  const proj = c.projection && c.projection.valeur > 0 ? c.projection : null;
+  const xsDonnees = [...toutesCotes, ...toutesEstim, ...toutesVentes].map(p => p.x).filter(x => !isNaN(x));
+  if (!xsDonnees.length) return `<div class="graphe" data-graphe="${esc(o.id)}"><p class="aide" style="margin:0">Le graphique apparaîtra avec la première vente conclue ou la première estimation de l'atelier.</p></div>`;
+
+  // la période : tout, ou les 6 / 12 derniers mois quand l'historique est long
+  const debutDonnees = Math.min(...xsDonnees), long = auj - debutDonnees > 200 * J;
+  const plage = long ? plageGraphe : 'tout';
+  let x1 = Math.max(auj, ...xsDonnees, ...(proj ? [jour(proj.date)] : []));
+  let x0 = plage === '6m' ? auj - 182 * J : plage === '12m' ? auj - 365 * J : debutDonnees;
+  // trop peu de recul : on centre les points sur deux mois plutôt que de les coller au bord
+  if (x1 - x0 < 60 * J) { const milieu = (x0 + x1) / 2; x0 = milieu - 30 * J; x1 = milieu + 30 * J; }
+  const marge = (x1 - x0) * 0.04; x0 -= marge; x1 += marge;
+  const dedans = p => p.x >= x0 && p.x <= x1;
+  const cotes = toutesCotes.filter(dedans), estim = toutesEstim.filter(dedans), ventes = toutesVentes.filter(dedans);
+
+  // l'échelle des prix : des graduations rondes, la fourchette et ton prix toujours dedans
+  const vals = [...cotes.flatMap(p => [p.bas, p.haut]), ...estim.flatMap(p => [p.bas, p.haut, p.y]), ...ventes.map(p => p.y),
+                ...(P ? [P] : []), ...(proj && x1 >= jour(proj.date) ? [proj.bas, proj.haut] : [])].filter(v => v > 0);
+  let y0 = Math.min(...vals), y1 = Math.max(...vals);
+  const air = (y1 - y0) * 0.12 || y1 * 0.2 || 10; y0 = Math.max(0, y0 - air); y1 += air;
+  const pasY = pasRond((y1 - y0) / 4); y0 = Math.floor(y0 / pasY) * pasY; y1 = Math.ceil(y1 / pasY) * pasY;
   const grad = []; for (let v = y0; v <= y1 + pasY / 2; v += pasY) grad.push(v);
-  const mois = [], debut = new Date(x0);
-  for (let t = new Date(debut.getFullYear(), debut.getMonth(), 1); t.getTime() <= x1; t.setMonth(t.getMonth() + 1))
-    if (t.getTime() >= x0) mois.push(t.getTime());
-  const pas = Math.ceil(mois.length / 7) || 1;
-  const bas = r => r.q1 ?? r.min ?? r.mediane, haut = r => r.q3 ?? r.max ?? r.mediane;
-  const bande = cotes.length > 1 ? `<path d="M${cotes.map(r => X(Date.parse(r.date)) + ',' + Y(haut(r))).join(' L')}
-      L${cotes.slice().reverse().map(r => X(Date.parse(r.date)) + ',' + Y(bas(r))).join(' L')} Z" fill="#eef0f5"/>`
-    : cotes.length === 1 ? `<line x1="${X(Date.parse(cotes[0].date))}" x2="${X(Date.parse(cotes[0].date))}" y1="${Y(haut(cotes[0]))}" y2="${Y(bas(cotes[0]))}" stroke="#eef0f5" stroke-width="14" stroke-linecap="round"/>` : '';
-  const xp0 = X(Date.now()), xp1 = proj ? X(Date.parse(proj.date)) : 0;
-  return `<div class="graphe"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="évolution de la cote et des ventes">
-    ${grad.map(v => `<line x1="${G}" x2="${W - D}" y1="${Y(v)}" y2="${Y(v)}" stroke="#eef0f5"/>
-      <text x="${G - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="#575e86">${esc(prix(v, dev))}</text>`).join('')}
-    ${mois.filter((_, i) => i % pas === 0).map(m => `<text x="${X(m)}" y="${H - 12}" text-anchor="middle" font-size="11" fill="#575e86">${esc(new Date(m).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }))}</text>`).join('')}
+
+  // les dimensions : le dessin suit la largeur réelle, le texte garde sa taille
+  const W = Math.round(Math.max(300, innerWidth < 700 ? innerWidth - 66 : Math.min(innerWidth - 150, 880)));
+  const H = W < 520 ? 250 : 300, etroit = W < 520;
+  const G = Math.max(...grad.map(v => prix(v, dev).length)) * 6.6 + 14, D = etroit ? 14 : 24, T = 26, B = 30;
+  const X = x => +(G + (W - G - D) * (x - x0) / (x1 - x0)).toFixed(1);
+  const Y = y => +(T + (H - T - B) * (1 - (y - y0) / (y1 - y0))).toFixed(1);
+  const fx = v => esc(prix(v, dev));
+
+  // les étiquettes posées sur le dessin, sans chevauchement
+  const etiquettes = [];
+  const poser = (x, y, texte, gras) => {
+    const l = texte.length * 6.6 + 6, droite = x + 10 + l < W - 2, ex = droite ? x + 10 : x - 10;
+    const boite = droite ? [ex, y - 9, ex + l, y + 5] : [ex - l, y - 9, ex, y + 5];
+    if (etiquettes.some(b => boite[0] < b[2] && boite[2] > b[0] && boite[1] < b[3] && boite[3] > b[1])) return '';
+    etiquettes.push(boite);
+    return `<text x="${ex}" y="${y + 4}" text-anchor="${droite ? 'start' : 'end'}" font-size="12" ${gras ? 'font-weight="600"' : ''} fill="#131f6a" stroke="#fff" stroke-width="4" paint-order="stroke">${esc(texte)}</text>`;
+  };
+
+  const bande = cotes.length > 1 ? `<path d="M${cotes.map(p => X(p.x) + ',' + Y(p.haut)).join(' L')} L${cotes.slice().reverse().map(p => X(p.x) + ',' + Y(p.bas)).join(' L')} Z" fill="${SERIE.cote}" fill-opacity=".1"/>` : '';
+  const ligne = cotes.length > 1 ? `<polyline fill="none" stroke="${SERIE.cote}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${cotes.map(p => X(p.x) + ',' + Y(p.y)).join(' ')}"/>` : '';
+  const derCote = cotes[cotes.length - 1], derEstim = estim[estim.length - 1];
+  const peu = ventes.length + estim.length <= 6;
+  const xa = X(auj);
+  let h = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(`évolution de la cote en ${dev}, ${ventes.length} ventes conclues, ${estim.length} estimations de l'atelier`)}">
+    ${grad.map(v => `<line x1="${G}" x2="${W - D}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v === y0 ? '#cdd1e0' : '#eef0f5'}"/>
+      <text x="${G - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="11.5" fill="#575e86">${fx(v)}</text>`).join('')}
+    ${reperesTemps(x0, x1, W - G - D).map(([t, lib]) => `<line x1="${X(t)}" x2="${X(t)}" y1="${H - B}" y2="${H - B + 4}" stroke="#cdd1e0"/>
+      <text x="${X(t)}" y="${H - 9}" text-anchor="middle" font-size="11.5" fill="#575e86">${esc(lib)}</text>`).join('')}
+    <line x1="${xa}" x2="${xa}" y1="${T - 8}" y2="${H - B}" stroke="#cdd1e0" stroke-width="1"/>
+    <text x="${xa}" y="${T - 12}" text-anchor="${xa > W - 60 ? 'end' : 'middle'}" font-size="11" fill="#575e86">aujourd'hui</text>
     ${bande}
-    ${proj ? `<path d="M${xp0},${Y(proj.depart)} L${xp1},${Y(proj.haut)} L${xp1},${Y(proj.bas)} Z" fill="rgba(19,31,106,.06)"/>
-      <line x1="${xp0}" y1="${Y(proj.depart)}" x2="${xp1}" y2="${Y(proj.valeur)}" stroke="#575e86" stroke-width="1.5" stroke-dasharray="6 5"/>
-      <text x="${xp1 - 4}" y="${Y(proj.valeur) - 8}" text-anchor="end" font-size="12" font-weight="600" fill="#575e86">projection ${esc(prix(proj.valeur, dev))}</text>` : ''}
-    ${s.prix && (s.devise || 'EUR') === dev ? `<line x1="${G}" x2="${W - D}" y1="${Y(s.prix)}" y2="${Y(s.prix)}" stroke="#575e86" stroke-dasharray="3 4" stroke-width="1.5"/>
-      <text x="${G + 6}" y="${Y(s.prix) - 6}" font-size="12" font-weight="600" fill="#575e86">${modeDe(o) === 'achat' ? 'prix demandé' : 'ton prix'} ${esc(prix(s.prix, dev))}</text>` : ''}
-    ${cotes.length > 1 ? `<polyline fill="none" stroke="#131f6a" stroke-width="2" points="${cotes.map(r => X(Date.parse(r.date)) + ',' + Y(r.mediane)).join(' ')}"/>` : ''}
-    ${cotes.map(r => `<rect x="${X(Date.parse(r.date)) - 4.5}" y="${Y(r.mediane) - 4.5}" width="9" height="9" fill="#131f6a" stroke="#fff" stroke-width="1.5" rx="1"><title>cote ${esc(prix(r.mediane, dev))} le ${esc(dateFr(r.date))}, sur ${r.n} ventes</title></rect>`).join('')}
-    ${estim.map(r => `<path d="M${X(Date.parse(r.date))},${Y(r.mediane) - 7} l7,7 l-7,7 l-7,-7 Z" fill="#fff" stroke="#131f6a" stroke-width="1.8"><title>estimation de l'atelier ${esc(prix(r.mediane, dev))} le ${esc(dateFr(r.date))}</title></path>`).join('')}
-    ${ventes.map(t => `<circle cx="${X(t.x)}" cy="${Y(t.prix)}" r="${t.datee ? 5 : 4.5}" fill="${t.datee ? '#059be1' : '#fff'}" stroke="${t.datee ? '#fff' : '#059be1'}" stroke-width="1.6"><title>${esc(prix(t.prix, t.devise))}, ${t.datee ? 'vendue le ' + esc(dateFr(t.date)) : 'date inconnue, trouvée le ' + esc(dateFr(t.cree_le))}, ${esc(t.plateforme || '')}, ${esc(ORIG[t.origine] || t.origine || '')}</title></circle>`).join('')}
-  </svg>
-  <div class="cle-graphe">
-    ${ventes.some(t => t.datee) ? `<span><i style="background:#059be1"></i>vente conclue</span>` : ''}
-    ${ventes.some(t => !t.datee) ? `<span><i style="background:#fff;border:1.6px solid #059be1"></i>vente sans date, placée au jour où elle a été trouvée</span>` : ''}
-    ${cotes.length ? `<span><i style="background:#131f6a;border-radius:2px"></i>cote du jour</span><span><i style="background:#eef0f5;border-radius:2px;border:1px solid #cdd1e0"></i>fourchette</span>` : ''}
-    ${estim.length ? `<span><i style="background:#fff;transform:rotate(45deg);border-radius:1px;border:1.6px solid #131f6a"></i>estimation de l'atelier</span>` : ''}
-    ${s.prix && (s.devise || 'EUR') === dev ? `<span><i style="height:0;width:14px;border-radius:0;border-top:1.5px dashed #575e86"></i>${modeDe(o) === 'achat' ? 'prix demandé' : 'ton prix'}</span>` : ''}
-    ${proj ? `<span><i style="background:rgba(19,31,106,.12);border-radius:2px"></i>projection de la tendance, pas une prévision</span>` : ''}
-  </div></div>`;
+    ${proj && x1 >= jour(proj.date) ? `<path d="M${xa},${Y(proj.depart)} L${X(jour(proj.date))},${Y(proj.haut)} L${X(jour(proj.date))},${Y(proj.bas)} Z" fill="${SERIE.repere}" fill-opacity=".08"/>
+      <line x1="${xa}" y1="${Y(proj.depart)}" x2="${X(jour(proj.date))}" y2="${Y(proj.valeur)}" stroke="${SERIE.repere}" stroke-width="1.5" stroke-dasharray="5 4"/>` : ''}
+    ${P ? `<line x1="${G}" x2="${W - D}" y1="${Y(P)}" y2="${Y(P)}" stroke="${SERIE.repere}" stroke-width="1.5" stroke-dasharray="4 4"/>` : ''}
+    ${ligne}
+    ${estim.map(p => `${p.haut > p.bas ? `<line x1="${X(p.x)}" x2="${X(p.x)}" y1="${Y(p.haut)}" y2="${Y(p.bas)}" stroke="${SERIE.cote}" stroke-opacity=".35" stroke-width="2" stroke-linecap="round"/>` : ''}
+      <path d="M${X(p.x)},${Y(p.y) - 7} l7,7 l-7,7 l-7,-7 Z" fill="#fff" stroke="${SERIE.cote}" stroke-width="2" stroke-linejoin="round"/>`).join('')}
+    ${derCote ? `<circle cx="${X(derCote.x)}" cy="${Y(derCote.y)}" r="4.5" fill="${SERIE.cote}" stroke="#fff" stroke-width="2"/>` : ''}
+    ${ventes.map(p => `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="${p.datee ? 5 : 4.5}" fill="${p.datee ? SERIE.vente : '#fff'}" stroke="${p.datee ? '#fff' : SERIE.vente}" stroke-width="2"/>`).join('')}`;
+  // les étiquettes : la dernière cote, la dernière estimation, ton prix ; et chaque point quand il y en a peu
+  if (P) h += poser(W - D - 2 - (`${qui} ${prix(P, dev)}`.length * 6.6 + 16), Y(P) - 10, `${qui} ${prix(P, dev)}`, true);
+  if (derCote) h += poser(X(derCote.x), Y(derCote.y), `cote ${prix(derCote.y, dev)}`, true);
+  if (derEstim) h += poser(X(derEstim.x), Y(derEstim.y), `atelier ${prix(derEstim.y, dev)}`, !derCote);
+  if (peu) ventes.forEach(p => { h += poser(X(p.x), Y(p.y), prix(p.y, dev), false); });
+  if (proj && x1 >= jour(proj.date)) h += poser(X(jour(proj.date)), Y(proj.valeur), `projection ${prix(proj.valeur, dev)}`, false);
+
+  // les cibles : plus grandes que les points, au clavier comme à la souris
+  const pts = [...ventes, ...estim, ...(cotes.length ? [derCote] : [])];
+  h += pts.map((p, i) => `<circle class="cible" data-i="${i}" cx="${X(p.x)}" cy="${Y(p.y)}" r="12" fill="transparent" tabindex="0"
+      role="${p.type === 'vente' && lienSur(p.t.url_source) ? 'link' : 'img'}" aria-label="${esc(libPoint(p, dev).join(', '))}"/>`).join('');
+  h += `<line class="viseur" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="#131f6a" stroke-opacity=".35" visibility="hidden"/></svg>`;
+
+  etatsGraphes.set(o.id, { pts, cotes, X, Y, dev, x0, x1, G, D, W, H, T, B });
+  const plages = long ? `<span class="plages" role="group" aria-label="période">${[['6m', '6 mois'], ['12m', '12 mois'], ['tout', 'Tout']].map(([k, l]) =>
+      `<button type="button" data-plage="${k}" aria-pressed="${plage === k}">${l}</button>`).join('')}</span>` : '';
+  const cle = (svg, t) => `<span><svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true">${svg}</svg>${t}</span>`;
+  const legende = [
+    cotes.length > 1 ? cle(`<line x1="1" x2="15" y1="6" y2="6" stroke="${SERIE.cote}" stroke-width="2"/>`, 'cote du jour') : '',
+    cotes.length > 1 ? cle(`<rect x="1" y="2" width="14" height="8" rx="2" fill="${SERIE.cote}" fill-opacity=".1"/>`, 'fourchette') : '',
+    ventes.some(p => p.datee) ? cle(`<circle cx="8" cy="6" r="4.5" fill="${SERIE.vente}"/>`, 'vente conclue') : '',
+    ventes.some(p => !p.datee) ? cle(`<circle cx="8" cy="6" r="4" fill="#fff" stroke="${SERIE.vente}" stroke-width="2"/>`, 'vente sans date, placée au jour où elle a été trouvée') : '',
+    estim.length ? cle(`<path d="M8,1 l5,5 l-5,5 l-5,-5 Z" fill="#fff" stroke="${SERIE.cote}" stroke-width="1.8"/>`, "estimation de l'atelier") : '',
+    P ? cle(`<line x1="1" x2="15" y1="6" y2="6" stroke="${SERIE.repere}" stroke-width="1.5" stroke-dasharray="3 3"/>`, qui) : '',
+    proj && x1 >= jour(proj.date) ? cle(`<line x1="1" x2="15" y1="9" y2="3" stroke="${SERIE.repere}" stroke-width="1.5" stroke-dasharray="3 2"/>`, 'projection, pas une prévision') : '',
+  ].join('');
+  const lignes = [...toutesVentes, ...toutesEstim, ...toutesCotes.slice(-12)].sort((a, b) => b.x - a.x);
+  const table = `<details class="repli"><summary>Les chiffres du graphique <span class="aide">${lignes.length}</span></summary>
+    <table class="chiffres"><thead><tr><th>Date</th><th>Quoi</th><th class="n">Prix</th></tr></thead><tbody>${lignes.map(p => {
+      const [, quoi, ou] = libPoint(p, dev), lien = p.type === 'vente' ? lienSur(p.t.url_source) : null;
+      return `<tr><td>${esc(new Date(p.x).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }))}</td>
+        <td>${esc(quoi)}${ou ? `<br><span class="aide">${lien ? `<a href="${esc(lien)}" target="_blank" rel="noopener noreferrer">${esc(ou)}</a>` : esc(ou)}</span>` : ''}</td>
+        <td class="n">${fx(p.y)}</td></tr>`; }).join('')}</tbody></table></details>`;
+  return `<div class="graphe" data-graphe="${esc(o.id)}">
+    <div class="graphe-tete"><span>${ventes.length} vente${ventes.length > 1 ? 's' : ''} conclue${ventes.length > 1 ? 's' : ''}${estim.length ? `, ${estim.length} estimation${estim.length > 1 ? 's' : ''} de l'atelier` : ''}, en ${esc(dev)}</span>${plages}</div>
+    ${h}<div class="infobulle" hidden></div>
+    <div class="cle-graphe">${legende}</div>${table}</div>`;
+}
+
+// ce que dit un point, en mots : [prix, quoi, d'où et quand]
+function libPoint(p, dev) {
+  const quand = d => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  if (p.type === 'vente') {
+    const t = p.t, site = t.plateforme || domaine(t.url_source);
+    return [prix(p.y, dev), 'vente conclue', `${site ? site + ', ' : ''}${p.datee ? 'vendue le ' + quand(p.x) : 'date inconnue, trouvée le ' + quand(p.x)}`];
+  }
+  if (p.type === 'estimation') return [prix(p.y, dev), "estimation de l'atelier",
+    `le ${quand(p.x)}, d'après ${p.r.n} ${LIB_BASE[p.r.nature] || p.r.base || 'prix'}${p.haut > p.bas ? `, la plupart entre ${prix(p.bas, dev)} et ${prix(p.haut, dev)}` : ''}`];
+  return [prix(p.y, dev), 'cote du jour', `le ${quand(p.x)}, sur ${p.r.n} ventes conclues${p.haut > p.bas ? `, fourchette ${prix(p.bas, dev)} à ${prix(p.haut, dev)}` : ''}`];
+}
+
+// le survol et le clavier : le point le plus proche dans un rayon de 24 px, sinon la cote du jour sous le viseur
+function brancherGraphe(id) {
+  const boite = document.querySelector(`.graphe[data-graphe="${CSS.escape(id)}"]`), e = etatsGraphes.get(id);
+  if (!boite || !e) return;
+  const svg = boite.querySelector('svg'), bulle = boite.querySelector('.infobulle'), viseur = svg?.querySelector('.viseur');
+  boite.querySelectorAll('[data-plage]').forEach(b => b.onclick = () => {
+    plageGraphe = b.dataset.plage;
+    boite.outerHTML = graphique(objet(id));
+    brancherGraphe(id);
+  });
+  if (!svg) return;
+  const montrer = (p, px, py) => {
+    const [val, quoi, ou] = libPoint(p, e.dev);
+    bulle.replaceChildren();
+    const b = document.createElement('b'); b.textContent = val;
+    const q = document.createElement('div'); q.className = 'quoi';
+    const k = document.createElement('i'); k.style.borderColor = p.type === 'vente' ? SERIE.vente : SERIE.cote;
+    q.append(k, document.createTextNode(quoi));
+    const o = document.createElement('div'); o.className = 'ou'; o.textContent = ou;
+    bulle.append(b, q, o);
+    if (p.type === 'vente' && lienSur(p.t.url_source)) { const c = document.createElement('div'); c.className = 'clic'; c.textContent = "Cliquer pour ouvrir l'annonce"; bulle.append(c); }
+    bulle.hidden = false;
+    const r = svg.getBoundingClientRect(), rb = boite.getBoundingClientRect(), k2 = r.width / e.W, bw = bulle.offsetWidth, bh = bulle.offsetHeight;
+    const x = px * k2 + r.left - rb.left, y = py * k2 + r.top - rb.top;
+    bulle.style.left = Math.max(4, Math.min(boite.clientWidth - bw - 4, x + 14 + bw > boite.clientWidth ? x - bw - 14 : x + 14)) + 'px';
+    bulle.style.top = Math.max(4, y - bh - 10) + 'px';
+  };
+  const cacher = () => { bulle.hidden = true; viseur?.setAttribute('visibility', 'hidden'); };
+  const proche = ev => {
+    const r = svg.getBoundingClientRect(), k = e.W / r.width, mx = (ev.clientX - r.left) * k, my = (ev.clientY - r.top) * k;
+    let best = null, dmin = 24 * k;
+    e.pts.forEach(p => { const dd = Math.hypot(e.X(p.x) - mx, e.Y(p.y) - my); if (dd < dmin) { dmin = dd; best = p; } });
+    if (best) return { p: best, x: e.X(best.x), y: e.Y(best.y), marque: true };
+    if (e.cotes.length > 1 && mx >= e.G && mx <= e.W - e.D) {
+      const c = e.cotes.reduce((a, b) => Math.abs(e.X(b.x) - mx) < Math.abs(e.X(a.x) - mx) ? b : a);
+      return { p: c, x: e.X(c.x), y: e.Y(c.y), marque: false };
+    }
+    return null;
+  };
+  svg.onpointermove = ev => {
+    const h = proche(ev);
+    if (!h) return cacher();
+    viseur.setAttribute('x1', h.x); viseur.setAttribute('x2', h.x); viseur.setAttribute('visibility', 'visible');
+    svg.style.cursor = h.marque && h.p.type === 'vente' && lienSur(h.p.t.url_source) ? 'pointer' : 'default';
+    montrer(h.p, h.x, h.y);
+  };
+  svg.onpointerdown = svg.onpointermove;   // au doigt, un appui suffit pour lire le point
+  svg.onpointerleave = cacher;
+  svg.onclick = ev => { const h = proche(ev); if (h?.marque && h.p.type === 'vente' && lienSur(h.p.t.url_source)) window.open(lienSur(h.p.t.url_source), '_blank', 'noopener'); };
+  svg.querySelectorAll('.cible').forEach(c => {
+    const p = e.pts[+c.dataset.i];
+    c.onfocus = () => montrer(p, e.X(p.x), e.Y(p.y));
+    c.onblur = cacher;
+    c.onkeydown = ev => { if ((ev.key === 'Enter' || ev.key === ' ') && p.type === 'vente' && lienSur(p.t.url_source)) { ev.preventDefault(); window.open(lienSur(p.t.url_source), '_blank', 'noopener'); } };
+  });
 }
 
 /* ---------- ajout et modification d'un objet ---------- */
@@ -2566,6 +2806,7 @@ document.addEventListener('click', e => {
   }
 });
 document.addEventListener('change', e => {
+  if (e.target.closest('[data-veille-regle]') && ficheOuverte) return changerVeille(ficheOuverte).catch(err => alert(err.message));
   const coche = e.target.closest('[data-coche]');
   if (coche && ficheOuverte) {
     const i = +coche.dataset.coche;
