@@ -63,7 +63,7 @@ const MODELE_LECTURE = "claude-haiku-4-5-20251001";
 const MODELE_VEILLE = "claude-haiku-4-5-20251001";
 const MODELE_EXPLICATION = "claude-sonnet-5";
 const URL_ESPACE = "https://edouard-cmd.github.io/collector-intelligence/docs/espace.html";
-const RYTHMES = { quotidienne: 1, hebdomadaire: 7, mensuelle: 30 };   // en jours ; « arretee » coupe la veille
+const RYTHMES = { quotidienne: 1, hebdomadaire: 7, mensuelle: 30, annuelle: 365 };   // en jours ; « arretee » coupe la veille
 const JOURS_ATTENTE_RESULTAT = 21;                // au-delà, on arrête de relire seul
 const ID = /^[A-Za-z0-9_-]{6,64}$/;
 
@@ -1378,6 +1378,25 @@ async function veillerObjet(db, env, o) {
   return bilan;
 }
 
+/* La veille est-elle due ce matin ? La collectionneuse choisit la fréquence et, si elle veut, le
+   jour : 1 à 7 (lundi à dimanche) pour la semaine, 1 à 28 pour le mois, « MM-JJ » pour l'année
+   (champ jour_veille). Le jour choisi est tenu ; s'il a été manqué (plafond du matin, panne), la
+   veille se rattrape le lendemain. Sans jour choisi, elle passe à intervalle régulier. */
+function veilleDue(dn, derniere, quand = new Date()) {
+  const r = rythmeDe(dn), j = RYTHMES[r];
+  if (!j) return false;
+  if (!derniere) return true;
+  const depuis = (quand - Date.parse(derniere)) / 864e5;
+  if (!(depuis >= 0.5)) return false;
+  const jv = String(dn.jour_veille ?? "");
+  const leJour = r === "hebdomadaire" && /^[1-7]$/.test(jv) ? ((quand.getUTCDay() + 6) % 7) + 1 === +jv
+    : r === "mensuelle" && /^([1-9]|1\d|2[0-8])$/.test(jv) ? quand.getUTCDate() === +jv
+    : r === "annuelle" && /^\d{2}-\d{2}$/.test(jv) ? quand.toISOString().slice(5, 10) === jv
+    : null;
+  if (leJour === null) return depuis >= j - 0.5;
+  return leJour || depuis >= j + 1;
+}
+
 /* Le matin : les objets dont le rythme de veille est échu, les plus anciens d'abord, trois à
    la fois, avec un plafond pour que la facture reste prévisible. */
 async function veilleQuotidienne(env, email) {
@@ -1386,11 +1405,7 @@ async function veilleQuotidienne(env, email) {
                         LEFT JOIN veille v ON v.objet_id = o.id ${email ? "WHERE o.email = ?" : ""}`);
   const { results } = await (email ? q.bind(email) : q).all();
   const dus = results.map(r => ({ ...r, donnees: lireJSONsur(r.donnees) || {} }))
-    .filter(r => {
-      const j = RYTHMES[rythmeDe(r.donnees)];
-      if (!j) return false;
-      return !r.derniere_veille || Date.now() - Date.parse(r.derniere_veille) >= (j - 0.5) * 864e5;
-    })
+    .filter(r => veilleDue(r.donnees, r.derniere_veille))
     .sort((a, b) => (a.derniere_veille || "").localeCompare(b.derniere_veille || ""))
     .slice(0, Math.min(+env.LIMITE_VEILLE || 20, 100));
   const bilan = { essais: 0, reussites: 0, nouvelles: 0 };
