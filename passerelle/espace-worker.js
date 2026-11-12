@@ -37,7 +37,9 @@
                         (une entrée "@domaine.fr" ouvre tout un domaine)
      ORIGINES           variable, adresses des pages autorisées à appeler le worker
      SESSION_SECRET     secret, longue chaîne aléatoire qui signe les sessions
-     ANTHROPIC_API_KEY  secret, clé de l'API Anthropic
+     PASSERELLE         liaison de service vers collector-passerelle : le coffre emprunte sa clé
+                        Anthropic, sans la connaître (Settings, Bindings, Service binding)
+     ANTHROPIC_API_KEY  secret facultatif, clé propre au coffre ; prioritaire si elle existe
      MODELE_LECTURE     variable facultative, modèle qui lit les pages de lots
      LIMITE_TOURNEE     variable facultative, nombre maximal de lots relus par matin
      BREVO_API_KEY      secret facultatif, clé de l'API d'envoi d'e-mails Brevo
@@ -53,7 +55,7 @@
    comme le reste du moteur. */
 
 const VERSION = "espace-2.0";
-const DUREE_SESSION = 7 * 24 * 3600;              // une semaine, puis reconnexion
+const DUREE_SESSION = 30 * 24 * 3600;             // trente jours, prolongés à chaque visite
 const GOOGLE_JWKS = "https://www.googleapis.com/oauth2/v3/certs";
 const GOOGLE_ISS = ["accounts.google.com", "https://accounts.google.com"];
 const ANTHROPIC = "https://api.anthropic.com/v1/messages";
@@ -275,7 +277,7 @@ async function lireSession(req, env) {
   if (!s.x || s.x < Math.floor(Date.now() / 1000)) throw new Erreur(401, "session expirée, se reconnecter");
   // retirer une adresse de AUTORISES ferme la porte tout de suite, même avec une session ouverte
   if (!estAutorise(s.e, env)) throw new Erreur(403, "cette adresse n'est plus autorisée");
-  return { email: s.e, nom: s.n };
+  return { email: s.e, nom: s.n, x: s.x };
 }
 
 /* ---------- 2. la collection ---------- */
@@ -311,6 +313,8 @@ async function lireEspace(u, env) {
     sante: sante.results,
     config: { email: !!(env.BREVO_API_KEY && env.EMAIL_EXPEDITEUR), rythmes: Object.keys(RYTHMES) },
     credits: await lireCredits(db, u, env),
+    // la session glisse : chaque ouverture de l'espace repart pour trente jours
+    session: { jeton: await creerSession({ email: u.email, nom: u.nom }, env), expire: Math.floor(Date.now() / 1000) + DUREE_SESSION },
     version: VERSION,
   };
 }
@@ -779,18 +783,27 @@ Réponds uniquement par ce JSON, sans texte autour :
  "frais_inclus":null,"extrait":"..."}
 N'utilise jamais de tiret long ni de tiret moyen.`;
 
+/* La clé Anthropic vit dans la passerelle (collector-passerelle). Le coffre la lui emprunte par une
+   liaison de service nommée PASSERELLE, sans jamais la connaître : une seule clé à tenir, une seule
+   facture. Une clé propre au coffre (ANTHROPIC_API_KEY) reste possible et passe alors en premier. */
+const iaPrete = env => !!(env.ANTHROPIC_API_KEY || env.PASSERELLE);
+function versAnthropic(env, corps) {
+  const body = JSON.stringify(corps);
+  if (!env.ANTHROPIC_API_KEY && env.PASSERELLE)
+    return env.PASSERELLE.fetch("https://passerelle/", { method: "POST", body, headers: { "content-type": "application/json" } });
+  if (!env.ANTHROPIC_API_KEY) throw new Erreur(503, "IA non reliée au coffre (liaison PASSERELLE ou clé ANTHROPIC_API_KEY)");
+  return fetch(env.ANTHROPIC_URL || ANTHROPIC, { method: "POST", body,   // ANTHROPIC_URL ne sert qu'aux tests
+    headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" } });
+}
+
 async function demanderLecture(page, url, env) {
-  if (!env.ANTHROPIC_API_KEY) throw new Erreur(503, "clé Anthropic absente du worker");
+  if (!iaPrete(env)) throw new Erreur(503, "IA non reliée au coffre");
   const contenu = `Date du jour : ${aujourdhui()}\nAdresse : ${url}\nTitre de la page : ${page.titre}\n` +
     (page.metas ? `Balises méta :\n${page.metas}\n` : "") +
     (page.ld ? `Données structurées :\n${page.ld}\n` : "") +
     `Texte de la page :\n${condenser(page.texte)}`;
-  const r = await fetch(env.ANTHROPIC_URL || ANTHROPIC, {   // ANTHROPIC_URL ne sert qu'aux tests
-    method: "POST",
-    headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: env.MODELE_LECTURE || MODELE_LECTURE, max_tokens: 700, system: SYS_LECTURE,
-                           messages: [{ role: "user", content: contenu }] }),
-  });
+  const r = await versAnthropic(env, { model: env.MODELE_LECTURE || MODELE_LECTURE, max_tokens: 700, system: SYS_LECTURE,
+                                     messages: [{ role: "user", content: contenu }] });
   if (!r.ok) throw new Erreur(502, `lecture IA impossible (${r.status})`);
   const d = await r.json();
   const t = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("");
@@ -1144,15 +1157,14 @@ async function expliquer(env, dn, a, cote) {
    liste des pages réellement consultées : une adresse qui n'y figure pas est écartée. */
 const propreBlocs = c => (c || []).filter(b => b.type !== "text" || (b.text || "").trim());
 async function claude(env, { model, system, contenu, recherches, max_tokens }) {
-  if (!env.ANTHROPIC_API_KEY) throw new Erreur(503, "clé Anthropic absente du worker");
+  if (!iaPrete(env)) throw new Erreur(503, "IA non reliée au coffre");
   const corps = { model, max_tokens, messages: [{ role: "user", content: contenu }],
     system: system + "\n\nRéponds uniquement par du JSON valide, sans préambule ni balises de code." +
       " N'utilise jamais de tiret long ni de tiret moyen." };
   if (recherches) corps.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: recherches,
                                    user_location: { type: "approximate", country: "FR" } }];
   const appel = async () => {
-    const r = await fetch(env.ANTHROPIC_URL || ANTHROPIC, { method: "POST", body: JSON.stringify(corps),
-      headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" } });
+    const r = await versAnthropic(env, corps);
     if (!r.ok) throw new Erreur(502, `IA indisponible (${r.status})`);
     return r.json();
   };
@@ -1435,18 +1447,14 @@ async function matin(env) {
    porte : seule une session valide peut dépenser des crédits. Le flux de l'API est
    renvoyé tel quel. */
 async function proxyIA(req, env, cors) {
-  if (!env.ANTHROPIC_API_KEY) throw new Erreur(503, "clé Anthropic absente du worker");
+  if (!iaPrete(env)) throw new Erreur(503, "IA non reliée au coffre");
   const c = await req.json();
   if (typeof c.model !== "string" || !/^claude-[a-z0-9.-]+$/.test(c.model)) throw new Erreur(400, "modèle invalide");
   c.max_tokens = Math.min(+c.max_tokens || 4000, 8000);
   if (Array.isArray(c.tools))
     c.tools = c.tools.filter(t => /^web_search/.test(t.type || ""))
                      .map(t => ({ ...t, max_uses: Math.min(+t.max_uses || 4, 10) }));
-  const r = await fetch(env.ANTHROPIC_URL || ANTHROPIC, {
-    method: "POST",
-    headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify(c),
-  });
+  const r = await versAnthropic(env, c);
   return new Response(r.body, { status: r.status,
     headers: { "content-type": r.headers.get("content-type") || "application/json", "cache-control": "no-store", ...cors } });
 }
@@ -1472,7 +1480,7 @@ async function aiguiller(req, env, cors) {
       service: "Le Collectionnaire, espace", version: VERSION,
       base: baseOk, google: !!env.GOOGLE_CLIENT_ID, google_client_id: env.GOOGLE_CLIENT_ID || null,
       autorises: listeEnv(env.AUTORISES).length, session: !!(env.SESSION_SECRET && env.SESSION_SECRET.length >= 24),
-      ia: !!env.ANTHROPIC_API_KEY, origines: listeEnv(env.ORIGINES).length,
+      ia: iaPrete(env), origines: listeEnv(env.ORIGINES).length,
       email: !!(env.BREVO_API_KEY && env.EMAIL_EXPEDITEUR), prestataire: !!env.EMAIL_PRESTATAIRE,
       paiement: !!env.STRIPE_WEBHOOK_SECRET,
     }, 200, cors);

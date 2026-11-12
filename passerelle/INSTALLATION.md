@@ -52,7 +52,7 @@ Sans Brevo, tout marche, mais les alertes restent dans l'espace et son journal.
    | `AUTORISES` | Text | les adresses Google autorisées, séparées par des virgules : celle d'Emilia, `edouard@cobound.fr` |
    | `ORIGINES` | Text | `https://edouard-cmd.github.io` |
    | `SESSION_SECRET` | Secret | une suite aléatoire d'au moins 40 caractères, tirée du gestionnaire de mots de passe |
-   | `ANTHROPIC_API_KEY` | Secret | la même clé que la passerelle de l'atelier |
+   | `PASSERELLE` | Service binding (onglet « Bindings ») | le worker `collector-passerelle` : le coffre emprunte sa clé Anthropic, une seule clé pour tout |
    | `BREVO_API_KEY` | Secret | la clé Brevo de l'étape 2 |
    | `EMAIL_EXPEDITEUR` | Text | l'adresse validée chez Brevo |
    | `EMAIL_PRESTATAIRE` | Text | `edouard@cobound.fr`, prévenue si la collecte échoue trois jours de suite |
