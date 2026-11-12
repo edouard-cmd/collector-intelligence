@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Collectionnaire, mon espace</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<!-- Politique de sécurité : la page ne peut parler qu'au coffre (le worker) et à Google pour la
+     connexion. Si l'adresse du worker change (passation sur le compte d'Emilia), la changer
+     ICI et dans la constante ESPACE plus bas : ce sont les deux seuls endroits. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://www.google.com https://*.gstatic.com https://*.googleusercontent.com; connect-src https://collector-espace.edouard-e8b.workers.dev https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; base-uri 'none'; form-action 'none'">
+<link rel="icon" type="image/png" href="../logo/favicon-64.png">
+<link rel="apple-touch-icon" href="../logo/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ---------- charte Le Collectionnaire, la même que l'atelier ---------- */
+  :root{
+    --marine:#131f6a; --rose:#d62c7c; --jaune:#f8c81f; --bleu:#059be1;
+    --bleu-texte:#0a6fa6; --or-texte:#7a5b00; --rose-texte:#b01f63;
+    --bleu-pale:#e4f4fd; --jaune-pale:#fff5d1; --rose-pale:#fce8f1; --marine-pale:#eceef7;
+    --fond:#f4f5fa; --gris:#5a6189;
+    --filet:rgba(19,31,106,.14); --filet-fort:rgba(19,31,106,.32);
+    --titre:"Boston Angel","DM Serif Display",Georgia,serif;
+    --texte:Montserrat,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--fond);color:var(--marine);font:15px/1.55 var(--texte)}
+  a{color:var(--marine);text-decoration-color:var(--rose);text-underline-offset:2px}
+  a:hover{color:var(--rose)}
+  [hidden]{display:none!important}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 18px 90px}
+
+  /* en-tête */
+  header.marque{background:#fff;padding:14px 24px;margin-bottom:30px;position:relative;
+    display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  header.marque::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:6px;
+    background:linear-gradient(90deg,var(--bleu) 0 33.4%,var(--jaune) 0 66.7%,var(--rose) 0)}
+  header.marque h1{margin:0;line-height:0}
+  header.marque h1 img{height:54px;width:auto;display:block}
+  .devise{margin:0;font-size:12px;font-weight:500;letter-spacing:.34em;display:flex;align-items:center;gap:14px}
+  .devise::before,.devise::after{content:"";width:2px;height:18px;display:block}
+  .devise::before{background:var(--jaune)} .devise::after{background:var(--bleu)}
+  .compte{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600}
+  .compte img{width:32px;height:32px;border-radius:50%;border:2px solid var(--marine);object-fit:cover}
+  .compte a{font-weight:700;text-decoration:none;border:2px solid var(--marine);border-radius:999px;padding:6px 14px}
+  .compte a:hover{background:var(--marine);color:#fff}
+  @media(max-width:700px){
+    header.marque{padding:12px 16px;gap:10px}
+    header.marque h1 img{height:40px}
+    .devise{display:none}
+    .compte .nom{display:none}
+    .compte a,.compte button{padding:5px 11px;font-size:12px}
+  }
+
+  /* boutons et champs, comme dans l'atelier */
+  button{font:inherit;font-weight:700;font-size:14px;background:var(--marine);color:#fff;
+    border:2px solid var(--marine);border-radius:999px;padding:10px 20px;cursor:pointer;
+    transition:background .15s,border-color .15s,color .15s}
+  button:hover:not(:disabled){background:var(--rose);border-color:var(--rose)}
+  button.second{background:#fff;color:var(--marine)}
+  button.second:hover:not(:disabled){background:var(--marine-pale);border-color:var(--marine);color:var(--marine)}
+  button.petit{padding:5px 13px;font-size:12.5px}
+  button.danger{color:var(--rose-texte);border-color:var(--rose)}
+  button.danger:hover:not(:disabled){background:var(--rose);color:#fff;border-color:var(--rose)}
+  button.lien{background:none;border:0;padding:0;color:var(--bleu-texte);text-decoration:underline;font-weight:700}
+  button.lien:hover:not(:disabled){background:none;color:var(--rose)}
+  button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--bleu);outline-offset:2px}
+  button:disabled{opacity:.38;cursor:not-allowed}
+  label{display:block;font-weight:700;font-size:13px;margin:12px 0 5px}
+  input[type=text],input[type=number],input[type=date],input[type=url],input[type=search],textarea,select{
+    width:100%;padding:9px 12px;border:1.5px solid var(--filet-fort);border-radius:10px;
+    background:#fff;color:var(--marine);font:inherit;font-size:14.5px}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--bleu);box-shadow:0 0 0 3px var(--bleu-pale)}
+  textarea{min-height:76px;resize:vertical}
+  .aide{color:var(--gris);font-size:12.5px;margin:4px 0 0;line-height:1.5}
+  .grille2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+  .grille3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:0 12px}
+  @media(max-width:620px){.grille2,.grille3{grid-template-columns:1fr}}
+
+  /* la porte */
+  .porte{max-width:560px;margin:40px auto;background:#fff;border:2px solid var(--marine);border-radius:22px;
+    padding:34px 34px 30px;box-shadow:8px 8px 0 var(--marine);text-align:center}
+  .porte img.mono{width:96px;height:96px;display:block;margin:0 auto 6px}
+  .porte h2{font-family:var(--titre);font-weight:400;font-size:38px;line-height:1.1;margin:6px 0 10px}
+  .porte p{margin:0 auto 18px;max-width:420px}
+  #bouton-google{display:flex;justify-content:center;min-height:44px;margin:22px 0 12px}
+  .porte .rassure{font-size:12.5px;color:var(--gris);margin:14px auto 0}
+  .diag{text-align:left;margin-top:18px;border-top:1.5px solid var(--filet);padding-top:14px;font-size:13px}
+  .diag li{margin:3px 0}
+
+  /* attente, comme dans l'atelier */
+  .attente{display:flex;align-items:center;gap:11px;border:1.5px solid var(--filet-fort);border-radius:12px;
+    background:#fff;padding:11px 14px;margin:12px 0}
+  .rotor{width:19px;height:19px;flex:0 0 19px;border:3px solid var(--marine-pale);border-top-color:var(--rose);
+    border-radius:50%;animation:tourne .8s linear infinite}
+  @keyframes tourne{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion:reduce){.rotor{animation:none}}
+  .attente span{font-size:14px;font-weight:700}
+  .attente em{font-size:13px;color:var(--gris);font-style:normal;margin-left:auto;font-variant-numeric:tabular-nums}
+  .warn{background:var(--rose);color:#fff;padding:10px 14px;font-size:14px;font-weight:700;border-radius:12px;margin:12px 0}
+  .info{background:var(--bleu-pale);border-left:6px solid var(--bleu);border-radius:12px;padding:10px 14px;font-size:14px;margin:12px 0}
+
+  /* bandeau d'arrivée depuis l'atelier */
+  .arrivee{display:grid;grid-template-columns:92px 1fr;gap:16px;align-items:center;background:#fff;
+    border:2px solid var(--marine);border-left:10px solid var(--jaune);border-radius:18px;padding:14px 18px;margin-bottom:22px;
+    box-shadow:5px 5px 0 var(--marine)}
+  .arrivee img{width:92px;height:92px;object-fit:cover;border-radius:12px;border:2px solid var(--marine)}
+  .arrivee h3{margin:0;font-family:var(--titre);font-weight:400;font-size:23px;line-height:1.15}
+  .arrivee .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .arrivee select{width:auto;max-width:100%;padding:7px 10px;font-size:13.5px}
+  @media(max-width:620px){.arrivee{grid-template-columns:1fr}}
+
+  /* chiffres clés */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+  @media(max-width:900px){.kpis{grid-template-columns:1fr 1fr}}
+  .kpi{background:#fff;border:2px solid var(--marine);border-radius:18px;padding:14px 16px}
+  .kpi span{display:block;font-size:11.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--gris)}
+  .kpi b{display:block;font-family:var(--titre);font-weight:400;font-size:32px;line-height:1.15;margin:4px 0 2px;
+    font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .kpi small{display:block;font-size:12.5px;color:var(--gris);line-height:1.4}
+  .kpi.fort{background:var(--marine);color:#fff;box-shadow:5px 5px 0 var(--rose)}
+  .kpi.fort span,.kpi.fort small{color:rgba(255,255,255,.82)}
+  .hausse{color:var(--bleu-texte)} .baisse{color:var(--rose-texte)}
+  .kpi.fort .hausse{color:#8fd6ff} .kpi.fort .baisse{color:#ffb3d4}
+
+  /* à regarder */
+  .alertes{display:grid;gap:8px;margin-bottom:22px}
+  .alerte{display:flex;gap:12px;align-items:flex-start;background:#fff;border:2px solid var(--marine);
+    border-radius:14px;padding:10px 14px;font-size:14px}
+  .alerte i{flex:0 0 12px;height:12px;margin-top:5px;clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%)}
+  .alerte.rose i{background:var(--rose)} .alerte.bleu i{background:var(--bleu)} .alerte.jaune i{background:var(--jaune)}
+  .alerte div{flex:1}
+  .alerte button{flex:0 0 auto}
+
+  /* onglets */
+  .onglets{display:flex;gap:8px;flex-wrap:wrap;border-bottom:2px solid var(--marine);margin-bottom:18px}
+  .onglets button{background:none;color:var(--marine);border:2px solid var(--marine);border-bottom:0;
+    border-radius:14px 14px 0 0;padding:9px 18px;margin-bottom:-2px}
+  .onglets button[aria-selected=true]{background:var(--marine);color:#fff}
+  .onglets button:hover:not([aria-selected=true]){background:var(--marine-pale);border-color:var(--marine);color:var(--marine)}
+  .onglets em{font-style:normal;font-size:12px;opacity:.75;margin-left:4px}
+  .outils{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .outils input[type=search]{flex:1 1 220px;width:auto}
+  .outils select{width:auto}
+
+  /* cartes d'objets */
+  .cartes{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+  .carte{background:#fff;border:2px solid var(--marine);border-radius:18px;overflow:hidden;cursor:pointer;
+    display:flex;flex-direction:column;transition:transform .15s,box-shadow .15s;text-align:left;
+    font:inherit;color:inherit;padding:0}
+  .carte:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--marine);background:#fff;border-color:var(--marine);color:var(--marine)}
+  .carte-photo{aspect-ratio:4/3;background:var(--marine-pale);position:relative;display:block;width:100%}
+  .carte-photo img{width:100%;height:100%;object-fit:cover;display:block}
+  .carte-photo .vide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:var(--titre);font-size:54px;color:var(--filet-fort)}
+  .carte-photo .pastille-lots{position:absolute;top:10px;right:10px;background:var(--jaune);color:var(--marine);
+    border:2px solid var(--marine);border-radius:999px;font-size:11.5px;font-weight:800;padding:2px 10px}
+  .carte-corps{padding:12px 16px 16px;display:block}
+  .univers{display:block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gris)}
+  .carte-titre{display:block;margin:2px 0 8px;font-family:var(--titre);font-weight:400;font-size:21px;line-height:1.15}
+  .cote{display:block}
+  .cote b{font-family:var(--titre);font-weight:400;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
+  .cote small{display:block;font-size:12px;color:var(--gris);line-height:1.4}
+  .ecart{display:inline-block;margin-top:7px;font-size:12.5px;font-weight:700;padding:2px 10px;border-radius:999px;
+    border:1.5px solid currentColor}
+  .sans-cote{font-size:13px;color:var(--gris);font-weight:600}
+  .carte svg{display:block;margin-top:8px}
+  .vide-liste{background:#fff;border:2px dashed var(--filet-fort);border-radius:18px;padding:30px;text-align:center}
+  .vide-liste p{max-width:520px;margin:0 auto 14px}
+
+  /* lots d'enchères */
+  .groupe-titre{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin:22px 0 10px}
+  .lot{display:grid;grid-template-columns:24px 1fr auto;gap:4px 12px;background:#fff;border:2px solid var(--marine);
+    border-left:8px solid var(--bleu);border-radius:14px;padding:12px 14px;margin-bottom:10px;align-items:start}
+  .lot.s-a_relever,.lot.s-a_verifier{border-left-color:var(--jaune)}
+  .lot.s-adjuge{border-left-color:var(--rose)}
+  .lot.s-invendu,.lot.s-retire,.lot.s-sans_resultat{border-left-color:var(--filet-fort)}
+  .lot .ico{width:22px;height:22px;border-radius:5px;border:1.5px solid var(--filet-fort);background:#fff;object-fit:contain;margin-top:2px}
+  .lot .tt{min-width:0}
+  .lot .tt a{font-weight:700;overflow-wrap:anywhere}
+  .lot .meta{font-size:12.5px;color:var(--gris);margin-top:3px;line-height:1.5}
+  .lot .note{font-size:12.5px;color:var(--or-texte);font-weight:600;margin-top:4px}
+  .lot .droite{text-align:right;white-space:nowrap}
+  .lot .droite b{display:block;font-family:var(--titre);font-weight:400;font-size:22px;line-height:1.1}
+  .lot .actions{grid-column:2/4;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .lot .actions select{width:auto;max-width:260px;padding:4px 8px;font-size:12.5px;border-radius:8px}
+  @media(max-width:620px){.lot{grid-template-columns:22px 1fr}.lot .droite{grid-column:2;text-align:left}.lot .actions{grid-column:1/3}}
+  .badge{display:inline-block;font-size:11px;font-weight:800;padding:1px 9px;border-radius:999px;
+    border:1.5px solid var(--marine);background:#fff;margin-right:4px;white-space:nowrap}
+  .badge.b-a_venir,.badge.b-en_cours{background:var(--bleu-pale)}
+  .badge.b-en_cours{background:var(--bleu);color:#fff;border-color:var(--bleu)}
+  .badge.b-a_relever,.badge.b-a_verifier{background:var(--jaune)}
+  .badge.b-adjuge{background:var(--rose);color:#fff;border-color:var(--rose)}
+  .badge.prov{border-color:var(--filet-fort);color:var(--gris);font-weight:700}
+
+  /* journal */
+  .journal{background:#fff;border:2px solid var(--marine);border-radius:18px;padding:6px 18px}
+  .journal div{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:9px 0;border-bottom:1px solid var(--filet);font-size:14px}
+  .journal div:last-child{border-bottom:0}
+  .journal time{font-size:12.5px;color:var(--gris);font-weight:600}
+
+  /* fenêtres */
+  dialog{border:2px solid var(--marine);border-radius:22px;padding:0;max-width:880px;width:calc(100% - 24px);
+    color:var(--marine);box-shadow:8px 8px 0 var(--marine);max-height:calc(100vh - 40px)}
+  dialog::backdrop{background:rgba(19,31,106,.42)}
+  .dlg-tete{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:2px solid var(--marine);
+    position:sticky;top:0;background:#fff;z-index:2}
+  .dlg-tete h2{margin:0;font-family:var(--titre);font-weight:400;font-size:26px;line-height:1.1;flex:1}
+  .fermer{width:38px;height:38px;padding:0;border-radius:50%;font-size:20px;line-height:1;flex:0 0 38px}
+  .dlg-corps{padding:18px 20px 22px}
+  .dlg-pied{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;padding:14px 20px;border-top:1.5px solid var(--filet)}
+  .section{margin-top:22px}
+  .section>h4{margin:0 0 8px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+  .fiche-haut{display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start}
+  @media(max-width:700px){.fiche-haut{grid-template-columns:1fr}}
+  .fiche-photo{width:100%;aspect-ratio:1;object-fit:cover;border:2px solid var(--marine);border-radius:16px;display:block;background:var(--marine-pale)}
+  .fiche-photo-vide{width:100%;aspect-ratio:1;border:2px dashed var(--filet-fort);border-radius:16px;display:flex;
+    align-items:center;justify-content:center;text-align:center;font-size:13px;color:var(--gris);padding:12px}
+  .reco{border:2px solid var(--marine);border-radius:16px;padding:13px 16px;box-shadow:5px 5px 0 var(--marine);background:#fff}
+  .reco span{display:block;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+  .reco b{display:block;font-family:var(--titre);font-weight:400;font-size:34px;line-height:1.1;margin:4px 0 4px;font-variant-numeric:tabular-nums}
+  .reco small{display:block;font-size:12.5px;line-height:1.45}
+  .vente{display:grid;grid-template-columns:100px 1fr auto;gap:10px;align-items:center;padding:7px 0;
+    border-bottom:1px solid var(--filet);font-size:13.5px}
+  .vente:last-child{border-bottom:0}
+  .vente b{font-variant-numeric:tabular-nums}
+  .vente .src{font-size:12px;color:var(--gris)}
+  .graphe{background:#fff;border:1.5px solid var(--filet-fort);border-radius:14px;padding:10px 12px}
+  .graphe svg{width:100%;height:auto;display:block}
+  .cle-graphe{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;margin-top:6px}
+  .cle-graphe span{display:flex;align-items:center;gap:6px}
+  .cle-graphe i{display:inline-block;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--marine)}
+  .choix{display:flex;gap:8px;flex-wrap:wrap}
+  .choix label{display:flex;gap:8px;align-items:center;font-weight:600;font-size:14px;margin:0;
+    border:2px solid var(--marine);border-radius:12px;background:#fff;padding:8px 13px;cursor:pointer}
+  .choix label:has(input:checked){background:var(--marine);color:#fff}
+  .choix input{width:auto;margin:0;accent-color:var(--rose)}
+  .propositions .lot{border-left-color:var(--marine-pale)}
+  .propositions .lot.coche{border-left-color:var(--bleu)}
+  .propositions input[type=checkbox]{width:20px;height:20px;accent-color:var(--marine);margin:2px 0 0}
+  .lecture{font-size:14px;line-height:1.6;font-style:italic;margin:10px 0}
+  /* v2 : tableau de bord, voyants, fiche enrichie */
+  .perfs{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:14px;margin-bottom:12px}
+  @media(max-width:900px){.perfs{grid-template-columns:1fr}}
+  .perf{display:flex;justify-content:space-between;gap:10px;width:100%;background:none;border:0;border-bottom:1px solid var(--filet);
+    border-radius:0;padding:7px 0;color:var(--marine);font-weight:600;font-size:13.5px;text-align:left}
+  .perf:hover:not(:disabled){background:none;color:var(--rose);border-color:var(--filet)}
+  .kpi .perf span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:600;
+    text-transform:none;letter-spacing:0;color:inherit;display:block}
+  .kpi .perf b{font-family:var(--texte);font-size:14px;font-weight:800;display:inline;margin:0;font-variant-numeric:tabular-nums}
+  .kpi small strong{font-weight:800}
+  .kpi .dyn span{font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--marine);display:block}
+  .dyn{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:baseline;padding:4px 0;font-size:13.5px}
+  .dyn b{font-family:var(--titre);font-weight:400;font-size:24px;line-height:1}
+  .dyn button.lien{font-weight:600}
+  .sante-ligne{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:600;margin:4px 0 22px}
+  .sante-ligne .jours{display:inline-flex;gap:4px;margin-left:6px}
+  .voyant{display:inline-block;width:11px;height:11px;border-radius:50%;border:1.5px solid var(--marine);flex:0 0 11px}
+  .v-vert{background:#2bb673} .v-jaune{background:var(--jaune)} .v-rouge{background:var(--rose)} .v-gris{background:#d5d8e6}
+  .pastille-veille{position:absolute;top:10px;left:10px;background:#fff;border-radius:999px;padding:3px;line-height:0}
+  .q-sous{color:var(--bleu-texte)} .q-juste{color:var(--marine)} .q-sur{color:var(--rose-texte)}
+  .ecart.q-sous,.ecart.q-juste,.ecart.q-sur{margin-left:4px}
+  .vignettes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+  .vign{position:relative;width:52px;height:52px}
+  .vign img{width:52px;height:52px;object-fit:cover;border-radius:8px;border:1.5px solid var(--marine);cursor:pointer}
+  button.mini{position:absolute;top:-6px;right:-6px;width:20px;height:20px;padding:0;border-radius:50%;font-size:12px;line-height:1;
+    background:var(--rose);border-color:#fff}
+  .note-datee button.mini{position:static;flex:0 0 20px}
+  .veille-ligne{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.5}
+  .veille-ligne .voyant{margin-top:4px}
+  .anomalie{border:2px solid var(--marine);border-left:8px solid var(--rose);border-radius:14px;padding:12px 14px;margin-bottom:10px;font-size:14px}
+  .anomalie.palier{border-left-color:var(--bleu)}
+  .hyp{display:grid;grid-template-columns:70px 1fr;gap:10px;align-items:start;margin:8px 0;font-size:13.5px;line-height:1.45}
+  .hyp-barre{height:10px;border:1.5px solid var(--marine);border-radius:999px;overflow:hidden;margin-top:5px;background:#fff}
+  .hyp-barre i{display:block;height:100%;background:var(--rose)}
+  label.coche{display:flex;gap:9px;align-items:flex-start;font-weight:500;font-size:14px;margin:6px 0}
+  label.coche input{width:auto;margin-top:3px;accent-color:var(--marine)}
+  .note-datee{display:flex;gap:12px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--filet);font-size:14px}
+  .note-datee time{flex:0 0 96px;font-size:12.5px;color:var(--gris);font-weight:700}
+  .note-datee span{flex:1;white-space:pre-wrap}
+  .details{display:grid;grid-template-columns:160px 1fr;gap:5px 14px;margin:0;font-size:13.5px}
+  .details dt{font-weight:700;color:var(--gris)} .details dd{margin:0}
+  @media(max-width:620px){.details{grid-template-columns:1fr}.details dd{margin-bottom:6px}}
+</style>
+</head>
+<body>
+
+<header class="marque">
+  <h1><img src="../logo/horizontal.png" alt="Le Collectionnaire"></h1>
+  <p class="devise">MON ESPACE</p>
+  <div class="compte" id="compte" hidden>
+    <img id="avatar" alt="" hidden>
+    <span class="nom" id="nom-compte"></span>
+    <a href="atelier.html" id="vers-atelier">l'atelier</a>
+    <button class="second petit" id="deconnexion">se déconnecter</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ======================= la porte ======================= -->
+<section class="porte" id="porte" hidden>
+  <img class="mono" src="../logo/monogramme-512.png" alt="">
+  <h2>Ton espace collection</h2>
+  <p>Tes objets, leur cote dans le temps et les enchères que tu suis, au même endroit,
+     derrière une porte fermée.</p>
+  <div id="bouton-google"></div>
+  <div id="porte-etat"></div>
+  <p class="rassure">Connexion par ton compte Google : aucun mot de passe n'est stocké ici, et seules
+     les adresses autorisées entrent. La session dure une semaine.</p>
+  <div class="diag" id="diag" hidden></div>
+</section>
+
+<!-- ======================= l'espace ======================= -->
+<main id="espace" hidden>
+  <div id="arrivee"></div>
+  <div id="kpis"></div>
+  <div class="alertes" id="alertes"></div>
+
+  <nav class="onglets" role="tablist">
+    <button role="tab" data-vue="collection" aria-selected="true">ma collection <em id="n-collection"></em></button>
+    <button role="tab" data-vue="guette" aria-selected="false">je guette <em id="n-guette"></em></button>
+    <button role="tab" data-vue="encheres" aria-selected="false">enchères suivies <em id="n-encheres"></em></button>
+    <button role="tab" data-vue="journal" aria-selected="false">journal</button>
+  </nav>
+
+  <section id="vue-objets">
+    <div class="outils">
+      <input type="search" id="filtre" placeholder="chercher un objet, une marque, un univers" aria-label="filtrer">
+      <select id="tri" aria-label="trier">
+        <option value="recent">les plus récents</option>
+        <option value="valeur">la cote la plus haute</option>
+        <option value="ecart">le plus gros écart avec ton prix</option>
+        <option value="nom">par nom</option>
+      </select>
+      <button id="ajouter-objet">ajouter un objet</button>
+    </div>
+    <div id="liste-objets"></div>
+  </section>
+
+  <section id="vue-encheres" hidden>
+    <div class="outils">
+      <button id="suivre-lot">suivre un lot par son adresse</button>
+      <button class="second" id="tout-relire">relire toutes les ventes maintenant</button>
+      <span class="aide" id="etat-tournee" style="margin:0">Chaque matin, le coffre relit seul les ventes passées et relève les résultats.</span>
+    </div>
+    <div id="liste-lots"></div>
+  </section>
+
+  <section id="vue-journal" hidden>
+    <div id="liste-journal"></div>
+  </section>
+</main>
+</div>
+
+<!-- ======================= fiche d'un objet ======================= -->
+<dialog id="dlg-fiche" aria-labelledby="fiche-titre">
+  <div class="dlg-tete"><h2 id="fiche-titre">objet</h2><button class="fermer second" data-fermer aria-label="fermer">×</button></div>
+  <div class="dlg-corps" id="fiche-corps"></div>
+</dialog>
+
+<!-- ======================= ajout ou modification ======================= -->
+<dialog id="dlg-edition" aria-labelledby="edition-titre">
+  <div class="dlg-tete"><h2 id="edition-titre">ajouter un objet</h2><button class="fermer second" data-fermer aria-label="fermer">×</button></div>
+  <div class="dlg-corps">
+    <div class="fiche-haut">
+      <div>
+        <div id="ed-photo-zone"></div>
+        <input type="file" id="ed-photo" accept="image/*" hidden>
+        <button class="second petit" id="ed-photo-btn" style="margin-top:8px">choisir la photo principale</button>
+        <p class="aide">Les autres vues s'ajoutent depuis la fiche de l'objet.</p>
+      </div>
+      <div>
+        <label for="ed-nom">nom de l'objet</label>
+        <input type="text" id="ed-nom" placeholder="Hermès Kelly 28 box bordeaux">
+        <div class="grille2">
+          <div><label for="ed-marque">marque</label><input type="text" id="ed-marque"></div>
+          <div><label for="ed-modele">modèle</label><input type="text" id="ed-modele"></div>
+          <div><label for="ed-reference">référence</label><input type="text" id="ed-reference"></div>
+          <div><label for="ed-variante">variante</label><input type="text" id="ed-variante" placeholder="couleur, matière, taille, édition"></div>
+          <div><label for="ed-univers">catégorie</label><input type="text" id="ed-univers" placeholder="sacs de luxe, sneakers, sabres laser"></div>
+          <div><label for="ed-sous-categorie">sous-catégorie</label><input type="text" id="ed-sous-categorie"></div>
+          <div><label for="ed-licence">licence</label><input type="text" id="ed-licence" placeholder="Star Wars, collaboration, édition"></div>
+          <div><label for="ed-tags">tags</label><input type="text" id="ed-tags" placeholder="séparés par des virgules"></div>
+        </div>
+        <label for="ed-provenance">provenance</label>
+        <input type="text" id="ed-provenance" placeholder="succession, première main, collection connue">
+        <label>où en es-tu avec cet objet ?</label>
+        <div class="choix">
+          <label><input type="radio" name="ed-mode" value="collection" checked> il est dans ma collection</label>
+          <label><input type="radio" name="ed-mode" value="achat"> je le guette</label>
+        </div>
+        <div class="grille3">
+          <div><label for="ed-prix" id="ed-prix-lib">prix payé</label><input type="number" id="ed-prix" min="0" step="any"></div>
+          <div><label for="ed-devise">devise</label>
+            <select id="ed-devise"><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option></select></div>
+          <div><label for="ed-date">date</label><input type="date" id="ed-date"></div>
+        </div>
+        <div class="grille3">
+          <div><label for="ed-vendeur">vendeur</label><input type="text" id="ed-vendeur"></div>
+          <div><label for="ed-plateforme">plateforme</label><input type="text" id="ed-plateforme"></div>
+          <div><label for="ed-canal">canal</label>
+            <select id="ed-canal"><option value="">-</option><option value="particuliers">entre particuliers</option>
+              <option value="authentifies">revendeur, dépôt-vente</option><option value="encheres">enchères</option>
+              <option value="neuf">neuf, en boutique</option></select></div>
+        </div>
+        <label for="ed-commentaire">commentaire d'achat</label>
+        <input type="text" id="ed-commentaire" placeholder="négocié, facture, boîte d'origine">
+        <label for="ed-notes">notes générales</label>
+        <textarea id="ed-notes" placeholder="ce dont tu n'es pas sûre, ce qu'il faut savoir sur cette pièce"></textarea>
+
+        <p class="groupe-titre" style="margin-top:20px">signature de veille</p>
+        <p class="aide">Ce que la veille du matin cherche pour trouver les nouvelles ventes conclues de cet objet,
+           et ce qu'elle écarte. Une vente hors fourchette n'entre pas dans la cote.</p>
+        <div class="grille2">
+          <div><label for="ed-termes">termes recherchés, un par ligne</label><textarea id="ed-termes"></textarea></div>
+          <div><label for="ed-exclusions">termes exclus, un par ligne</label><textarea id="ed-exclusions" placeholder="copie&#10;pièces détachées&#10;lot"></textarea></div>
+        </div>
+        <div class="grille3">
+          <div><label for="ed-bas">fourchette, bas</label><input type="number" id="ed-bas" min="0" step="any"></div>
+          <div><label for="ed-haut">fourchette, haut</label><input type="number" id="ed-haut" min="0" step="any"></div>
+          <div><label for="ed-rythme">rythme de veille</label>
+            <select id="ed-rythme"><option value="quotidienne">chaque matin</option><option value="hebdomadaire">chaque semaine</option>
+              <option value="mensuelle">chaque mois</option><option value="arretee">arrêtée</option></select></div>
+        </div>
+      </div>
+    </div>
+    <div id="ed-etat"></div>
+  </div>
+  <div class="dlg-pied">
+    <button class="second" data-fermer>annuler</button>
+    <button id="ed-enregistrer">enregistrer</button>
+  </div>
+</dialog>
+
+<!-- ======================= suivre un lot ======================= -->
+<dialog id="dlg-lot" aria-labelledby="lot-titre">
+  <div class="dlg-tete"><h2 id="lot-titre">suivre un lot</h2><button class="fermer second" data-fermer aria-label="fermer">×</button></div>
+  <div class="dlg-corps">
+    <label for="lot-url">adresse de la page du lot</label>
+    <input type="url" id="lot-url" placeholder="https://...">
+    <p class="aide">La page d'un lot précis, pas celle de la vente entière. Le coffre la lit aussitôt et
+       relève la date et l'estimation écrites dessus.</p>
+    <label for="lot-objet">pour quel objet ?</label>
+    <select id="lot-objet"></select>
+    <div id="lot-etat"></div>
+  </div>
+  <div class="dlg-pied">
+    <button class="second" data-fermer>annuler</button>
+    <button id="lot-valider">suivre ce lot</button>
+  </div>
+</dialog>
+
+<!-- ======================= saisir un résultat ======================= -->
+<dialog id="dlg-resultat" aria-labelledby="res-titre">
+  <div class="dlg-tete"><h2 id="res-titre">saisir le résultat</h2><button class="fermer second" data-fermer aria-label="fermer">×</button></div>
+  <div class="dlg-corps">
+    <p id="res-lot" style="margin:0 0 6px;font-weight:700"></p>
+    <p class="aide">Ouvre la page du lot et recopie ce qu'elle affiche. La vente entrera dans ton historique
+       marquée « recopiée par toi », avec l'adresse du lot comme source.</p>
+    <label>que dit la page ?</label>
+    <div class="choix">
+      <label><input type="radio" name="res-etat" value="adjuge" checked> adjugé</label>
+      <label><input type="radio" name="res-etat" value="invendu"> invendu</label>
+      <label><input type="radio" name="res-etat" value="retire"> retiré de la vente</label>
+    </div>
+    <div id="res-prix-zone">
+      <div class="grille2">
+        <div><label for="res-prix">prix affiché</label><input type="number" id="res-prix" min="0" step="any"></div>
+        <div><label for="res-devise">devise</label>
+          <select id="res-devise"><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option></select></div>
+      </div>
+      <label for="res-frais">ce prix comprend-il les frais acheteur ?</label>
+      <select id="res-frais">
+        <option value="">la page ne le dit pas</option>
+        <option value="oui">oui, frais compris</option>
+        <option value="non">non, prix marteau hors frais</option>
+      </select>
+    </div>
+    <div id="res-etat-msg"></div>
+  </div>
+  <div class="dlg-pied">
+    <button class="second" data-fermer>annuler</button>
+    <button id="res-valider">enregistrer le résultat</button>
+  </div>
+</dialog>
+
+<!-- ======================= chercher des enchères ======================= -->
+<dialog id="dlg-recherche" aria-labelledby="rech-titre">
+  <div class="dlg-tete"><h2 id="rech-titre">chercher des enchères</h2><button class="fermer second" data-fermer aria-label="fermer">×</button></div>
+  <div class="dlg-corps" id="rech-corps"></div>
+  <div class="dlg-pied" id="rech-pied"></div>
+</dialog>
+
+<script>
+/* =====================================================================================
+   Le Collectionnaire, l'espace collectionneur.
+
+   La page ne garde rien : tout vit dans le coffre (le worker collector-espace et sa base).
+   Elle affiche, elle calcule les totaux et les écarts, et elle n'invente aucun chiffre :
+   chaque prix affiché vient soit d'un relevé de l'atelier (calculé sur des fiches avec leur
+   adresse), soit d'une vente conclue lue sur la page d'un lot, soit d'une saisie de la
+   collectionneuse, et il est toujours dit lequel.
+   ===================================================================================== */
+
+const ESPACE = "https://collector-espace.edouard-e8b.workers.dev";   // voir aussi la balise CSP en haut
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+let session = null, d = null, vue = 'collection', sante = null;
+const photos = new Map();         // objet_id vers data:image, chargées à la demande
+let coutSession = 0;
+
+/* ---------- outils d'affichage ---------- */
+
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const lienSur = u => { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : null; } catch { return null; } };
+const domaine = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+const nouvelId = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2));
+const aujourdhui = () => new Date().toISOString().slice(0, 10);
+
+function prix(v, dev = 'EUR') {
+  if (v === null || v === undefined || isNaN(v)) return '-';
+  try { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: dev || 'EUR', maximumFractionDigits: 0 }).format(v); }
+  catch { return Math.round(v) + ' ' + (dev || ''); }
+}
+function dateFr(s, court) {
+  if (!s) return '';
+  const x = new Date(s.length === 10 ? s + 'T12:00:00' : s);
+  if (isNaN(x)) return '';
+  return x.toLocaleDateString('fr-FR', court ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
+}
+const pct = x => (x > 0 ? '+' : '') + Math.round(x * 100) + ' %';
+const joursAvant = s => Math.round((Date.parse(s + 'T12:00:00') - Date.now()) / 864e5);
+const favicon = u => `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domaine(u))}&sz=64`;
+
+/* ---------- le coffre ---------- */
+
+async function api(chemin, { method = 'GET', corps, brut } = {}) {
+  const h = {};
+  if (session) h.Authorization = 'Bearer ' + session.jeton;
+  if (corps !== undefined) h['content-type'] = 'application/json';
+  let r;
+  try {
+    r = await fetch(ESPACE + chemin, { method, headers: h, body: corps === undefined ? undefined : JSON.stringify(corps) });
+  } catch {
+    throw new Error("le coffre ne répond pas : vérifie la connexion internet, ou que le worker est bien déployé");
+  }
+  if (brut) {
+    if (r.status === 401) { deconnecter("ta session a expiré, reconnecte-toi"); throw new Error('session expirée'); }
+    return r;
+  }
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401 || (r.status === 403 && /autoris/.test(j.erreur || ''))) {
+    deconnecter(j.erreur || "ta session a expiré, reconnecte-toi");
+    throw new Error(j.erreur || 'session expirée');
+  }
+  if (!r.ok) throw new Error(j.erreur || `erreur ${r.status}`);
+  return j;
+}
+
+/* ---------- 1. la porte ---------- */
+
+function lireSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem('lc_session') || 'null');
+    if (s && s.jeton && s.expire > Date.now() / 1000 + 60) return s;
+  } catch {}
+  return null;
+}
+
+function attente(texte) {
+  return `<div class="attente"><i class="rotor"></i><span>${esc(texte)}</span></div>`;
+}
+
+async function ouvrirPorte(message) {
+  $('#espace').hidden = true;
+  $('#compte').hidden = true;
+  $('#porte').hidden = false;
+  $('#porte-etat').innerHTML = message ? `<div class="warn">${esc(message)}</div>` : '';
+  if (!sante) {
+    $('#bouton-google').innerHTML = attente('ouverture de la porte');
+    try {
+      const r = await fetch(ESPACE + '/sante');
+      sante = await r.json();
+    } catch {
+      $('#bouton-google').innerHTML = '';
+      $('#porte-etat').innerHTML = `<div class="warn">le coffre est injoignable.</div>
+        <p class="aide">Le worker collector-espace n'est pas encore déployé, ou son adresse a changé.
+        Adresse attendue : ${esc(ESPACE)}</p>`;
+      return;
+    }
+  }
+  const manque = [];
+  if (!sante.base) manque.push("la base D1 n'est pas reliée au worker (liaison BASE)");
+  if (!sante.google) manque.push("GOOGLE_CLIENT_ID n'est pas renseigné");
+  if (!sante.session) manque.push("SESSION_SECRET est absent ou trop court");
+  if (!sante.autorises) manque.push("aucune adresse dans AUTORISES");
+  if (!sante.ia) manque.push("ANTHROPIC_API_KEY est absente (la recherche et la lecture des enchères ne marcheront pas)");
+  $('#diag').hidden = !manque.length;
+  $('#diag').innerHTML = manque.length ? `<b>Réglages à terminer dans Cloudflare :</b><ul>${manque.map(m => `<li>${esc(m)}</li>`).join('')}</ul>` : '';
+  if (!sante.google) { $('#bouton-google').innerHTML = ''; return; }
+  brancherGoogle();
+}
+
+function brancherGoogle() {
+  const go = () => {
+    google.accounts.id.initialize({
+      client_id: sante.google_client_id,
+      callback: recevoirJetonGoogle,
+      ux_mode: 'popup',
+      cancel_on_tap_outside: true,
+      use_fedcm_for_prompt: true,
+    });
+    $('#bouton-google').innerHTML = '';
+    google.accounts.id.renderButton($('#bouton-google'), {
+      theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', locale: 'fr', width: 300 });
+  };
+  if (window.google?.accounts?.id) return go();
+  $('#bouton-google').innerHTML = attente('chargement de la connexion Google');
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.async = true;
+  s.onload = go;
+  s.onerror = () => {
+    $('#bouton-google').innerHTML = '';
+    $('#porte-etat').innerHTML = `<div class="warn">la connexion Google ne se charge pas.</div>
+      <p class="aide">Un bloqueur de publicité ou un réseau filtré peut l'empêcher. Réessaie sans bloqueur.</p>`;
+  };
+  document.head.appendChild(s);
+}
+
+async function recevoirJetonGoogle(rep) {
+  $('#porte-etat').innerHTML = attente('vérification de ton identité');
+  try {
+    const r = await api('/auth/google', { method: 'POST', corps: { credential: rep.credential } });
+    session = { jeton: r.jeton, expire: r.expire, utilisateur: r.utilisateur };
+    localStorage.setItem('lc_session', JSON.stringify(session));
+    $('#porte-etat').innerHTML = '';
+    entrer();
+  } catch (e) {
+    $('#porte-etat').innerHTML = `<div class="warn">${esc(e.message)}</div>`;
+  }
+}
+
+function deconnecter(message) {
+  session = null;
+  d = null;
+  localStorage.removeItem('lc_session');
+  try { window.google?.accounts?.id?.disableAutoSelect(); } catch {}
+  ouvrirPorte(message);
+}
+$('#deconnexion').onclick = () => deconnecter();
+
+/* ---------- 2. entrer ---------- */
+
+async function entrer() {
+  $('#porte').hidden = true;
+  $('#espace').hidden = false;
+  $('#compte').hidden = false;
+  const u = session.utilisateur || {};
+  $('#nom-compte').textContent = u.nom || u.email || '';
+  if (u.photo && lienSur(u.photo)) { $('#avatar').src = u.photo; $('#avatar').hidden = false; }
+  $('#kpis').innerHTML = attente('ouverture de ta collection');
+  await recharger();
+}
+
+async function recharger() {
+  try {
+    d = await api('/espace');
+  } catch (e) {
+    if (session) $('#kpis').innerHTML = `<div class="warn">${esc(e.message)}</div>`;
+    return;
+  }
+  rendreTout();
+}
+
+/* ---------- les calculs : la cote vient du coffre, calculée sur les ventes conclues ---------- */
+
+const objet = id => d.objets.find(o => o.id === id);
+const relevesDe = id => d.releves.filter(r => r.objet_id === id);
+const estimationsAtelier = id => relevesDe(id).filter(r => r.source !== 'collecte');
+const dernierReleve = id => estimationsAtelier(id).slice(-1)[0] || null;           // estimation de l'atelier
+const coteDe = id => (d.cotes || {})[id] || { cotable: false, n: 0, raison: 'aucune vente conclue enregistrée' };
+const valeurDe = id => coteDe(id).cotable ? coteDe(id).mediane : null;
+const ventesDe = id => d.transactions.filter(t => t.objet_id === id);
+const lotsDe = id => d.lots.filter(l => l.objet_id === id);
+const nomDe = o => o?.donnees?.nom || [o?.donnees?.marque, o?.donnees?.modele].filter(Boolean).join(' ') || 'objet sans nom';
+const modeDe = o => o.donnees?.situation?.mode === 'achat' ? 'achat' : 'collection';
+const rythmeDe = o => o.donnees?.rythme || (modeDe(o) === 'achat' ? 'arretee' : 'quotidienne');
+const LIB_BASE = { obtenu: 'ventes conclues', demande: 'prix demandés', comparable: 'objets comparables', neuf: 'prix neufs', neuf_ref: 'prix neufs' };
+const LIB_RYTHME = { quotidienne: 'chaque matin', hebdomadaire: 'chaque semaine', mensuelle: 'chaque mois', arretee: 'arrêtée' };
+const joursDepuis = s => (Date.now() - Date.parse(String(s).length === 10 ? s + 'T12:00:00' : s)) / 864e5;
+const fourchette = c => c.q1 != null ? [c.q1, c.q3] : [c.min, c.max];
+
+/* L'écart entre la cote et ton prix, seulement dans la même devise : on ne compare jamais
+   des euros à des dollars sans taux, et on ne devine pas de taux ici. */
+function ecartDe(o) {
+  const c = coteDe(o.id), s = o.donnees?.situation || {};
+  if (!c.cotable || !s.prix || (s.devise || 'EUR') !== c.devise) return null;
+  return { valeur: c.mediane - s.prix, ratio: (c.mediane - s.prix) / s.prix };
+}
+
+/* La qualification du devis (bloc 4) : ton prix face à la fourchette du marché. */
+function qualification(o) {
+  const c = coteDe(o.id), s = o.donnees?.situation || {};
+  if (!c.cotable || !s.prix || (s.devise || 'EUR') !== c.devise) return null;
+  const [bas, haut] = fourchette(c);
+  const cle = s.prix < bas ? 'sous' : s.prix > haut ? 'sur' : 'juste';
+  return { cle, libelle: { sous: 'sous-coté', juste: 'correctement coté', sur: 'surcoté' }[cle], bas, haut };
+}
+
+/* Pour un objet de la collection, l'écart se lit depuis ton prix : la cote est 22 % au-dessus
+   de ce que tu as payé. Pour un objet guetté, il se lit depuis la cote : le prix demandé est
+   12 % au-dessus du marché, donc cher. */
+function libelleEcart(o, e, classe) {
+  const c = coteDe(o.id), s = o.donnees.situation;
+  if (modeDe(o) === 'achat') {
+    const k = (s.prix - c.mediane) / c.mediane;
+    return `<span class="${classe} ${k <= 0 ? 'hausse' : 'baisse'}">prix demandé ${Math.abs(Math.round(k * 100))} % ${k <= 0 ? 'sous' : 'au-dessus de'} la cote</span>`;
+  }
+  return `<span class="${classe} ${e.ratio >= 0 ? 'hausse' : 'baisse'}">${pct(e.ratio)} ${classe ? 'sur ton prix' : 'entre ton prix et la cote'}</span>`;
+}
+
+const anomaliesDe = (id, jours = 30) => (d.anomalies || []).filter(a => a.objet_id === id && joursDepuis(a.date) <= jours);
+const sens = id => coteDe(id).tendance?.sens || 'inconnue';
+const aSurveiller = o => sens(o.id) === 'baisse' || anomaliesDe(o.id).some(a => a.type !== 'palier') || ((d.veille || {})[o.id]?.echecs || 0) >= 3;
+
+/* Voyant de santé de la veille d'un objet (bloc 3 du devis). */
+function voyant(o) {
+  const v = (d.veille || {})[o.id], r = rythmeDe(o);
+  if (r === 'arretee') return { c: 'gris', t: 'veille arrêtée' };
+  if (!v || !v.derniere_veille) return { c: 'jaune', t: 'première veille au prochain matin' };
+  if (v.echecs >= 3) return { c: 'rouge', t: `${v.echecs} échecs de veille de suite` };
+  if (v.echecs > 0) return { c: 'jaune', t: 'dernière veille en échec, nouvel essai demain' };
+  const j = { quotidienne: 1, hebdomadaire: 7, mensuelle: 30 }[r] || 1;
+  if (joursDepuis(v.derniere_veille) > 2 * j + 1) return { c: 'jaune', t: `veille en retard, dernière le ${dateFr(v.derniere_veille)}` };
+  return { c: 'vert', t: `veille à jour, dernière le ${dateFr(v.derniere_veille)}` };
+}
+
+/* Voyant d'ensemble : la tournée du matin est-elle passée, a-t-elle réussi ? */
+function voyantGlobal() {
+  const s = d.sante || [], auj = s.find(x => x.jour === aujourdhui()), trois = s.slice(0, 3);
+  const surveilles = d.objets.filter(o => rythmeDe(o) !== 'arretee').length;
+  if (!surveilles) return { c: 'gris', t: "aucun objet sous veille pour l'instant" };
+  if (trois.length === 3 && trois.every(x => x.essais > 0 && x.reussites === 0))
+    return { c: 'rouge', t: "la collecte échoue depuis trois jours : le prestataire est prévenu" };
+  if (auj && auj.essais) return { c: auj.reussites === auj.essais ? 'vert' : 'jaune',
+    t: `veille du jour : ${auj.reussites} passe${auj.reussites > 1 ? 's' : ''} réussie${auj.reussites > 1 ? 's' : ''} sur ${auj.essais}, ${auj.nouvelles} nouvelle${auj.nouvelles > 1 ? 's' : ''} vente${auj.nouvelles > 1 ? 's' : ''} conclue${auj.nouvelles > 1 ? 's' : ''}` };
+  return { c: s.length ? 'jaune' : 'gris', t: s.length ? "la veille de ce matin n'est pas encore passée" : 'la première veille passera demain matin' };
+}
+const point = v => `<i class="voyant v-${v.c}" title="${esc(v.t)}"></i>`;
+
+/* ---------- le rendu ---------- */
+
+function rendreTout() {
+  rendreArrivee();
+  rendreKpis();
+  rendreAlertes();
+  rendreVue();
+  const nc = d.objets.filter(o => modeDe(o) === 'collection').length;
+  const ng = d.objets.length - nc;
+  const nl = d.lots.filter(l => ['a_venir', 'en_cours', 'a_relever', 'a_verifier'].includes(l.statut)).length;
+  $('#n-collection').textContent = nc ? `(${nc})` : '';
+  $('#n-guette').textContent = ng ? `(${ng})` : '';
+  $('#n-encheres').textContent = nl ? `(${nl})` : '';
+}
+
+/* Le tableau de bord du devis (bloc 5) : montant investi, valeur actuelle, plus-value,
+   rentabilité, meilleures et moins bonnes performances, objets en progression, en
+   stagnation ou à surveiller. Tout est calculé ici sur les cotes du coffre. */
+function rendreKpis() {
+  const coll = d.objets.filter(o => modeDe(o) === 'collection');
+  const comptes = {};
+  coll.forEach(o => { const c = coteDe(o.id); if (c.cotable) comptes[c.devise] = (comptes[c.devise] || 0) + 1; });
+  const dev = Object.keys(comptes).sort((a, b) => comptes[b] - comptes[a])[0] || 'EUR';
+  let valeur = 0, cotes = 0, investi = 0, investiN = 0, pv = 0, pvBase = 0, pvN = 0;
+  coll.forEach(o => {
+    const c = coteDe(o.id), s = o.donnees.situation || {}, memeDev = (s.devise || 'EUR') === dev;
+    if (c.cotable && c.devise === dev) { valeur += c.mediane; cotes++; }
+    if (s.prix > 0 && memeDev) { investi += s.prix; investiN++; }
+    if (c.cotable && c.devise === dev && s.prix > 0 && memeDev) { pv += c.mediane - s.prix; pvBase += s.prix; pvN++; }
+  });
+  const renta = pvBase ? pv / pvBase : null;
+  const nonCotables = coll.filter(o => !coteDe(o.id).cotable).length;
+  const suivis = d.lots.filter(l => ['a_venir', 'en_cours'].includes(l.statut));
+  const prochain = suivis.filter(l => l.date_vente && l.date_vente >= aujourdhui()).sort((a, b) => a.date_vente.localeCompare(b.date_vente))[0];
+  const adjuges = d.lots.filter(l => l.statut === 'adjuge').length;
+
+  // performances : objets cotés dont le prix payé est connu, dans la même devise
+  const perfs = coll.map(o => ({ o, e: ecartDe(o) })).filter(x => x.e).sort((a, b) => b.e.ratio - a.e.ratio);
+  const ligne = x => `<button class="perf" data-fiche="${esc(x.o.id)}"><span>${esc(nomDe(x.o))}</span>
+    <b class="${x.e.ratio >= 0 ? 'hausse' : 'baisse'}">${pct(x.e.ratio)}</b></button>`;
+  const meilleures = perfs.filter(x => x.e.ratio > 0).slice(0, 3);
+  const moins = perfs.slice().reverse().filter(x => !meilleures.includes(x)).slice(0, 3);
+  const groupes = {
+    progression: coll.filter(o => sens(o.id) === 'hausse'),
+    stagnation: coll.filter(o => sens(o.id) === 'stable'),
+    surveiller: coll.filter(aSurveiller),
+  };
+  const liste = l => l.length ? l.slice(0, 3).map(o => `<button class="lien" data-fiche="${esc(o.id)}">${esc(nomDe(o))}</button>`).join(', ') + (l.length > 3 ? ` et ${l.length - 3} autre${l.length > 4 ? 's' : ''}` : '') : '';
+  const vg = voyantGlobal();
+
+  $('#kpis').innerHTML = `<div class="kpis">
+    <div class="kpi fort"><span>valeur actuelle</span><b>${cotes ? prix(valeur, dev) : '-'}</b>
+      <small>${cotes ? `${cotes} objet${cotes > 1 ? 's' : ''} coté${cotes > 1 ? 's' : ''} sur ${coll.length}` : coll.length ? "aucun objet n'est encore cotable" : 'ajoute ton premier objet'}${nonCotables && cotes ? `, ${nonCotables} non cotable${nonCotables > 1 ? 's' : ''}` : ''}</small></div>
+    <div class="kpi"><span>montant investi</span><b>${investiN ? prix(investi, dev) : '-'}</b>
+      <small>${investiN ? `prix payé connu pour ${investiN} objet${investiN > 1 ? 's' : ''} sur ${coll.length}` : 'indique ce que tu as payé sur tes objets'}</small></div>
+    <div class="kpi"><span>plus-value et rentabilité</span>
+      <b class="${pv >= 0 ? 'hausse' : 'baisse'}">${pvN ? (pv >= 0 ? '+' : '') + prix(pv, dev) : '-'}</b>
+      <small>${pvN ? `rentabilité <strong class="${pv >= 0 ? 'hausse' : 'baisse'}">${pct(renta)}</strong>, sur ${pvN} objet${pvN > 1 ? 's' : ''} coté${pvN > 1 ? 's' : ''} au prix connu` : 'il faut une cote et un prix payé'}</small></div>
+    <div class="kpi"><span>enchères suivies</span><b>${suivis.length}</b>
+      <small>${prochain ? `prochaine : ${esc(dateFr(prochain.date_vente, true))}, ${esc(prochain.maison || domaine(prochain.url))}` : 'aucune vente à venir'}${adjuges ? `, ${adjuges} résultat${adjuges > 1 ? 's' : ''} relevé${adjuges > 1 ? 's' : ''}` : ''}</small></div>
+  </div>
+  ${coll.length ? `<div class="perfs">
+    <div class="kpi"><span>meilleures performances</span>${meilleures.length ? meilleures.map(ligne).join('') : '<small>aucun objet en plus-value pour l\'instant</small>'}</div>
+    <div class="kpi"><span>moins bonnes performances</span>${moins.length ? moins.map(ligne).join('') : '<small>pas assez d\'objets cotés au prix connu</small>'}</div>
+    <div class="kpi"><span>dynamique du marché</span>
+      <div class="dyn"><b class="hausse">${groupes.progression.length}</b><span>en progression ${liste(groupes.progression)}</span></div>
+      <div class="dyn"><b>${groupes.stagnation.length}</b><span>en stagnation ${liste(groupes.stagnation)}</span></div>
+      <div class="dyn"><b class="baisse">${groupes.surveiller.length}</b><span>à surveiller ${liste(groupes.surveiller)}</span></div>
+      <small>${coll.length - groupes.progression.length - groupes.stagnation.length - coll.filter(o => sens(o.id) === 'baisse').length} sans tendance établie (il faut quatre ventes datées sur un mois)</small></div>
+  </div>` : ''}
+  <p class="sante-ligne">${point(vg)} ${esc(vg.t)}${(d.sante || []).length ? `<span class="jours">${(d.sante || []).slice(0, 7).reverse().map(j =>
+    `<i class="voyant v-${!j.essais ? 'gris' : j.reussites === j.essais ? 'vert' : j.reussites ? 'jaune' : 'rouge'}" title="${esc(dateFr(j.jour))} : ${j.reussites}/${j.essais}"></i>`).join('')}</span>` : ''}</p>`;
+}
+
+function rendreAlertes() {
+  const a = [];
+  (d.anomalies || []).filter(x => joursDepuis(x.date) <= 30).forEach(x => {
+    const o = objet(x.objet_id);
+    if (!o) return;
+    a.push({ c: x.type === 'palier' ? 'bleu' : 'rose', id: o.id,
+      h: `<b>${esc(nomDe(o))}</b> : ${esc(x.message)}.${x.explication?.resume ? ` <i>${esc(x.explication.resume)}</i>` : ''}` });
+  });
+  d.lots.filter(l => l.statut === 'a_verifier').forEach(l => a.push({ c: 'jaune', lot: l.id,
+    h: `Résultat à confirmer : <b>${esc(l.titre || domaine(l.url))}</b>. Le robot a lu un résultat dont le prix n'est pas écrit tel quel sur la page.` }));
+  d.lots.filter(l => l.statut === 'en_cours' || (l.statut === 'a_venir' && l.date_vente && joursAvant(l.date_vente) >= 0 && joursAvant(l.date_vente) <= 3))
+    .forEach(l => a.push({ c: 'bleu', lien: l.url,
+      h: `${l.statut === 'en_cours' ? 'Enchères ouvertes' : joursAvant(l.date_vente) === 0 ? "Vente aujourd'hui" : `Vente dans ${joursAvant(l.date_vente)} jour${joursAvant(l.date_vente) > 1 ? 's' : ''}`} :
+          <b>${esc(l.titre || domaine(l.url))}</b>${l.maison ? ' chez ' + esc(l.maison) : ''}${l.estimation_basse ? `, estimation ${prix(l.estimation_basse, l.devise)}${l.estimation_haute ? ' à ' + prix(l.estimation_haute, l.devise) : ''}` : ''}.` }));
+  $('#alertes').innerHTML = a.slice(0, 6).map(x => `<div class="alerte ${x.c}"><i></i><div>${x.h}</div>
+    ${x.id ? `<button class="second petit" data-fiche="${esc(x.id)}">voir</button>` : ''}
+    ${x.lot ? `<button class="second petit" data-resultat="${esc(x.lot)}">saisir</button>` : ''}
+    ${x.lien && lienSur(x.lien) ? `<a class="badge" href="${esc(lienSur(x.lien))}" target="_blank" rel="noopener noreferrer">ouvrir</a>` : ''}</div>`).join('');
+}
+
+function rendreVue() {
+  $$('.onglets button').forEach(b => b.setAttribute('aria-selected', b.dataset.vue === vue));
+  $('#vue-objets').hidden = !['collection', 'guette'].includes(vue);
+  $('#vue-encheres').hidden = vue !== 'encheres';
+  $('#vue-journal').hidden = vue !== 'journal';
+  if (vue === 'collection' || vue === 'guette') rendreObjets();
+  if (vue === 'encheres') rendreLots();
+  if (vue === 'journal') rendreJournal();
+}
+$$('.onglets button').forEach(b => b.onclick = () => { vue = b.dataset.vue; rendreVue(); });
+$('#filtre').oninput = () => rendreObjets();
+$('#tri').onchange = () => rendreObjets();
+
+function rendreObjets() {
+  const mode = vue === 'guette' ? 'achat' : 'collection';
+  const f = $('#filtre').value.trim().toLowerCase();
+  let liste = d.objets.filter(o => modeDe(o) === mode);
+  if (f) liste = liste.filter(o => JSON.stringify([o.donnees.nom, o.donnees.marque, o.donnees.modele, o.donnees.univers,
+    o.donnees.reference, o.donnees.sous_categorie, o.donnees.licence, o.donnees.tags]).toLowerCase().includes(f));
+  const t = $('#tri').value;
+  const cle = {
+    recent: o => -Date.parse(o.cree_le || 0),
+    valeur: o => -(valeurDe(o.id) || 0),
+    ecart: o => -Math.abs(ecartDe(o)?.ratio || 0),
+    nom: o => nomDe(o).toLowerCase(),
+  }[t];
+  liste.sort((a, b) => { const x = cle(a), y = cle(b); return x < y ? -1 : x > y ? 1 : 0; });
+
+  if (!d.objets.filter(o => modeDe(o) === mode).length) {
+    $('#liste-objets').innerHTML = `<div class="vide-liste">
+      <p style="font-family:var(--titre);font-size:24px;margin-bottom:8px">${mode === 'achat' ? 'Rien en vue pour le moment' : 'Ta collection commence ici'}</p>
+      <p>${mode === 'achat'
+        ? "Range ici les objets que tu aimerais acquérir : le coffre cherchera les ventes aux enchères qui les proposent et te dira où en sont les prix."
+        : "Le plus simple : estime un objet dans l'atelier, puis clique sur « ranger dans mon espace » en bas de la synthèse. Sa photo, sa signature de veille et les ventes trouvées arrivent ici, et la veille du matin prend le relais."}</p>
+      <a href="atelier.html"><button>estimer un objet dans l'atelier</button></a>
+      <button class="second" data-ajout="${mode}">l'ajouter à la main</button></div>`;
+    return;
+  }
+  $('#liste-objets').innerHTML = liste.length ? `<div class="cartes">${liste.map(carteObjet).join('')}</div>`
+    : `<p class="aide">Aucun objet ne correspond à « ${esc(f)} ».</p>`;
+  chargerPhotos(liste);
+}
+
+function carteObjet(o) {
+  const c = coteDe(o.id), s = o.donnees.situation || {}, e = ecartDe(o), q = qualification(o), est = dernierReleve(o.id);
+  const lotsActifs = lotsDe(o.id).filter(l => ['a_venir', 'en_cours'].includes(l.statut)).length;
+  const photo = photos.get(o.id);
+  const tend = { hausse: 'en hausse', baisse: 'en baisse', stable: 'stable' }[c.tendance?.sens];
+  return `<button class="carte" data-fiche="${esc(o.id)}" aria-label="ouvrir ${esc(nomDe(o))}">
+    <span class="carte-photo">${photo ? `<img src="${esc(photo)}" alt="">` : `<span class="vide">${esc((nomDe(o)[0] || 'C').toUpperCase())}</span>`}
+      <span class="pastille-veille">${point(voyant(o))}</span>
+      ${lotsActifs ? `<span class="pastille-lots">${lotsActifs} enchère${lotsActifs > 1 ? 's' : ''}</span>` : ''}</span>
+    <span class="carte-corps">
+      <span class="univers">${esc(o.donnees.univers || 'objet')}${o.donnees.licence ? ', ' + esc(o.donnees.licence) : ''}</span>
+      <span class="carte-titre">${esc(nomDe(o))}</span>
+      ${c.cotable ? `<span class="cote"><b>${prix(c.mediane, c.devise)}</b>
+          <small>cote sur ${c.n} vente${c.n > 1 ? 's' : ''} conclue${c.n > 1 ? 's' : ''} en 12 mois${tend ? `, ${tend}` : ''}</small></span>`
+        : `<span class="sans-cote">non cotable</span><small class="aide" style="display:block">${esc(c.raison || '')}${est ? `. Estimation de l'atelier : ${prix(est.mediane, est.devise)}` : ''}</small>`}
+      ${e ? libelleEcart(o, e, 'ecart')
+        : s.prix ? `<span class="aide" style="display:block;margin-top:6px">${modeDe(o) === 'achat' ? 'prix demandé' : 'payé'} ${prix(s.prix, s.devise)}</span>` : ''}
+      ${q ? `<span class="ecart q-${q.cle}">${modeDe(o) === 'achat' ? 'prix' : 'acheté'} ${esc(q.libelle)}</span>` : ''}
+      ${sparkline(o)}
+    </span></button>`;
+}
+
+/* Petite courbe : la cote jour après jour, et les ventes conclues datées. */
+function sparkline(o) {
+  const c = coteDe(o.id);
+  const cotes = relevesDe(o.id).filter(r => r.source === 'collecte');
+  const pts = [
+    ...cotes.map(r => ({ x: Date.parse(r.date), y: r.mediane, k: 'r' })),
+    ...ventesDe(o.id).filter(t => t.date && (!c.devise || t.devise === c.devise)).map(t => ({ x: Date.parse(t.date), y: t.prix, k: 't' })),
+  ].filter(p => !isNaN(p.x)).sort((a, b) => a.x - b.x);
+  if (pts.length < 2) return '';
+  const W = 220, H = 38, xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs) || x0 + 1, y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const X = x => 4 + (W - 8) * (x1 === x0 ? .5 : (x - x0) / (x1 - x0));
+  const Y = y => H - 5 - (H - 10) * (y1 === y0 ? .5 : (y - y0) / (y1 - y0));
+  const rel = pts.filter(p => p.k === 'r');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" aria-hidden="true">
+    ${rel.length > 1 ? `<polyline fill="none" stroke="#131f6a" stroke-width="2" points="${rel.map(p => X(p.x) + ',' + Y(p.y)).join(' ')}"/>`
+      : c.cotable ? `<line x1="4" x2="${W - 4}" y1="${Y(c.mediane)}" y2="${Y(c.mediane)}" stroke="#131f6a" stroke-width="1.5" stroke-dasharray="4 4"/>` : ''}
+    ${pts.filter(p => p.k === 't').map(p => `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="3.5" fill="#d62c7c" stroke="#fff" stroke-width="1.2"/>`).join('')}</svg>`;
+}
+
+/* Les photos de couverture sont chargées après l'affichage, quatre à la fois, puis gardées. */
+async function chargerPhotos(liste) {
+  const file = liste.filter(o => o.a_photo && !photos.has(o.id));
+  const travailleur = async () => {
+    while (file.length) {
+      const o = file.shift();
+      try {
+        const r = await api('/photos/' + encodeURIComponent(o.id));
+        photos.set(o.id, r.data);
+        const img = document.querySelector(`.carte[data-fiche="${CSS.escape(o.id)}"] .carte-photo`);
+        if (img) img.querySelector('.vide')?.replaceWith(Object.assign(document.createElement('img'), { src: r.data, alt: '' }));
+      } catch { photos.set(o.id, null); }
+    }
+  };
+  await Promise.all([travailleur(), travailleur(), travailleur(), travailleur()]);
+}
+
+/* ---------- les enchères ---------- */
+
+const LIB_STATUT = { a_venir: 'à venir', en_cours: 'enchères ouvertes', a_relever: 'résultat attendu',
+  a_verifier: 'résultat à confirmer', adjuge: 'adjugé', invendu: 'invendu', retire: 'retiré', sans_resultat: 'pas de résultat publié' };
+const LIB_PROV = { page: 'lu sur la page', recherche: 'trouvé par la recherche, à confirmer', saisie: 'recopié par toi' };
+
+function rendreLots() {
+  if (!d.lots.length) {
+    $('#liste-lots').innerHTML = `<div class="vide-liste">
+      <p style="font-family:var(--titre);font-size:24px;margin-bottom:8px">Aucune enchère suivie</p>
+      <p>Ouvre un objet et clique sur « chercher des enchères » : le coffre trouve les lots à venir et les
+         résultats récents. Ou colle directement l'adresse d'un lot repéré.</p></div>`;
+    return;
+  }
+  const groupes = [
+    ['à surveiller', l => ['en_cours', 'a_venir'].includes(l.statut), (a, b) => (a.date_vente || '9').localeCompare(b.date_vente || '9')],
+    ['à relever ou à confirmer', l => ['a_relever', 'a_verifier', 'sans_resultat'].includes(l.statut), (a, b) => (b.date_vente || '').localeCompare(a.date_vente || '')],
+    ['résultats', l => ['adjuge', 'invendu', 'retire'].includes(l.statut), (a, b) => (b.date_vente || '').localeCompare(a.date_vente || '')],
+  ];
+  $('#liste-lots').innerHTML = groupes.map(([titre, f, tri]) => {
+    const l = d.lots.filter(f).sort(tri);
+    return l.length ? `<p class="groupe-titre">${titre} (${l.length})</p>${l.map(l => carteLot(l, true)).join('')}` : '';
+  }).join('');
+}
+
+function carteLot(l, avecObjet) {
+  const url = lienSur(l.url);
+  const est = l.estimation_basse || l.estimation_haute
+    ? `estimation ${l.estimation_basse ? prix(l.estimation_basse, l.devise) : '?'}${l.estimation_haute ? ' à ' + prix(l.estimation_haute, l.devise) : ''}
+       <span class="badge prov">${esc(LIB_PROV[l.provenance] || 'source inconnue')}</span>` : '';
+  const quand = l.date_vente ? (l.statut === 'a_venir' && joursAvant(l.date_vente) >= 0
+    ? `le ${dateFr(l.date_vente)}, dans ${joursAvant(l.date_vente)} j` : `le ${dateFr(l.date_vente)}`) : 'date inconnue';
+  const o = objet(l.objet_id);
+  const droite = l.statut === 'adjuge' ? `<b>${prix(l.prix_adjuge, l.devise)}</b><span class="aide">${l.frais_inclus === 1 ? 'frais inclus' : l.frais_inclus === 0 ? 'hors frais' : 'frais non précisés'}</span>`
+    : l.enchere_actuelle && l.statut === 'en_cours' ? `<b>${prix(l.enchere_actuelle, l.devise)}</b><span class="aide">enchère en cours</span>` : '';
+  return `<div class="lot s-${esc(l.statut)}">
+    <img class="ico" src="${esc(favicon(l.url))}" alt="" loading="lazy">
+    <div class="tt">
+      <span class="badge b-${esc(l.statut)}">${esc(LIB_STATUT[l.statut] || l.statut)}</span>
+      ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(l.titre || domaine(l.url))}</a>` : esc(l.titre)}
+      <div class="meta">${esc(l.maison || domaine(l.url))}, ${esc(quand)}${est ? '<br>' + est : ''}
+        ${avecObjet ? `<br>${o ? `pour <button class="lien" data-fiche="${esc(o.id)}">${esc(nomDe(o))}</button>` : 'lié à aucun objet'}` : ''}
+        ${l.derniere_lecture ? `<br>dernière lecture le ${esc(dateFr(l.derniere_lecture))}` : ''}</div>
+      ${l.note ? `<div class="note">${esc(l.note)}</div>` : ''}
+      ${l.extrait && ['adjuge', 'a_verifier'].includes(l.statut) ? `<div class="meta">sur la page : « ${esc(l.extrait)} »</div>` : ''}
+    </div>
+    <div class="droite">${droite}</div>
+    <div class="actions">
+      ${!['adjuge', 'invendu', 'retire'].includes(l.statut) ? `<button class="second petit" data-relire="${esc(l.id)}">relire la page</button>` : ''}
+      ${l.statut !== 'adjuge' ? `<button class="second petit" data-resultat="${esc(l.id)}">saisir le résultat</button>` : ''}
+      ${avecObjet ? `<select data-lier="${esc(l.id)}" aria-label="lier à un objet"><option value="">lier à un objet</option>
+        ${d.objets.map(x => `<option value="${esc(x.id)}" ${x.id === l.objet_id ? 'selected' : ''}>${esc(nomDe(x))}</option>`).join('')}</select>` : ''}
+      <button class="second petit" data-retirer-lot="${esc(l.id)}">ne plus suivre</button>
+    </div></div>`;
+}
+
+function rendreJournal() {
+  $('#liste-journal').innerHTML = d.journal.length ? `<div class="journal">${d.journal.map(j =>
+    `<div><time>${esc(dateFr(j.date))}</time><span>${esc(j.message)}</span></div>`).join('')}</div>`
+    : `<p class="aide">Le journal se remplit au fil des ajouts et des résultats d'enchères.</p>`;
+}
+
+/* ---------- la fiche d'un objet ---------- */
+
+let ficheOuverte = null;
+const galeries = new Map();       // objet_id vers toutes ses photos, chargées à l'ouverture de la fiche
+const ORIG = { atelier: "trouvée par l'atelier", veille: 'trouvée par la veille du matin', enchere: 'enchère suivie, lue sur la page',
+               saisie: 'recopiée par toi' };
+const LIB_ETAT_AUTH = { faible: 'risque faible', moyen: 'risque moyen', 'élevé': 'risque élevé' };
+
+function ouvrirFiche(id) {
+  const o = objet(id);
+  if (!o) return;
+  const memeFiche = $('#dlg-fiche').open && ficheOuverte === id;
+  ficheOuverte = id;
+  const dn = o.donnees, s = dn.situation || {}, c = coteDe(id), e = ecartDe(o), q = qualification(o), est = dernierReleve(id);
+  const ventes = ventesDe(id).slice().sort((a, b) => (b.date || b.cree_le || '').localeCompare(a.date || a.cree_le || ''));
+  const lots = lotsDe(id), v = (d.veille || {})[id], vo = voyant(o), anomalies = anomaliesDe(id, 365);
+  const sig = dn.signature || {}, auth = dn.authenticite, notes = (dn.notes_datees || []).slice().sort((a, b) => b.date.localeCompare(a.date));
+  const gal = galeries.get(id), couverture = photos.get(id);
+  $('#fiche-titre').textContent = nomDe(o);
+  const tend = c.tendance || {};
+  const libTend = { hausse: 'en hausse', baisse: 'en baisse', stable: 'stable' }[tend.sens];
+
+  $('#fiche-corps').innerHTML = `
+    <div class="fiche-haut">
+      <div>
+        ${couverture ? `<img class="fiche-photo" src="${esc(couverture)}" alt="">` : `<div class="fiche-photo-vide">pas de photo</div>`}
+        <div class="vignettes">${(gal || []).map(p => `<span class="vign"><img src="${esc(p.data)}" alt="" data-voir="${esc(p.id)}">
+            <button class="mini" data-suppr-photo="${esc(p.id)}" aria-label="retirer cette vue">×</button></span>`).join('')}
+          ${(gal || []).length < 8 ? `<button class="second petit" data-ajout-photo="${esc(id)}">ajouter une vue</button>` : ''}</div>
+      </div>
+      <div>
+        <span class="univers">${esc([dn.univers, dn.sous_categorie, dn.licence].filter(Boolean).join(', ') || 'objet')}${modeDe(o) === 'achat' ? ', je le guette' : ', dans ma collection'}</span>
+        ${dn.description ? `<p style="margin:6px 0 10px;font-size:14px;line-height:1.55">${esc(dn.description)}</p>` : ''}
+        ${c.cotable ? `<div class="reco"><span>cote au ${esc(dateFr(aujourdhui()))}</span><b>${prix(c.mediane, c.devise)}</b>
+          <small>médiane de ${c.n} vente${c.n > 1 ? 's' : ''} conclue${c.n > 1 ? 's' : ''} sur douze mois, moyenne ${prix(c.moyenne, c.devise)},
+          fourchette ${prix(fourchette(c)[0], c.devise)} à ${prix(fourchette(c)[1], c.devise)}, volatilité ${String(c.volatilite).replace('.', ',')} %, confiance ${esc(c.confiance)}.
+          ${c.verifiees < c.n ? `${c.verifiees} prix sur ${c.n} relus sur leur page par le robot.` : 'Tous les prix ont été relus sur leur page.'}
+          ${c.n - c.datees ? `${c.n - c.datees} vente${c.n - c.datees > 1 ? 's' : ''} sans date, comptée${c.n - c.datees > 1 ? 's' : ''} au jour où elle${c.n - c.datees > 1 ? 's ont' : ' a'} été trouvée${c.n - c.datees > 1 ? 's' : ''}.` : ''}</small></div>`
+          : `<div class="reco"><span>cote</span><b>non cotable</b><small>${esc(c.raison || '')}. La règle : une cote seulement à partir de trois
+              ventes conclues sur douze mois ; les prix demandés n'y entrent jamais.${est ? ` Estimation de l'atelier le ${esc(dateFr(est.date))} :
+              ${prix(est.mediane, est.devise)}, sur ${est.n} ${esc(LIB_BASE[est.nature] || est.base || 'fiches')}.` : ''}</small></div>`}
+        <p style="margin:12px 0 0;font-size:14px;line-height:1.6">
+          ${s.prix ? `${modeDe(o) === 'achat' ? 'Prix demandé' : 'Payé'} <b>${prix(s.prix, s.devise)}</b>${s.date ? ' le ' + esc(dateFr(s.date)) : ''}${s.vendeur ? ', à ' + esc(s.vendeur) : ''}${s.plateforme ? ', sur ' + esc(s.plateforme) : ''}.` : ''}
+          ${e ? ' ' + libelleEcart(o, e, '') + '.' : ''}
+          ${q ? `<br>Ton prix ${modeDe(o) === 'achat' ? 'demandé' : "d'achat"} est <b class="q-${q.cle}">${esc(q.libelle)}</b> : la fourchette du marché va de ${prix(q.bas, c.devise)} à ${prix(q.haut, c.devise)}.` : ''}
+          ${c.cotable ? `<br>Tendance : ${libTend ? `<b>${libTend}</b>, ${tend.pente_mois > 0 ? '+' : ''}${String(tend.pente_mois).replace('.', ',')} % par mois sur ${tend.n} ventes datées étalées sur ${tend.jours} jours${c.hors_rythme ? `, sans ${c.hors_rythme === 1 ? 'la vente exceptionnelle' : `les ${c.hors_rythme} ventes exceptionnelles`}` : ''}${tend.r2 != null ? ` (la droite explique ${Math.round(tend.r2 * 100)} % des écarts)` : ''}${tend.projection_refusee ? `, ${esc(tend.projection_refusee)}` : ''}` : esc(tend.raison || 'pas encore établie')}.` : ''}
+          ${c.projection ? `<br>Si cette tendance se prolonge : <b>${prix(c.projection.valeur, c.devise)}</b> vers le ${esc(dateFr(c.projection.date))}, probablement entre ${prix(c.projection.bas, c.devise)} et ${prix(c.projection.haut, c.devise)}. C'est le prolongement des ventes passées, pas une prévision.` : ''}
+          ${dn.verdict?.recommandation ? `<br>Repère de l'atelier${dn.verdict.date ? ' le ' + esc(dateFr(dn.verdict.date)) : ''} : <b>${esc(dn.verdict.recommandation)}</b>.` : ''}</p>
+      </div>
+    </div>
+
+    <div class="section"><h4>veille des ventes conclues</h4>
+      <div class="veille-ligne">${point(vo)}<span>${esc(vo.t)}. Rythme : ${esc(LIB_RYTHME[rythmeDe(o)])}.
+        ${v?.bilan && !v.bilan.erreur ? `Dernière passe : ${v.bilan.recherches} recherche${v.bilan.recherches > 1 ? 's' : ''}, ${v.bilan.proposees} vente${v.bilan.proposees > 1 ? 's' : ''} proposée${v.bilan.proposees > 1 ? 's' : ''}, ${v.bilan.nouvelles} retenue${v.bilan.nouvelles > 1 ? 's' : ''}${Object.keys(v.bilan.ecartees || {}).length ? ` (écartées : ${Object.entries(v.bilan.ecartees).map(([k, n]) => `${n} ${k}`).join(', ')})` : ''}.` : ''}
+        ${v?.bilan?.erreur ? `Dernière erreur : ${esc(v.bilan.erreur)}.` : ''}</span></div>
+      <div id="fiche-veille" style="margin-top:8px"><button class="second petit" data-veille="${esc(id)}">lancer la veille maintenant</button>
+        <span class="aide" style="margin-left:6px">environ 0,05 €, une minute</span></div>
+    </div>
+
+    <div class="section"><h4>évolution</h4>${graphique(o)}</div>
+
+    ${anomalies.length ? `<div class="section"><h4>alertes et explications</h4>${anomalies.map(a => `
+      <div class="anomalie ${a.type === 'palier' ? 'palier' : ''}">
+        <p style="margin:0 0 6px"><b>${esc(dateFr(a.date))}</b> : ${esc(a.message)}.${a.notifie ? ' <span class="badge prov">e-mail envoyé</span>' : ''}</p>
+        ${a.explication?.resume ? `<p style="margin:0 0 8px;font-weight:700">${esc(a.explication.resume)}</p>` : ''}
+        ${(a.explication?.hypotheses || []).map(h => `<div class="hyp"><div class="hyp-barre"><i style="width:${h.confiance}%"></i></div>
+          <div><b>${esc(h.hypothese)}</b> <span class="aide">confiance ${h.confiance} %</span><br><span style="font-size:13px">${esc(h.pourquoi || '')}</span>
+          ${h.source && lienSur(h.source) ? ` <a href="${esc(lienSur(h.source))}" target="_blank" rel="noopener noreferrer" class="aide">source</a>` : ' <span class="aide">sans source, raisonnement seul</span>'}</div></div>`).join('')}
+        ${a.explication?.erreur ? `<p class="aide">explication indisponible : ${esc(a.explication.erreur)}</p>` : ''}
+        ${a.type !== 'palier' && a.explication?.hypotheses ? `<p class="aide" style="margin:6px 0 0">Hypothèses, pas des faits établis, et jamais un conseil en investissement.</p>` : ''}
+      </div>`).join('')}</div>` : ''}
+
+    ${dn.avis_phrase || dn.histoire_accroche ? `<div class="section"><h4>ce qu'il faut savoir</h4>
+      ${dn.avis_phrase ? `<p style="margin:0 0 6px;font-weight:700">${esc(dn.avis_phrase)}</p>` : ''}
+      ${dn.histoire_accroche ? `<p class="lecture" style="margin:0">${esc(dn.histoire_accroche)}</p>` : ''}</div>` : ''}
+
+    ${auth?.a_verifier?.length ? `<div class="section"><h4>authenticité : ce qu'il faut vérifier</h4>
+      ${auth.niveau ? `<p style="margin:0 0 8px"><span class="badge ${auth.niveau === 'élevé' ? 'b-adjuge' : auth.niveau === 'moyen' ? 'b-a_relever' : 'b-a_venir'}">${esc(LIB_ETAT_AUTH[auth.niveau] || auth.niveau)}</span> ${esc(auth.pourquoi || '')}</p>` : ''}
+      ${auth.a_verifier.map((x, i) => `<label class="coche"><input type="checkbox" data-coche="${i}" ${(auth.coches || []).includes(i) ? 'checked' : ''}> ${esc(x)}</label>`).join('')}
+      <p class="aide">Aide à la décision de l'atelier, pas une garantie d'authenticité.</p></div>` : ''}
+
+    <div class="section"><h4>ventes conclues de référence (${ventes.length})</h4>
+      ${ventes.length ? ventes.map(t => `<div class="vente">
+          <b>${prix(t.prix, t.devise)}</b>
+          <span>${lienSur(t.url_source) ? `<a href="${esc(lienSur(t.url_source))}" target="_blank" rel="noopener noreferrer">${esc(t.libelle || t.plateforme || domaine(t.url_source))}</a>` : esc(t.libelle)}
+            <span class="src"><br>${esc(t.plateforme || domaine(t.url_source))}, ${t.date ? 'vendue le ' + esc(dateFr(t.date)) : 'date inconnue, trouvée le ' + esc(dateFr(t.cree_le))}, ${esc(ORIG[t.origine] || t.origine)}${t.verifie === 1 ? ', prix relu sur la page' : ''}${t.frais_inclus === 1 ? ', frais inclus' : t.frais_inclus === 0 ? ', hors frais' : ''}${['famille', 'comparable'].includes(t.correspondance) ? ', autre modèle, hors cote' : ''}</span></span>
+          <button class="second petit" data-retirer-vente="${esc(t.id)}" title="retirer cette vente">retirer</button></div>`).join('')
+        : `<p class="aide">Aucune vente conclue enregistrée. Elles arrivent de l'atelier, de la veille du matin et des enchères suivies.</p>`}
+    </div>
+
+    <div class="section"><h4>enchères suivies pour cet objet (${lots.length})</h4>
+      ${lots.map(l => carteLot(l, false)).join('') || `<p class="aide">Aucune pour l'instant.</p>`}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button data-chercher="${esc(id)}">chercher des enchères pour cet objet</button>
+        <button class="second" data-suivre-pour="${esc(id)}">coller l'adresse d'un lot</button>
+      </div>
+    </div>
+
+    <div class="section"><h4>notes datées</h4>
+      ${notes.map(n => `<div class="note-datee"><time>${esc(dateFr(n.date))}</time><span>${esc(n.texte)}</span>
+        <button class="mini" data-suppr-note="${esc(n.id)}" aria-label="retirer la note">×</button></div>`).join('')}
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:flex-start">
+        <textarea id="note-texte" placeholder="expertise faite, réparation, papiers retrouvés, proposition reçue" style="min-height:44px"></textarea>
+        <button data-note="${esc(id)}">noter</button></div>
+    </div>
+
+    <div class="section"><h4>fiche</h4><dl class="details">
+      ${[['marque', dn.marque], ['modèle', dn.modele], ['référence', dn.reference], ['variante', dn.variante],
+         ['catégorie', dn.univers], ['sous-catégorie', dn.sous_categorie], ['licence', dn.licence], ['état', dn.etat_apparent],
+         ['provenance', dn.provenance], ['tags', (dn.tags || []).join(', ')],
+         ['acheté où', { particuliers: 'entre particuliers', authentifies: 'revendeur ou dépôt-vente', encheres: 'aux enchères', neuf: 'neuf' }[s.canal]],
+         ['vendeur', s.vendeur], ['plateforme', s.plateforme], ["commentaire d'achat", s.commentaire],
+         ['veille, termes', (sig.termes || []).join(' | ') || (dn.requetes || []).slice(0, 6).join(' | ')],
+         ['veille, exclusions', (sig.exclusions || []).join(', ')],
+         ['veille, fourchette', sig.bas || sig.haut ? `${sig.bas ? prix(sig.bas, sig.devise) : '0'} à ${sig.haut ? prix(sig.haut, sig.devise) : 'sans limite'}` : ''],
+         ['notes', dn.notes]]
+        .filter(([, x]) => x).map(([k, x]) => `<dt>${esc(k)}</dt><dd>${esc(x)}</dd>`).join('')}</dl></div>
+
+    <div class="section" style="display:flex;gap:8px;flex-wrap:wrap;border-top:1.5px solid var(--filet);padding-top:16px">
+      <button class="second" data-modifier="${esc(id)}">modifier la fiche et la veille</button>
+      <a href="atelier.html?pour=${encodeURIComponent(id)}"><button class="second">réestimer dans l'atelier</button></a>
+      <button class="second danger" data-supprimer="${esc(id)}" style="margin-left:auto">supprimer l'objet</button>
+    </div>`;
+  if (!$('#dlg-fiche').open) $('#dlg-fiche').showModal();
+  if (!memeFiche) $('#dlg-fiche').scrollTop = 0;
+  if (!galeries.has(id) && o.a_photo) {
+    galeries.set(id, []);
+    api(`/objets/${encodeURIComponent(id)}/photos`).then(r => {
+      galeries.set(id, r.photos);
+      if (r.photos[0]) photos.set(id, r.photos[0].data);
+      if (ficheOuverte === id) ouvrirFiche(id);
+    }).catch(() => galeries.delete(id));
+  }
+}
+
+/* Mise à jour partielle de la fiche (note, case cochée) : on renvoie la fiche entière. */
+async function majDonnees(id, change) {
+  const o = objet(id);
+  const donnees = change(structuredClone(o.donnees));
+  await api('/objets/' + encodeURIComponent(id), { method: 'PUT', corps: { donnees } });
+  o.donnees = donnees;
+}
+
+/* Le graphique de l'objet : la cote jour après jour (médiane et fourchette), les estimations
+   de l'atelier, les ventes conclues en points, ton prix en pointillés, et la projection de la
+   tendance en tirets. Rien n'est lissé : un point, c'est un chiffre stocké avec sa source. */
+function graphique(o) {
+  const c = coteDe(o.id), s = o.donnees.situation || {};
+  const dev = c.devise || dernierReleve(o.id)?.devise || s.devise || 'EUR';
+  const cotes = relevesDe(o.id).filter(r => r.source === 'collecte' && r.devise === dev);
+  const estim = estimationsAtelier(o.id).filter(r => r.devise === dev);
+  const ventes = ventesDe(o.id).filter(t => t.devise === dev && !['famille', 'comparable'].includes(t.correspondance))
+    .map(t => ({ ...t, x: Date.parse((t.date || t.cree_le || '').slice(0, 10) + 'T12:00:00'), datee: !!t.date })).filter(t => !isNaN(t.x));
+  const proj = c.projection;
+  const xs = [...cotes.map(r => Date.parse(r.date)), ...estim.map(r => Date.parse(r.date)), ...ventes.map(t => t.x),
+              ...(proj ? [Date.now(), Date.parse(proj.date)] : [])].filter(x => !isNaN(x));
+  if (!xs.length) return `<p class="aide">Le graphique apparaîtra avec la première vente conclue.</p>`;
+  const valeurs = [...cotes.flatMap(r => [r.q1 ?? r.min ?? r.mediane, r.q3 ?? r.max ?? r.mediane]), ...estim.map(r => r.mediane),
+                   ...ventes.map(t => t.prix), ...(proj ? [proj.bas, proj.haut, proj.depart] : [])];
+  if (s.prix && (s.devise || 'EUR') === dev) valeurs.push(s.prix);
+  let x0 = Math.min(...xs), x1 = Math.max(...xs);
+  if (x1 - x0 < 30 * 864e5) { x0 -= 15 * 864e5; x1 += 15 * 864e5; }
+  let y0 = Math.min(...valeurs), y1 = Math.max(...valeurs);
+  const marge = (y1 - y0) * .12 || y1 * .15 || 10; y0 = Math.max(0, y0 - marge); y1 += marge;
+  const brutPas = (y1 - y0) / 4, p10 = Math.pow(10, Math.floor(Math.log10(brutPas || 1)));
+  const pasY = [1, 2, 2.5, 5, 10].map(k => k * p10).find(v => v >= brutPas) || brutPas;
+  y0 = Math.floor(y0 / pasY) * pasY; y1 = Math.ceil(y1 / pasY) * pasY;
+  const W = 760, H = 270, G = 66, D = 18, T = 14, B = 34;
+  const X = x => G + (W - G - D) * (x - x0) / (x1 - x0);
+  const Y = y => T + (H - T - B) * (1 - (y - y0) / (y1 - y0));
+  const grad = []; for (let v = y0; v <= y1 + pasY / 2; v += pasY) grad.push(v);
+  const mois = [], debut = new Date(x0);
+  for (let t = new Date(debut.getFullYear(), debut.getMonth(), 1); t.getTime() <= x1; t.setMonth(t.getMonth() + 1))
+    if (t.getTime() >= x0) mois.push(t.getTime());
+  const pas = Math.ceil(mois.length / 7) || 1;
+  const bas = r => r.q1 ?? r.min ?? r.mediane, haut = r => r.q3 ?? r.max ?? r.mediane;
+  const bande = cotes.length > 1 ? `<path d="M${cotes.map(r => X(Date.parse(r.date)) + ',' + Y(haut(r))).join(' L')}
+      L${cotes.slice().reverse().map(r => X(Date.parse(r.date)) + ',' + Y(bas(r))).join(' L')} Z" fill="#e4f4fd"/>`
+    : cotes.length === 1 ? `<line x1="${X(Date.parse(cotes[0].date))}" x2="${X(Date.parse(cotes[0].date))}" y1="${Y(haut(cotes[0]))}" y2="${Y(bas(cotes[0]))}" stroke="#e4f4fd" stroke-width="14" stroke-linecap="round"/>` : '';
+  const xp0 = X(Date.now()), xp1 = proj ? X(Date.parse(proj.date)) : 0;
+  const COUL = { veille: '#059be1', enchere: '#d62c7c', saisie: '#f8c81f', atelier: '#ffffff' };
+  return `<div class="graphe"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="évolution de la cote et des ventes">
+    ${grad.map(v => `<line x1="${G}" x2="${W - D}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(19,31,106,.10)"/>
+      <text x="${G - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="#5a6189" font-family="Montserrat">${esc(prix(v, dev))}</text>`).join('')}
+    ${mois.filter((_, i) => i % pas === 0).map(m => `<text x="${X(m)}" y="${H - 12}" text-anchor="middle" font-size="11" fill="#5a6189" font-family="Montserrat">${esc(new Date(m).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }))}</text>`).join('')}
+    ${bande}
+    ${proj ? `<path d="M${xp0},${Y(proj.depart)} L${xp1},${Y(proj.haut)} L${xp1},${Y(proj.bas)} Z" fill="rgba(248,200,31,.22)"/>
+      <line x1="${xp0}" y1="${Y(proj.depart)}" x2="${xp1}" y2="${Y(proj.valeur)}" stroke="#7a5b00" stroke-width="2" stroke-dasharray="7 5"/>
+      <text x="${xp1 - 4}" y="${Y(proj.valeur) - 8}" text-anchor="end" font-size="11.5" font-weight="700" fill="#7a5b00" font-family="Montserrat">projection ${esc(prix(proj.valeur, dev))}</text>` : ''}
+    ${s.prix && (s.devise || 'EUR') === dev ? `<line x1="${G}" x2="${W - D}" y1="${Y(s.prix)}" y2="${Y(s.prix)}" stroke="#131f6a" stroke-dasharray="5 5" stroke-width="1.5"/>
+      <text x="${G + 6}" y="${Y(s.prix) - 6}" font-size="11.5" font-weight="700" fill="#131f6a" font-family="Montserrat">${modeDe(o) === 'achat' ? 'prix demandé' : 'ton prix'} ${esc(prix(s.prix, dev))}</text>` : ''}
+    ${cotes.length > 1 ? `<polyline fill="none" stroke="#131f6a" stroke-width="2.5" points="${cotes.map(r => X(Date.parse(r.date)) + ',' + Y(r.mediane)).join(' ')}"/>` : ''}
+    ${cotes.map(r => `<rect x="${X(Date.parse(r.date)) - 4.5}" y="${Y(r.mediane) - 4.5}" width="9" height="9" fill="#131f6a" stroke="#fff" stroke-width="1.5"><title>cote ${esc(prix(r.mediane, dev))} le ${esc(dateFr(r.date))}, sur ${r.n} ventes</title></rect>`).join('')}
+    ${estim.map(r => `<path d="M${X(Date.parse(r.date))},${Y(r.mediane) - 7} l7,7 l-7,7 l-7,-7 Z" fill="#fff" stroke="#131f6a" stroke-width="1.8"><title>estimation de l'atelier ${esc(prix(r.mediane, dev))} le ${esc(dateFr(r.date))}</title></path>`).join('')}
+    ${ventes.map(t => `<circle cx="${X(t.x)}" cy="${Y(t.prix)}" r="${t.datee ? 6 : 4.5}" fill="${t.datee ? (COUL[t.origine] || '#059be1') : '#fff'}" stroke="${t.datee ? '#131f6a' : (COUL[t.origine] === '#ffffff' ? '#131f6a' : COUL[t.origine] || '#059be1')}" stroke-width="1.6"><title>${esc(prix(t.prix, t.devise))}, ${t.datee ? 'vendue le ' + esc(dateFr(t.date)) : 'date inconnue, trouvée le ' + esc(dateFr(t.cree_le))}, ${esc(t.plateforme || '')}</title></circle>`).join('')}
+  </svg>
+  <div class="cle-graphe">
+    ${cotes.length ? `<span><i style="background:#131f6a;border-radius:2px"></i>cote du jour (médiane)</span><span><i style="background:#e4f4fd;border-radius:2px"></i>fourchette</span>` : ''}
+    ${estim.length ? `<span><i style="background:#fff;transform:rotate(45deg);border-radius:1px"></i>estimation de l'atelier</span>` : ''}
+    ${ventes.some(t => t.origine === 'veille' && t.datee) ? `<span><i style="background:#059be1"></i>vente trouvée par la veille</span>` : ''}
+    ${ventes.some(t => t.origine === 'enchere') ? `<span><i style="background:#d62c7c"></i>adjudication lue sur la page</span>` : ''}
+    ${ventes.some(t => t.origine === 'saisie') ? `<span><i style="background:#f8c81f"></i>résultat recopié par toi</span>` : ''}
+    ${ventes.some(t => !t.datee) ? `<span><i style="background:#fff"></i>vente sans date, placée au jour où elle a été trouvée</span>` : ''}
+    ${proj ? `<span><i style="background:rgba(248,200,31,.5);border-radius:2px"></i>projection de la tendance, pas une prévision</span>` : ''}
+  </div></div>`;
+}
+
+/* ---------- ajout et modification d'un objet ---------- */
+
+let edition = null, photoEdition = null;
+const listeDe = t => t.split(/[\n,;]+/).map(x => x.trim()).filter(Boolean);
+function ouvrirEdition(id, mode) {
+  const o = id ? objet(id) : null;
+  edition = o ? o.id : null;
+  photoEdition = null;
+  const dn = o?.donnees || {}, s = dn.situation || {}, sig = dn.signature || {};
+  $('#edition-titre').textContent = o ? 'modifier la fiche' : 'ajouter un objet';
+  const champs = { 'ed-nom': dn.nom, 'ed-marque': dn.marque, 'ed-modele': dn.modele, 'ed-reference': dn.reference,
+    'ed-variante': dn.variante, 'ed-univers': dn.univers, 'ed-sous-categorie': dn.sous_categorie, 'ed-licence': dn.licence,
+    'ed-tags': (dn.tags || []).join(', '), 'ed-provenance': dn.provenance, 'ed-prix': s.prix ?? '', 'ed-date': s.date,
+    'ed-vendeur': s.vendeur, 'ed-plateforme': s.plateforme, 'ed-commentaire': s.commentaire, 'ed-notes': dn.notes,
+    'ed-termes': (sig.termes?.length ? sig.termes : dn.requetes || []).join('\n'), 'ed-exclusions': (sig.exclusions || []).join('\n'),
+    'ed-bas': sig.bas ?? '', 'ed-haut': sig.haut ?? '' };
+  Object.entries(champs).forEach(([k, v]) => { $('#' + k).value = v ?? ''; });
+  const m = o ? modeDe(o) : (mode || (vue === 'guette' ? 'achat' : 'collection'));
+  $$('input[name=ed-mode]').forEach(r => r.checked = r.value === m);
+  $('#ed-devise').value = s.devise || 'EUR';
+  $('#ed-canal').value = s.canal || '';
+  $('#ed-rythme').value = dn.rythme || (m === 'achat' ? 'arretee' : 'quotidienne');
+  $('#ed-etat').innerHTML = '';
+  majLibellePrix();
+  peindrePhotoEdition(o ? photos.get(o.id) : null);
+  if ($('#dlg-fiche').open) $('#dlg-fiche').close();
+  $('#dlg-edition').showModal();
+  $('#dlg-edition').scrollTop = 0;
+}
+function majLibellePrix() {
+  const achat = $('input[name=ed-mode]:checked')?.value === 'achat';
+  $('#ed-prix-lib').textContent = achat ? 'prix demandé ou visé' : 'prix payé';
+}
+$$('input[name=ed-mode]').forEach(r => r.onchange = majLibellePrix);
+function peindrePhotoEdition(src) {
+  $('#ed-photo-zone').innerHTML = src ? `<img class="fiche-photo" src="${esc(src)}" alt="">` : `<div class="fiche-photo-vide">pas de photo</div>`;
+}
+$('#ed-photo-btn').onclick = () => $('#ed-photo').click();
+$('#ed-photo').onchange = async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try { photoEdition = await reduire(f, 720); peindrePhotoEdition(photoEdition); }
+  catch { $('#ed-etat').innerHTML = `<div class="warn">photo illisible</div>`; }
+  e.target.value = '';
+};
+
+/* Une photo de téléphone pèse plusieurs mégaoctets : on la ramène à une vignette. */
+function reduire(f, cote) {
+  return new Promise((ok, ko) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, cote / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      ok(c.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = ko;
+    img.src = URL.createObjectURL(f);
+  });
+}
+
+$('#ed-enregistrer').onclick = async () => {
+  const val = k => $('#' + k).value.trim() || null;
+  const nom = val('ed-nom');
+  if (!nom) { $('#ed-etat').innerHTML = `<div class="warn">donne au moins un nom à l'objet</div>`; return; }
+  const id = edition || nouvelId();
+  const avant = edition ? objet(edition).donnees : {};
+  const p = $('#ed-prix').value, bas = $('#ed-bas').value, haut = $('#ed-haut').value;
+  const donnees = { ...avant, nom, marque: val('ed-marque'), modele: val('ed-modele'), reference: val('ed-reference'),
+    variante: val('ed-variante'), univers: val('ed-univers'), sous_categorie: val('ed-sous-categorie'), licence: val('ed-licence'),
+    tags: listeDe($('#ed-tags').value), provenance: val('ed-provenance'), notes: val('ed-notes'), source: avant.source || 'manuel',
+    rythme: $('#ed-rythme').value,
+    signature: { termes: listeDe($('#ed-termes').value), exclusions: listeDe($('#ed-exclusions').value),
+      bas: bas === '' ? null : +bas, haut: haut === '' ? null : +haut, devise: $('#ed-devise').value },
+    situation: { ...(avant.situation || {}), mode: $('input[name=ed-mode]:checked').value,
+      prix: p === '' ? null : +p, devise: $('#ed-devise').value, date: $('#ed-date').value || null, canal: $('#ed-canal').value || null,
+      vendeur: val('ed-vendeur'), plateforme: val('ed-plateforme'), commentaire: val('ed-commentaire') } };
+  $('#ed-enregistrer').disabled = true;
+  $('#ed-etat').innerHTML = attente('enregistrement');
+  try {
+    await api('/objets/' + encodeURIComponent(id), { method: 'PUT', corps: { donnees, ...(photoEdition ? { photo: photoEdition } : {}) } });
+    if (photoEdition) { photos.set(id, photoEdition); galeries.delete(id); }
+    $('#dlg-edition').close();
+    vue = donnees.situation.mode === 'achat' ? 'guette' : 'collection';
+    await recharger();
+    ouvrirFiche(id);
+  } catch (e) {
+    $('#ed-etat').innerHTML = `<div class="warn">${esc(e.message)}</div>`;
+  }
+  $('#ed-enregistrer').disabled = false;
+};
+
+async function supprimerObjet(id) {
+  const o = objet(id);
+  if (!o || !confirm(`Supprimer « ${nomDe(o)} » de l'espace, avec sa cote, ses ventes et ses photos ? Les enchères suivies restent, détachées.`)) return;
+  try {
+    await api('/objets/' + encodeURIComponent(id), { method: 'DELETE' });
+    photos.delete(id); galeries.delete(id);
+    $('#dlg-fiche').close();
+    await recharger();
+  } catch (e) { alert(e.message); }
+}
+
+/* Veille à la demande sur un objet : la même passe que celle du matin. */
+async function veillerMaintenant(id, bouton) {
+  bouton.disabled = true;
+  $('#fiche-veille').innerHTML = attente('la veille cherche les nouvelles ventes conclues');
+  try {
+    const r = await api(`/objets/${encodeURIComponent(id)}/veille`, { method: 'POST' });
+    await recharger();
+    ouvrirFiche(id);
+    const b = r.bilan;
+    $('#fiche-veille').insertAdjacentHTML('afterbegin', `<div class="info">${b.erreur ? 'Échec : ' + esc(b.erreur)
+      : `${b.nouvelles} nouvelle${b.nouvelles > 1 ? 's' : ''} vente${b.nouvelles > 1 ? 's' : ''} conclue${b.nouvelles > 1 ? 's' : ''} sur ${b.proposees} proposée${b.proposees > 1 ? 's' : ''}.`}</div>`);
+  } catch (e) {
+    $('#fiche-veille').innerHTML = `<div class="warn">${esc(e.message)}</div>`;
+  }
+}
+
+const choixPhoto = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*', hidden: true });
+document.body.appendChild(choixPhoto);
+let photoPour = null;
+choixPhoto.onchange = async () => {
+  const f = choixPhoto.files[0];
+  choixPhoto.value = '';
+  if (!f || !photoPour) return;
+  try {
+    const data = await reduire(f, 1080);
+    await api(`/objets/${encodeURIComponent(photoPour)}/photos`, { method: 'POST', corps: { data } });
+    galeries.delete(photoPour); photos.delete(photoPour);
+    const o = objet(photoPour); if (o) o.a_photo = true;
+    ouvrirFiche(photoPour);
+  } catch (e) { alert(e.message); }
+};
+
+/* ---------- suivre un lot à la main ---------- */
+
+function ouvrirSuiviLot(objetId) {
+  $('#lot-url').value = '';
+  $('#lot-etat').innerHTML = '';
+  $('#lot-objet').innerHTML = `<option value="">aucun objet en particulier</option>` +
+    d.objets.map(o => `<option value="${esc(o.id)}" ${o.id === objetId ? 'selected' : ''}>${esc(nomDe(o))}</option>`).join('');
+  if ($('#dlg-fiche').open) $('#dlg-fiche').close();
+  $('#dlg-lot').showModal();
+  $('#lot-url').focus();
+}
+$('#suivre-lot').onclick = () => ouvrirSuiviLot(null);
+$('#lot-valider').onclick = async () => {
+  const url = lienSur($('#lot-url').value.trim());
+  if (!url) { $('#lot-etat').innerHTML = `<div class="warn">colle l'adresse complète de la page du lot, en https://</div>`; return; }
+  $('#lot-valider').disabled = true;
+  $('#lot-etat').innerHTML = attente('le coffre lit la page du lot');
+  try {
+    const id = nouvelId();
+    const r = await api('/lots/' + id, { method: 'PUT', corps: { url, objet_id: $('#lot-objet').value || null, provenance: 'saisie' } });
+    const rel = await api(`/lots/${encodeURIComponent(r.id)}/relire`, { method: 'POST' });
+    await recharger();
+    $('#lot-etat').innerHTML = `<div class="info">${r.doublon ? 'Ce lot était déjà suivi. ' : 'Lot suivi. '}
+      ${esc(LIB_STATUT[rel.lot.statut] || rel.lot.statut)}${rel.lot.date_vente ? ', vente le ' + esc(dateFr(rel.lot.date_vente)) : ''}.
+      ${rel.lot.note ? esc(rel.lot.note) : ''}</div>`;
+    setTimeout(() => { if ($('#dlg-lot').open) $('#dlg-lot').close(); vue = 'encheres'; rendreVue(); }, 1800);
+  } catch (e) {
+    $('#lot-etat').innerHTML = `<div class="warn">${esc(e.message)}</div>`;
+  }
+  $('#lot-valider').disabled = false;
+};
+
+/* ---------- saisir un résultat ---------- */
+
+let lotResultat = null;
+function ouvrirResultat(id) {
+  const l = d.lots.find(x => x.id === id);
+  if (!l) return;
+  lotResultat = id;
+  $('#res-lot').innerHTML = lienSur(l.url) ? `<a href="${esc(lienSur(l.url))}" target="_blank" rel="noopener noreferrer">${esc(l.titre || domaine(l.url))}</a>` : esc(l.titre);
+  $('#res-prix').value = '';
+  $('#res-devise').value = l.devise || 'EUR';
+  $('#res-frais').value = '';
+  $$('input[name=res-etat]').forEach(r => r.checked = r.value === 'adjuge');
+  $('#res-prix-zone').hidden = false;
+  $('#res-etat-msg').innerHTML = '';
+  if ($('#dlg-fiche').open) $('#dlg-fiche').close();
+  $('#dlg-resultat').showModal();
+}
+$$('input[name=res-etat]').forEach(r => r.onchange = () => $('#res-prix-zone').hidden = r.value !== 'adjuge' || !r.checked);
+$('#res-valider').onclick = async () => {
+  const etat = $('input[name=res-etat]:checked').value;
+  const p = +$('#res-prix').value;
+  if (etat === 'adjuge' && !(p > 0)) { $('#res-etat-msg').innerHTML = `<div class="warn">indique le prix affiché sur la page</div>`; return; }
+  const f = $('#res-frais').value;
+  $('#res-valider').disabled = true;
+  try {
+    await api(`/lots/${encodeURIComponent(lotResultat)}/resultat`, { method: 'POST',
+      corps: { etat, prix: etat === 'adjuge' ? p : null, devise: $('#res-devise').value, frais_inclus: f === 'oui' ? true : f === 'non' ? false : null } });
+    $('#dlg-resultat').close();
+    await recharger();
+  } catch (e) { $('#res-etat-msg').innerHTML = `<div class="warn">${esc(e.message)}</div>`; }
+  $('#res-valider').disabled = false;
+};
+
+async function relireLot(id, bouton) {
+  if (bouton) { bouton.disabled = true; bouton.textContent = 'lecture en cours'; }
+  try {
+    await api(`/lots/${encodeURIComponent(id)}/relire`, { method: 'POST' });
+    await recharger();
+    if (ficheOuverte && $('#dlg-fiche').open) ouvrirFiche(ficheOuverte);
+  } catch (e) {
+    if (bouton) { bouton.disabled = false; bouton.textContent = 'relire la page'; }
+    alert(e.message);
+  }
+}
+
+$('#tout-relire').onclick = async () => {
+  const b = $('#tout-relire');
+  b.disabled = true;
+  $('#etat-tournee').innerHTML = `<span style="display:inline-flex;gap:8px;align-items:center"><i class="rotor"></i>le coffre relit les pages des lots</span>`;
+  try {
+    const r = await api('/tournee', { method: 'POST' });
+    $('#etat-tournee').textContent = `${r.relus} page${r.relus > 1 ? 's' : ''} relue${r.relus > 1 ? 's' : ''}, ${r.adjuges} nouveau${r.adjuges > 1 ? 'x' : ''} résultat${r.adjuges > 1 ? 's' : ''}${r.erreurs ? `, ${r.erreurs} en échec` : ''}.`;
+    await recharger();
+  } catch (e) { $('#etat-tournee').textContent = e.message; }
+  b.disabled = false;
+};
+
+/* ---------- 3. chercher des enchères pour un objet ---------- */
+
+const SYS_ENCHERES = `Tu cherches sur le web les lots de ventes aux enchères qui portent sur un objet de
+collection précis : ventes à venir, enchères en cours, et résultats des ventes des douze
+derniers mois.
+
+Méthode : choisis les maisons de ventes et les plateformes d'enchères propres à cet univers,
+ventes cataloguées et ventes en ligne, en France puis à l'international, et interroge-les
+avec l'opérateur site: suivi du nom de l'objet. Commence par le modèle avec ses attributs
+distinctifs (couleur, matière, référence, taille), puis le modèle seul.
+
+Ne retiens QUE des pages consacrées à UN lot précis : jamais une page de vente entière, de
+catalogue, de résultats de recherche, de marque ou d'article. L'URL doit être exactement
+celle d'un résultat de ta recherche : ne la reconstruis pas, ne la complète pas.
+
+Pour chaque lot :
+- maison : la maison de ventes ou la plateforme
+- date_vente : date de la vente ou de clôture des enchères, AAAA-MM-JJ, null si absente
+- estimation_basse, estimation_haute : la fourchette telle qu'elle est écrite, null sinon.
+  N'estime jamais un chiffre.
+- statut : "a_venir", "en_cours" ou "termine"
+- correspondance : "exacte" (même modèle et mêmes attributs distinctifs), "modele" (même
+  modèle, un attribut différent), "famille" (même marque, autre modèle). Dans le doute,
+  le niveau le plus éloigné.
+
+Vise entre 3 et 15 lots. Aucun lot vaut mieux qu'un lot hors sujet.
+
+Termine par une lecture en deux ou trois phrases : où cet objet passe aux enchères et à quel
+rythme. N'y écris AUCUN prix ni aucun chiffre.
+
+Format :
+{"lots":[{"maison":"...","url":"...","titre":"...","date_vente":null,"estimation_basse":null,
+  "estimation_haute":null,"devise":"EUR","statut":"a_venir|en_cours|termine",
+  "correspondance":"exacte|modele|famille"}],
+ "lecture":"..."}`;
+
+let propositions = [], objetRecherche = null;
+function ouvrirRecherche(id) {
+  const o = objet(id);
+  objetRecherche = id;
+  propositions = [];
+  $('#rech-titre').textContent = 'enchères pour ' + nomDe(o);
+  $('#rech-corps').innerHTML = `
+    <p style="margin:0 0 10px">Le coffre cherche sur le web les lots qui portent sur cet objet : ventes à venir,
+      enchères ouvertes et résultats de l'année. Chaque lot proposé renvoie à sa page ; ceux que tu choisis de
+      suivre sont relus chaque matin, et leur résultat entre dans ton historique quand la vente est passée.</p>
+    <label style="display:flex;gap:9px;align-items:center;font-weight:400">
+      <input type="checkbox" id="rech-profond" ${(valeurDe(id) || dernierReleve(id)?.mediane || 0) >= 500 ? 'checked' : ''} style="width:auto">
+      recherche approfondie : plus de maisons de ventes, environ 0,25 € au lieu de 0,06 €</label>
+    <div id="rech-sortie"></div>`;
+  $('#rech-pied').innerHTML = `<button class="second" data-fermer>fermer</button><button id="rech-lancer">lancer la recherche</button>`;
+  $('#rech-lancer').onclick = lancerRecherche;
+  if ($('#dlg-fiche').open) $('#dlg-fiche').close();
+  $('#dlg-recherche').showModal();
+}
+
+async function lancerRecherche() {
+  const o = objet(objetRecherche), dn = o.donnees;
+  const profond = $('#rech-profond').checked;
+  $('#rech-lancer').disabled = true;
+  const fin = attendre('#rech-sortie', ['choix des maisons de ventes de cet univers', 'recherche des lots', 'tri des lots qui correspondent vraiment', 'vérification des adresses', 'encore un instant']);
+  try {
+    const rep = await appelerIA(SYS_ENCHERES,
+      `Date du jour : ${aujourdhui()}\nOBJET : ${dn.description || nomDe(o)}\n` +
+      `marque : ${dn.marque || '?'}, modèle : ${dn.modele || '?'}, référence : ${dn.reference || '?'}, univers : ${dn.univers || '?'}\n` +
+      (dn.requetes?.length ? `termes de recherche établis à l'identification : ${dn.requetes.slice(0, 10).join(' | ')}\n` : ''),
+      profond ? 10 : 5, 6000, profond ? 'claude-sonnet-5' : 'claude-haiku-4-5-20251001');
+    fin();
+    const vues = pagesDetail(rep.brut);
+    const deja = new Set(d.lots.map(l => cle(l.url)));
+    const ecartes = { inventees: 0, recherche: 0 };
+    propositions = (rep.json.lots || []).filter(l => {
+      if (!lienSur(l.url)) return false;
+      if (!vues.has(cle(l.url))) { ecartes.inventees++; return false; }      // adresse jamais consultée : écartée
+      if (estPageDeRecherche(l.url)) { ecartes.recherche++; return false; }
+      return true;
+    }).map(l => ({ ...l, deja: deja.has(cle(l.url)),
+      coche: !deja.has(cle(l.url)) && l.correspondance !== 'famille' }));
+    afficherPropositions(rep.json.lecture, ecartes, rep.recherches);
+  } catch (e) {
+    fin();
+    $('#rech-sortie').innerHTML = `<div class="warn">échec : ${esc(e.message)}</div>`;
+  }
+  $('#rech-lancer').disabled = false;
+  $('#rech-lancer').textContent = 'relancer la recherche';
+}
+
+function afficherPropositions(lecture, ecartes, recherches) {
+  const LIB_C = { exacte: 'même objet', modele: 'même modèle, autre déclinaison', famille: 'autre modèle de la marque' };
+  const n = propositions.length;
+  $('#rech-sortie').innerHTML = `
+    <p class="aide" style="margin-top:12px">${[`${recherches} recherche${recherches > 1 ? 's' : ''} web`,
+      `${n} lot${n > 1 ? 's' : ''} retenu${n > 1 ? 's' : ''}`,
+      ecartes.inventees && `${ecartes.inventees} écarté${ecartes.inventees > 1 ? 's' : ''} car leur adresse n'a pas été réellement consultée`,
+      ecartes.recherche && `${ecartes.recherche} page${ecartes.recherche > 1 ? 's' : ''} de résultats écartée${ecartes.recherche > 1 ? 's' : ''}`]
+      .filter(Boolean).join(', ')}. Coût de la session : ${coutSession.toFixed(2)} €.</p>
+    ${lecture ? `<p class="lecture">${esc(lecture)}</p>` : ''}
+    ${n ? `<div class="propositions">${propositions.map((l, i) => `
+      <label class="lot ${l.coche ? 'coche' : ''}" style="cursor:pointer;margin:0 0 8px">
+        <input type="checkbox" data-prop="${i}" ${l.coche ? 'checked' : ''} ${l.deja ? 'disabled' : ''}>
+        <div class="tt">
+          <span class="badge b-${l.statut === 'termine' ? 'a_relever' : esc(l.statut)}">${l.statut === 'termine' ? 'vente passée' : esc(LIB_STATUT[l.statut] || l.statut)}</span>
+          <a href="${esc(lienSur(l.url))}" target="_blank" rel="noopener noreferrer">${esc(l.titre || domaine(l.url))}</a>
+          <div class="meta">${esc(l.maison || domaine(l.url))}${l.date_vente ? ', ' + esc(dateFr(l.date_vente)) : ''}, ${esc(LIB_C[l.correspondance] || l.correspondance || '')}
+            ${l.estimation_basse || l.estimation_haute ? `<br>estimation annoncée ${prix(l.estimation_basse, l.devise)}${l.estimation_haute ? ' à ' + prix(l.estimation_haute, l.devise) : ''}, à confirmer sur la page` : ''}
+            ${l.deja ? '<br><b>déjà suivi</b>' : ''}</div>
+        </div><div></div></label>`).join('')}</div>`
+      : `<div class="info">Aucun lot vérifiable pour cet objet en ce moment. C'est une réponse : il passe peu aux enchères.
+          La recherche approfondie va plus loin, et tu peux toujours coller l'adresse d'un lot repéré.</div>`}`;
+  $$('[data-prop]').forEach(c => c.onchange = () => {
+    propositions[+c.dataset.prop].coche = c.checked;
+    c.closest('.lot').classList.toggle('coche', c.checked);
+    majPiedRecherche();
+  });
+  majPiedRecherche();
+}
+
+function majPiedRecherche() {
+  const n = propositions.filter(l => l.coche && !l.deja).length;
+  $('#rech-pied').innerHTML = `<button class="second" data-fermer>fermer</button>
+    <button class="second" id="rech-lancer">relancer la recherche</button>
+    <button id="rech-suivre" ${n ? '' : 'disabled'}>suivre ${n} lot${n > 1 ? 's' : ''}</button>`;
+  $('#rech-lancer').onclick = lancerRecherche;
+  $('#rech-suivre').onclick = suivrePropositions;
+}
+
+/* Les lots choisis sont enregistrés, puis le coffre lit chaque page : la date et
+   l'estimation annoncées par la recherche sont remplacées par celles écrites sur la page. */
+async function suivrePropositions() {
+  const choisis = propositions.filter(l => l.coche && !l.deja);
+  $('#rech-suivre').disabled = true;
+  let fait = 0;
+  const maj = () => { const e = $('#rech-etat'); if (e) e.textContent = `${fait} sur ${choisis.length}`; };
+  $('#rech-sortie').insertAdjacentHTML('afterbegin', `<div class="attente"><i class="rotor"></i><span>suivi des lots et lecture de leurs pages</span><em id="rech-etat">0 sur ${choisis.length}</em></div>`);
+  for (const l of choisis) {
+    try {
+      const r = await api('/lots/' + nouvelId(), { method: 'PUT', corps: { ...l, objet_id: objetRecherche, provenance: 'recherche',
+        statut: l.statut === 'en_cours' ? 'en_cours' : undefined } });
+      await api(`/lots/${encodeURIComponent(r.id)}/relire`, { method: 'POST' }).catch(() => {});
+    } catch {}
+    fait++; maj();
+  }
+  $('#dlg-recherche').close();
+  await recharger();
+  ouvrirFiche(objetRecherche);
+}
+
+/* ---------- appel à l'IA, à travers le coffre (même lecture du flux que l'atelier) ---------- */
+
+async function appelerIA(systeme, contenu, recherches, plafond, modele) {
+  const corps = { model: modele, max_tokens: plafond, stream: true,
+    system: systeme + "\n\nRéponds uniquement par du JSON valide, sans préambule ni balises de code." +
+      " Dans tous les textes, n'utilise jamais de tiret long, de tiret moyen ni de point médian.",
+    messages: [{ role: 'user', content: contenu }],
+    tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: recherches, user_location: { type: 'approximate', country: 'FR' } }] };
+  const envoyer = async () => {
+    const r = await api('/ia', { method: 'POST', corps, brut: true });
+    if (!r.ok) {
+      const t = await r.text();
+      let m = t; try { m = JSON.parse(t).erreur || JSON.parse(t).error?.message || t; } catch {}
+      throw new Error(r.status === 529 ? "l'IA est surchargée, réessaie dans une minute" : String(m).slice(0, 240));
+    }
+    const x = await lireFlux(r);
+    chiffrer(x.usage, x.content, modele);
+    return x;
+  };
+  let rep = await envoyer();
+  const lu = [...rep.content];
+  for (let tour = 0; rep.stop_reason === 'pause_turn' && tour < 2; tour++) {
+    corps.messages = [...corps.messages, { role: 'assistant', content: propre(rep.content) }];
+    rep = await envoyer();
+    lu.push(...rep.content);
+  }
+  const texte = c => c.filter(b => b.type === 'text').map(b => b.text).join('\n');
+  if (texte(lu).indexOf('{') === -1) {
+    corps.messages = [...corps.messages, { role: 'assistant', content: propre(rep.content) },
+      { role: 'user', content: 'Tes recherches sont terminées. Rédige maintenant UNIQUEMENT le JSON demandé, sans nouvelle recherche.' }];
+    corps.tool_choice = { type: 'none' };
+    rep = await envoyer();
+    lu.push(...rep.content);
+  }
+  let t = texte(rep.content).trim();
+  if (t.indexOf('{') === -1) t = texte(lu);
+  return { json: analyser(t.replace(/^```(?:json)?/m, '').replace(/```$/m, '')), brut: { content: lu },
+           recherches: lu.filter(b => b.type === 'server_tool_use').length };
+}
+
+function chiffrer(usage, contenu, modele) {
+  if (!usage) return;
+  const [e, s] = (modele || '').includes('haiku') ? [1, 5] : [3, 15];
+  const n = (contenu || []).filter(b => b.type === 'server_tool_use').length;
+  coutSession += ((usage.input_tokens * e + usage.output_tokens * s) / 1e6 + n * 0.01) * 0.92;
+}
+
+let suivi = null;
+async function lireFlux(r) {
+  const lecteur = r.body.getReader(), dec = new TextDecoder();
+  const msg = { content: [], usage: {}, stop_reason: null }, blocs = [];
+  let tampon = '', recherches = 0, recu = 0;
+  const traiter = ev => {
+    switch (ev.type) {
+      case 'message_start': Object.assign(msg.usage, ev.message?.usage || {}); break;
+      case 'content_block_start': {
+        const b = { ...ev.content_block };
+        if (b.type === 'text') b.text = b.text || '';
+        if (b.type === 'server_tool_use') { b._json = ''; recherches++; }
+        blocs[ev.index] = b; break;
+      }
+      case 'content_block_delta': {
+        const b = blocs[ev.index]; if (!b) break;
+        if (ev.delta.type === 'text_delta') { b.text += ev.delta.text; recu += ev.delta.text.length; }
+        else if (ev.delta.type === 'input_json_delta') b._json += ev.delta.partial_json || '';
+        break;
+      }
+      case 'content_block_stop': {
+        const b = blocs[ev.index];
+        if (b && b._json !== undefined) { try { b.input = JSON.parse(b._json || '{}'); } catch {} delete b._json; }
+        break;
+      }
+      case 'message_delta':
+        if (ev.delta?.stop_reason) msg.stop_reason = ev.delta.stop_reason;
+        Object.assign(msg.usage, ev.usage || {}); break;
+      case 'error': throw new Error(ev.error?.message || 'erreur dans le flux');
+    }
+    if (suivi) suivi({ recherches, recu });
+  };
+  for (;;) {
+    const { done, value } = await lecteur.read();
+    if (done) break;
+    tampon += dec.decode(value, { stream: true });
+    let i;
+    while ((i = tampon.indexOf('\n\n')) !== -1) {
+      const bloc = tampon.slice(0, i); tampon = tampon.slice(i + 2);
+      const donnees = bloc.split('\n').filter(l => l.startsWith('data:')).map(l => l.slice(5).trim()).join('');
+      if (!donnees) continue;
+      let ev; try { ev = JSON.parse(donnees); } catch { continue; }
+      traiter(ev);
+    }
+  }
+  msg.content = blocs.filter(Boolean);
+  return msg;
+}
+const propre = c => (c || []).filter(b => b.type !== 'text' || (b.text || '').trim());
+
+function analyser(t) {
+  try { return JSON.parse(t); } catch {}
+  const a = t.indexOf('{'), z = t.lastIndexOf('}');
+  if (a !== -1 && z > a) { try { return JSON.parse(t.slice(a, z + 1)); } catch {} }
+  // réponse coupée : on referme les structures ouvertes, comme dans l'atelier
+  const s = t.slice(Math.max(0, a));
+  const pile = []; let dansTexte = false, echap = false, dernier = -1, fermeture = '';
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (echap) { echap = false; continue; }
+    if (c === '\\') { echap = true; continue; }
+    if (c === '"') { dansTexte = !dansTexte; continue; }
+    if (dansTexte) continue;
+    if (c === '{') pile.push('}'); else if (c === '[') pile.push(']');
+    else if (c === '}' || c === ']') { pile.pop(); dernier = i; fermeture = [...pile].reverse().join(''); }
+  }
+  if (dernier > 0) { try { return JSON.parse(s.slice(0, dernier + 1) + fermeture); } catch {} }
+  throw new Error("réponse de l'IA illisible, relancer");
+}
+
+function attendre(cible, etapes) {
+  const el = $(cible);
+  el.innerHTML = `<div class="attente"><i class="rotor"></i><span id="att-txt">${esc(etapes[0])}</span><em id="att-t">0 s</em></div>
+    <p class="aide" id="att-flux"></p>`;
+  suivi = ({ recherches, recu }) => { const f = $('#att-flux'); if (f) f.textContent = `${recherches} recherche${recherches > 1 ? 's' : ''} web effectuée${recherches > 1 ? 's' : ''}, ${recu.toLocaleString('fr-FR')} caractères reçus`; };
+  const t0 = Date.now(); let i = 0;
+  const m = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000), t = $('#att-t');
+    if (!t) return clearInterval(m);
+    t.textContent = s + ' s';
+    const k = Math.min(Math.floor(s / 12), etapes.length - 1);
+    if (k !== i) { i = k; $('#att-txt').textContent = etapes[i]; }
+  }, 1000);
+  return () => { clearInterval(m); suivi = null; el.innerHTML = ''; };
+}
+
+/* Une adresse proposée par l'IA n'est gardée que si elle figure parmi les pages que la
+   recherche a réellement consultées : c'est la garde contre les liens inventés. */
+function cle(u) {
+  try { const x = new URL(u); return (x.hostname.replace(/^www\./, '') + x.pathname.replace(/\/+$/, '')).toLowerCase(); }
+  catch { return ''; }
+}
+function pagesDetail(brut) {
+  const s = new Set();
+  (brut?.content || []).forEach(b => {
+    if (b.type === 'web_search_tool_result' && Array.isArray(b.content)) b.content.forEach(r => r.url && s.add(cle(r.url)));
+  });
+  return s;
+}
+function estPageDeRecherche(u) {
+  try {
+    const x = new URL(u), c = x.pathname.toLowerCase();
+    if (/(^|\/)(search|recherche|suche|busqueda|ricerca|catalog|catalogue|browse|sch)(\/|$)/.test(c)) return true;
+    return ['q', 'query', 'keyword', 'keywords', 'search_text', '_nkw', 'text', 'k', 'term', 'searchterm'].some(p => x.searchParams.has(p));
+  } catch { return false; }
+}
+
+/* ---------- 4. l'arrivée depuis l'atelier ---------- */
+
+/* L'atelier dépose sa synthèse dans le navigateur (même site, même stockage) puis ouvre
+   cette page. Rien ne part au coffre sans un clic : la collectionneuse choisit de ranger
+   l'objet, de le mettre dans « je guette », ou d'ajouter l'estimation à un objet existant. */
+function lireArrivee() {
+  try { return JSON.parse(localStorage.getItem('lc_vers_espace') || 'null'); } catch { return null; }
+}
+
+function rendreArrivee() {
+  const a = lireArrivee();
+  if (!a || !a.objet) { $('#arrivee').innerHTML = ''; return; }
+  const o = a.objet, r = a.releve;
+  const proche = a.pour && objet(a.pour) ? a.pour : (d.objets.find(x =>
+    nomDe(x).toLowerCase() === (o.nom || '').toLowerCase() ||
+    (o.marque && o.modele && x.donnees.marque === o.marque && x.donnees.modele === o.modele && (x.donnees.reference || '') === (o.reference || '')))?.id || '');
+  const mode = o.situation?.mode === 'achat' ? 'achat' : 'collection';
+  $('#arrivee').innerHTML = `<div class="arrivee">
+    ${a.photo ? `<img src="${esc(a.photo)}" alt="">` : '<span></span>'}
+    <div>
+      <span class="univers">tout juste analysé dans l'atelier, le ${esc(dateFr(a.date))}</span>
+      <h3>${esc(o.nom || 'objet')}</h3>
+      <p style="margin:4px 0 0;font-size:13.5px">${r ? `Estimation de l'atelier ${prix(r.mediane, r.devise)}, sur ${r.n} ${esc(LIB_BASE[r.nature] || r.base)}` : "Pas d'estimation établie"}${a.ventes?.length ? `, ${a.ventes.length} vente${a.ventes.length > 1 ? 's' : ''} conclue${a.ventes.length > 1 ? 's' : ''} avec leur adresse, qui ouvriront sa cote` : ''}.</p>
+      <div class="actions">
+        <select id="arr-cible" aria-label="où ranger">
+          <option value="">${mode === 'achat' ? 'nouvel objet dans « je guette »' : 'nouvel objet dans ma collection'}</option>
+          ${d.objets.map(x => `<option value="${esc(x.id)}" ${x.id === proche ? 'selected' : ''}>nouvelle estimation pour : ${esc(nomDe(x))}</option>`).join('')}
+        </select>
+        <button id="arr-ranger">ranger</button>
+        <button class="second" id="arr-ignorer">ignorer</button>
+      </div>
+      <div id="arr-etat"></div>
+    </div></div>`;
+  $('#arr-ranger').onclick = () => rangerArrivee(a, $('#arr-cible').value);
+  $('#arr-ignorer').onclick = () => { localStorage.removeItem('lc_vers_espace'); rendreArrivee(); };
+}
+
+async function rangerArrivee(a, cible) {
+  $('#arr-ranger').disabled = true;
+  $('#arr-etat').innerHTML = attente('rangement dans le coffre');
+  try {
+    let id = cible;
+    if (!id) {
+      id = nouvelId();
+      const dn = { ...a.objet, source: 'atelier' };
+      if (dn.notes) { dn.notes_datees = [{ id: nouvelId(), date: a.date || aujourdhui(), texte: dn.notes }]; }
+      await api('/objets/' + id, { method: 'PUT', corps: { donnees: dn, ...(a.photo ? { photo: a.photo } : {}) } });
+      if (a.photo) photos.set(id, a.photo);
+    } else {
+      // objet existant : on garde ce que la collectionneuse a saisi, on rafraîchit la lecture de l'atelier
+      const ex = objet(id).donnees;
+      const frais = { ...a.objet };
+      delete frais.situation; delete frais.nom; delete frais.notes;
+      if (ex.signature?.termes?.length) delete frais.signature;
+      if (ex.authenticite?.coches?.length) delete frais.authenticite;
+      await api('/objets/' + encodeURIComponent(id), { method: 'PUT', corps: { donnees: { ...ex, ...frais, nom: ex.nom || a.objet.nom } } });
+      if (a.photo && !objet(id).a_photo) { await api('/photos/' + encodeURIComponent(id), { method: 'PUT', corps: { data: a.photo } }); photos.set(id, a.photo); }
+    }
+    if (a.releve) await api('/releves', { method: 'POST', corps: { ...a.releve, objet_id: id } });
+    if (a.ventes?.length) await api('/transactions', { method: 'POST', corps: { transactions: a.ventes.map(v => ({ ...v, objet_id: id, origine: 'atelier' })) } });
+    localStorage.removeItem('lc_vers_espace');
+    galeries.delete(id);
+    vue = (cible ? modeDe(objet(cible)) : (a.objet.situation?.mode === 'achat' ? 'achat' : 'collection')) === 'achat' ? 'guette' : 'collection';
+    await recharger();
+    ouvrirFiche(id);
+  } catch (e) {
+    $('#arr-etat').innerHTML = `<div class="warn">${esc(e.message)}</div>`;
+    $('#arr-ranger').disabled = false;
+  }
+}
+
+/* ---------- aiguillage des clics ---------- */
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-fiche],[data-ajout],[data-modifier],[data-supprimer],[data-chercher],[data-suivre-pour],[data-relire],[data-resultat],[data-retirer-lot],[data-retirer-vente],[data-fermer],[data-veille],[data-ajout-photo],[data-suppr-photo],[data-voir],[data-note],[data-suppr-note]');
+  if (!b) return;
+  const x = b.dataset;
+  if ('fermer' in x) return b.closest('dialog')?.close();
+  if (x.fiche) return ouvrirFiche(x.fiche);
+  if (x.ajout) return ouvrirEdition(null, x.ajout);
+  if (x.modifier) return ouvrirEdition(x.modifier);
+  if (x.supprimer) return supprimerObjet(x.supprimer);
+  if (x.chercher) return ouvrirRecherche(x.chercher);
+  if (x.suivrePour) return ouvrirSuiviLot(x.suivrePour);
+  if (x.relire) return relireLot(x.relire, b);
+  if (x.resultat) return ouvrirResultat(x.resultat);
+  if (x.veille) return veillerMaintenant(x.veille, b);
+  if (x.ajoutPhoto) { photoPour = x.ajoutPhoto; return choixPhoto.click(); }
+  if (x.voir) { const img = document.querySelector('#fiche-corps .fiche-photo'); if (img) img.src = b.src; return; }
+  if (x.supprPhoto) {
+    if (!confirm('Retirer cette vue de la fiche ?')) return;
+    const id = ficheOuverte;
+    return api(`/objets/${encodeURIComponent(id)}/photos/${encodeURIComponent(x.supprPhoto)}`, { method: 'DELETE' })
+      .then(() => { galeries.delete(id); photos.delete(id); return recharger(); }).then(() => ouvrirFiche(id)).catch(err => alert(err.message));
+  }
+  if (x.note) {
+    const texte = $('#note-texte').value.trim();
+    if (!texte) return;
+    b.disabled = true;
+    return majDonnees(x.note, dn => ({ ...dn, notes_datees: [...(dn.notes_datees || []), { id: nouvelId(), date: aujourdhui(), texte }] }))
+      .then(() => ouvrirFiche(x.note)).catch(err => { alert(err.message); b.disabled = false; });
+  }
+  if (x.supprNote) {
+    const id = ficheOuverte;
+    return majDonnees(id, dn => ({ ...dn, notes_datees: (dn.notes_datees || []).filter(n => n.id !== x.supprNote) }))
+      .then(() => ouvrirFiche(id)).catch(err => alert(err.message));
+  }
+  if (x.retirerLot) {
+    if (!confirm('Ne plus suivre ce lot ? Une vente déjà relevée reste dans ton historique.')) return;
+    return api('/lots/' + encodeURIComponent(x.retirerLot), { method: 'DELETE' }).then(recharger)
+      .then(() => { if (ficheOuverte && $('#dlg-fiche').open) ouvrirFiche(ficheOuverte); }).catch(err => alert(err.message));
+  }
+  if (x.retirerVente) {
+    if (!confirm("Retirer cette vente de l'historique de l'objet ? Elle sortira de sa cote.")) return;
+    return api('/transactions/' + encodeURIComponent(x.retirerVente), { method: 'DELETE' }).then(recharger)
+      .then(() => ficheOuverte && ouvrirFiche(ficheOuverte)).catch(err => alert(err.message));
+  }
+});
+document.addEventListener('change', e => {
+  const coche = e.target.closest('[data-coche]');
+  if (coche && ficheOuverte) {
+    const i = +coche.dataset.coche;
+    return majDonnees(ficheOuverte, dn => {
+      const a = { ...(dn.authenticite || {}) };
+      const s = new Set(a.coches || []);
+      coche.checked ? s.add(i) : s.delete(i);
+      a.coches = [...s];
+      return { ...dn, authenticite: a };
+    }).catch(err => alert(err.message));
+  }
+  const s = e.target.closest('[data-lier]');
+  if (!s) return;
+  api('/lots/' + encodeURIComponent(s.dataset.lier), { method: 'PUT', corps: { objet_id: s.value || null } })
+    .then(recharger).catch(err => alert(err.message));
+});
+$('#ajouter-objet').onclick = () => ouvrirEdition(null);
+$('#dlg-fiche').addEventListener('close', () => { ficheOuverte = null; });
+
+/* Une image qui ne charge pas (favicon d'un site, photo abîmée) ne laisse pas d'icône cassée. */
+document.addEventListener('error', e => {
+  const i = e.target;
+  if (i.tagName !== 'IMG') return;
+  if (i.classList.contains('ico')) i.style.visibility = 'hidden';
+  else if (i.closest('.vignettes') || i.classList.contains('fiche-photo')) i.closest('.vign')?.remove() ?? (i.style.display = 'none');
+  else if (i.closest('.carte-photo,.arrivee')) i.style.visibility = 'hidden';
+}, true);
+
+/* ---------- démarrage ---------- */
+
+session = lireSession();
+if (session) entrer(); else ouvrirPorte();
+</script>
+</body>
+</html>
