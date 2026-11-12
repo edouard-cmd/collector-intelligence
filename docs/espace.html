@@ -940,10 +940,12 @@ function brancherGoogle() {
       ux_mode: 'popup',
       cancel_on_tap_outside: true,
       use_fedcm_for_prompt: true,
+      auto_select: true,          // déjà venue avec ce compte Google : elle rentre sans recliquer
     });
     $('#bouton-google').innerHTML = '';
     google.accounts.id.renderButton($('#bouton-google'), {
       theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', locale: 'fr', width: 300 });
+    try { google.accounts.id.prompt(); } catch {}
   };
   if (window.google?.accounts?.id) return go();
   $('#bouton-google').innerHTML = attente('chargement de la connexion Google');
@@ -1024,6 +1026,11 @@ function squelette() {
 async function recharger() {
   try {
     d = await api('/espace');
+    // la session glisse : le coffre renvoie un jeton neuf de trente jours à chaque ouverture
+    if (d.session?.jeton && session) {
+      session = { ...session, jeton: d.session.jeton, expire: d.session.expire };
+      try { localStorage.setItem('lc_session', JSON.stringify(session)); } catch {}
+    }
   } catch (e) {
     if (!session) return;
     const motif = esc(e.message.charAt(0).toUpperCase() + e.message.slice(1));
