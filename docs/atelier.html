@@ -65,7 +65,7 @@
   input[type=number],input[type=date],input[type=text],input[type=password],textarea,select{
     width:100%;height:38px;padding:0 12px;border:1px solid var(--filet-fort);border-radius:var(--r-ctrl);
     background:#fff;color:var(--encre);font:inherit;font-size:14px}
-  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--bleu);box-shadow:0 0 0 3px var(--bleu-pale)} /* taste-skill-ignore : anneau de focus */
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--bleu-texte);box-shadow:0 0 0 3px var(--bleu-pale)} /* taste-skill-ignore : anneau de focus */
   textarea{height:auto;min-height:92px;padding:9px 12px;resize:vertical;line-height:1.5}
   ::placeholder{color:var(--pale);opacity:1}
   button{font:inherit;font-weight:600;font-size:14px;background:var(--encre);color:#fff;border:1px solid var(--encre);
@@ -73,7 +73,9 @@
     transition:background-color 150ms ease,border-color 150ms ease,color 150ms ease,transform 160ms var(--ease-out)}
   button:active:not(:disabled){transform:scale(.97)}
   button.second{background:var(--clair);color:var(--encre);border-color:var(--filet-fort)}
-  button:focus-visible,a:focus-visible,#zone:focus-visible{outline:2px solid var(--bleu);outline-offset:2px}
+  button:focus-visible,a:focus-visible,#zone:focus-visible{outline:2px solid var(--bleu-texte);outline-offset:2px}
+  ::selection{background:#cdeafb;color:var(--encre)}
+  html{caret-color:var(--encre);accent-color:var(--encre);scrollbar-color:var(--filet-fort) transparent}
   button:disabled{background:var(--actif);border-color:var(--actif);color:var(--gris);cursor:not-allowed}
   button.second:disabled{background:var(--releve);border-color:var(--bord)}
   input[type=checkbox]{accent-color:var(--encre);width:16px;height:16px}
@@ -88,7 +90,7 @@
   .vig{position:relative;width:96px;height:96px;border-radius:var(--r-ctrl);background:#fff;overflow:visible}
   .vig img{width:100%;height:100%;object-fit:cover;display:block;border-radius:var(--r-ctrl)}
   .vig button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;min-height:0;padding:0;
-    border:1px solid var(--filet-fort);border-radius:50%;background:#fff;color:var(--encre);font-size:13px;line-height:1;cursor:pointer}
+    border:1px solid var(--filet-fort);border-radius:50%;background:#fff;color:var(--encre);cursor:pointer;display:flex;align-items:center;justify-content:center}
   .vig button::before{content:"";position:absolute;inset:-11px}
   .vig span{position:absolute;bottom:4px;left:4px;background:rgba(19,31,106,.82);color:#fff;
     font-size:11px;padding:1px 6px;border-radius:var(--r-puce)}
@@ -240,6 +242,12 @@
   .liste{margin:6px 0 0;padding-left:18px}
   .liste li{margin:3px 0}
   .liste li::marker{color:var(--gris)}
+
+  /* au doigt : des cibles d'au moins 40 px */
+  @media (pointer:coarse){
+    .saisie button,.vm button,.edit button.ok-edit,.edit button.ko-edit{min-height:40px}
+    .crayon{padding:8px;margin:-8px 0}
+  }
 
   /* ---------- le toucher : retour à la pression, survols réservés à la souris ---------- */
   @media (hover:hover) and (pointer:fine){
@@ -493,7 +501,7 @@ async function charger(liste, libelle) {
 function peindre() {
   $('#galerie').innerHTML = images.map((im, i) =>
     `<div class="vig" title="${im.libelle || 'vue ' + (i + 1)}"><img src="${im.url}" alt="vue ${i + 1}">
-     <button data-i="${i}" title="retirer">×</button>
+     <button data-i="${i}" title="retirer" aria-label="retirer cette vue"><svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
      <span>${im.libelle ? (i + 1) + ', ' + im.libelle.slice(0, 14) : 'vue ' + (i + 1)}</span></div>`).join('');
   document.querySelectorAll('.vig button').forEach(b =>
     b.onclick = () => { images.splice(+b.dataset.i, 1); peindre(); });
@@ -774,11 +782,11 @@ cible.onchange = async () => {
   const n = await charger([...cible.files], bouton.dataset.quoi);
   cible.value = '';
   if (n) {
-    bouton.textContent = 'ajoutée';
+    bouton.textContent = 'Ajoutée';
     bouton.disabled = true;
     $('#relancer').disabled = false;
   } else {
-    bouton.textContent = 'plus de place';
+    bouton.textContent = 'Plus de place';
   }
   const libres = MAX_VUES - images.length;
   $('#place').textContent = `${libres} emplacement${libres > 1 ? 's' : ''} libre${libres > 1 ? 's' : ''}`;
@@ -820,8 +828,8 @@ function brancherCorrection(d) {
     const garde = zone.innerHTML;
     zone.innerHTML = `<input type="text" value="${avant.replace(/"/g, '&quot;')}"
         aria-label="${LIB_CHAMP[champ]}">
-      <button class="ok-edit" title="corriger et relancer">corriger et relancer</button>
-      <button class="ko-edit second" title="annuler">annuler</button>`;
+      <button class="ok-edit" title="corriger et relancer">Corriger et relancer</button>
+      <button class="ko-edit second" title="annuler">Annuler</button>`;
     const champTexte = zone.querySelector('input');
     champTexte.focus();
     champTexte.select();
@@ -854,7 +862,7 @@ function brancherCorrection(d) {
 function brancherVues() {
   document.querySelectorAll('.ajvue').forEach(b => b.onclick = () => {
     if (images.length >= MAX_VUES) {
-      b.textContent = 'plus de place, retire une vue en haut';
+      b.textContent = 'Plus de place, retire une vue en haut';
       return;
     }
     vueEnCours = b;
@@ -1032,7 +1040,7 @@ celle du nouveau modèle.`;
     if (histoireNeuve) afficherHistoire(histoireNeuve, vuesId);
     rendreSynthese();
     $('#raconter').disabled = false;
-    $('#raconter').textContent = profil.histoire ? "régénérer l'histoire" : "raconter l'histoire";
+    $('#raconter').textContent = profil.histoire ? "Régénérer l'histoire" : "Raconter l'histoire";
     allume(4);
     $('#chercher').disabled = false;
     regler_intensite();
@@ -1119,10 +1127,10 @@ function afficherIdentite(d) {
           ${v.apporte ? `<em style="display:block;font-size:12.5px">${v.apporte}</em>` : ''}
         </div>
         <button class="second ajvue" data-quoi="${v.quoi.replace(/"/g, '&quot;')}"
-          ${deja.has(v.quoi) ? 'disabled' : ''}>${deja.has(v.quoi) ? 'ajoutée' : 'ajouter une photo'}</button>
+          ${deja.has(v.quoi) ? 'disabled' : ''}>${deja.has(v.quoi) ? 'Ajoutée' : 'Ajouter une photo'}</button>
       </div>`);
     h += `<div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button id="relancer" ${deja.size ? '' : 'disabled'}>relancer l'identification</button>
+            <button id="relancer" ${deja.size ? '' : 'disabled'}>Relancer l'identification</button>
             <span class="etat" id="place">${MAX_VUES - images.length} emplacement${
               MAX_VUES - images.length > 1 ? 's' : ''} libre${MAX_VUES - images.length > 1 ? 's' : ''}</span>
           </div></div>`;
@@ -1575,7 +1583,7 @@ function rendreMarche() {
            la cote devra passer par la saisie assistée ou une expertise.`
         : `Des fiches ont été proposées, mais aucune adresse ne figurait parmi les pages réellement
            consultées : elles ont été écartées par précaution. Relancer peut suffire.`}</p>
-      ${!$('#approfondi').checked ? `<div style="margin-top:12px"><button id="elargir">élargir la
+      ${!$('#approfondi').checked ? `<div style="margin-top:12px"><button id="elargir">Élargir la
         recherche</button> <span class="etat">Sonnet, 10 recherches, environ 0,25 €</span></div>` : ''}
       </div>`;
     brancherElargir();
@@ -1657,7 +1665,7 @@ function rendreMarche() {
   profil.cas = cas;
   const mince = (cas === 3 || cas === '8c') && !$('#approfondi').checked;
   const boutonElargir = mince ? `<div style="margin:12px 0 0;display:flex;gap:10px;align-items:center;
-      flex-wrap:wrap"><button id="elargir">élargir la recherche</button>
+      flex-wrap:wrap"><button id="elargir">Élargir la recherche</button>
       <span class="etat">Sonnet, 10 recherches, environ 0,25 €, avant de conclure à un manque
       de données, c'est souvent la recherche qui était trop courte.</span></div>` : '';
 
@@ -1731,7 +1739,7 @@ function rendreMarche() {
             <input type="number" min="0" step="any" class="pm" data-i="${idx}" placeholder="à recopier">
             <select class="pmd" data-i="${idx}">${['EUR', 'USD', 'GBP', 'CHF'].map(x =>
               `<option ${x === (f.devise || dev) ? 'selected' : ''}>${x}</option>`).join('')}</select>
-            <button class="second pmok" data-i="${idx}">ajouter</button></div>` : ''}
+            <button class="second pmok" data-i="${idx}">Ajouter</button></div>` : ''}
         </div></div>`;
     });
   });
@@ -2309,7 +2317,7 @@ function afficherAvis() {
     z.innerHTML = `<div class="avis" style="background:var(--clair)"><span>avis de l'expert</span>
       <p style="margin:6px 0 10px;font-size:14px">${a ? "Ton prix ou ta situation a changé depuis le dernier avis."
         : "L'IA peut interpréter ces prix pour ton cas précis : risque d'authenticité, points à vérifier, décision."}</p>
-      <button id="avis-go">${a ? "actualiser l'avis" : "obtenir l'avis de l'expert"}</button>
+      <button id="avis-go">${a ? "Actualiser l'avis" : "Obtenir l'avis de l'expert"}</button>
       <span class="etat" style="margin-left:8px">environ 0,02 €</span></div>`;
     const b = document.getElementById('avis-go');
     if (b) b.onclick = () => lancerAvis(false);
@@ -2331,7 +2339,7 @@ function afficherAvis() {
     <p class="etat" style="margin-top:10px">Avis rédigé par l'IA à partir des seuls prix observés et de ton
       prix, sans aucun chiffre qui ne figure dans l'analyse. Il interprète le repère calculé, il ne le
       remplace pas. <button class="second non-imprime" id="avis-go" style="padding:3px 9px;font-size:12.5px;
-      margin-left:6px">actualiser</button></p>
+      margin-left:6px">Actualiser</button></p>
   </div>`;
   const b = document.getElementById('avis-go');
   if (b) b.onclick = () => lancerAvis(false);
