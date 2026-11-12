@@ -34,6 +34,7 @@
     --ease-out:cubic-bezier(.23,1,.32,1);
   }
   *{box-sizing:border-box}
+  [hidden]{display:none!important}
   body{margin:0;background:var(--fond);color:var(--encre);font:14px/1.55 var(--texte)}
   a{color:var(--encre);text-decoration-color:var(--filet-fort);text-underline-offset:3px}
   code{background:var(--actif);padding:1px 5px;border-radius:var(--r-puce);font-size:.92em}
@@ -388,11 +389,13 @@
 
   <div style="margin-top:16px">
     <button id="identifier" disabled>Identifier l'objet</button>
+    <span class="etat" id="cout-identifier"><span data-credits="identification">1 crédit</span></span>
     <span class="etat" id="etat1"></span>
   </div>
   <label style="display:flex;gap:9px;align-items:center;font-weight:400;margin:10px 0 0">
     <input type="checkbox" id="enchainer" checked style="width:auto">
-    Chercher les prix du marché juste après l'identification</label>
+    <span>Chercher aussitôt les prix du marché : <span data-credits="marche">1 crédit</span> de plus,
+    <span data-credits="marche_approfondi">2 crédits</span> pour un objet de valeur</span></label>
   <div id="sortie1"></div>
 </fieldset>
 
@@ -1521,7 +1524,7 @@ function regler_intensite() {
       quand même aller plus loin.`;
   } else {
     $('#approfondi').checked = true;
-    el.innerHTML = `Objet de valeur : recherche approfondie activée.`;
+    el.innerHTML = `Objet de valeur : la recherche approfondie est cochée d'office. Décoche-la pour ${libCredits(CREDITS.marche)} au lieu de ${libCredits(CREDITS.marche_approfondi)}.`;
   }
 }
 
