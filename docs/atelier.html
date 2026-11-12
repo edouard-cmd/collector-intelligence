@@ -1528,7 +1528,7 @@ function regler_intensite() {
   }
 }
 
-async function lancerMarche() {
+async function lancerMarche(demande) {
   if (marcheEnCours || !profil.description) return;
   if (!(await peutLancer($('#approfondi').checked ? 'marche_approfondi' : 'marche', '#sortie-marche'))) return;
   marcheEnCours = true;
@@ -1543,7 +1543,8 @@ async function lancerMarche() {
     "vérification des liens",
     "encore un instant"
   ]);
-  $('#sortie-marche').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // on n'emmène la page que si elle a cliqué elle-même : enchaînée, la recherche tourne sans la déranger
+  if (demande === true) $('#sortie-marche').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   try {
     const d = await appeler(SYS_MARCHE,
@@ -1584,7 +1585,7 @@ async function lancerMarche() {
   marcheEnCours = false;
 }
 
-$('#chercher').onclick = lancerMarche;
+$('#chercher').onclick = () => lancerMarche(true);
 
 function quantile(s, p) {
   const i = (s.length - 1) * p, b = Math.floor(i), f = i - b;
@@ -2257,8 +2258,7 @@ function analyseTerminee() {
   $('#fin-detail').textContent = base ? `prix habituel ${base[0].med} ${ref.dev}, d'après ${base[0].n} ${base[1]}` : 'pas assez de prix pour un repère, il peut entrer sans cote';
   $('#fin-ranger').textContent = libelleRanger();
   $('#fin-analyse').hidden = false;
-  document.body.classList.add('avec-fin');
-  $('#synthese').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.body.classList.add('avec-fin');   // pas de saut de page : la barre propose « Voir la synthèse »
 }
 $('#fin-voir').onclick = () => $('#synthese').scrollIntoView({ behavior: 'smooth', block: 'start' });
 $('#fin-ranger').onclick = () => { masquerFin(); versEspace(); };
@@ -2520,7 +2520,7 @@ document.getElementById && ($('#imprimer') || {}).addEventListener?.('click', ()
 
 function brancherElargir() {
   const b = document.getElementById('elargir');
-  if (b) b.onclick = () => { $('#approfondi').checked = true; lancerMarche(); };
+  if (b) b.onclick = () => { $('#approfondi').checked = true; lancerMarche(true); };
 }
 
 /* Contrôle de chaque fiche par la passerelle : aucun appel à Claude, donc aucun coût. */
