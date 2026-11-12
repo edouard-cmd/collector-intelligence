@@ -361,6 +361,10 @@
   @media(max-width:620px){.details{grid-template-columns:1fr}.details dd{border-top:0;padding-top:0}}
   .fiche-pied{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--bord);padding-top:16px}
 
+  a.bouton{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 14px;border-radius:var(--r-ctrl);
+    background:var(--encre);color:#fff;border:1px solid var(--encre);font-weight:600;font-size:14px;text-decoration:none;white-space:nowrap}
+  a.bouton.second{background:var(--surface);color:var(--encre);border-color:var(--filet-fort)}
+  .pied-objets{margin:0;padding:12px 20px 16px;border-top:1px solid var(--filet);font-size:13px;color:var(--gris)}
   /* chargement et échec : la mise en page finale garde sa place, sans scintillement */
   .os{display:inline-block;max-width:100%;border-radius:3px;background:var(--actif);vertical-align:middle}
   .echec{display:inline-flex;gap:10px;flex-wrap:wrap;align-items:baseline;color:#831c4a;font-weight:500}
@@ -379,6 +383,8 @@
     button.second:hover:not(:disabled){background:var(--releve);border-color:var(--encre);color:var(--encre)}
     button.danger:hover:not(:disabled){border-color:var(--negatif);color:var(--negatif)}
     button.lien:hover:not(:disabled){background:none;text-decoration-color:var(--encre)}
+    a.bouton:hover{background:#24318a;border-color:#24318a;color:#fff}
+    a.bouton.second:hover{background:var(--releve);border-color:var(--encre);color:var(--encre)}
     .nav button:hover:not(:disabled),.nav a:hover{background:#eceef5;color:var(--encre)}
     .nav button[aria-current=page]:hover:not(:disabled){background:var(--actif)}
     .menu:hover:not(:disabled){background:var(--actif)}
@@ -538,6 +544,7 @@
         </select>
       </div>
       <div id="liste-objets"></div>
+      <p class="pied-objets" id="pied-objets" hidden>Tu as déjà toutes ses informations ? <button class="lien" id="ajout-main">L'ajouter à la main</button></p>
     </section>
 
     <section id="vue-encheres" hidden>
@@ -889,7 +896,10 @@ function menu(ouvrir) {
   $('#menu').setAttribute('aria-label', ouvrir ? 'fermer le menu' : 'ouvrir le menu');
 }
 $('#menu').onclick = () => menu(!$('#barre').classList.contains('ouverte'));
-$('#ajout-mobile').onclick = () => ouvrirEdition(null);
+/* Ajouter un objet, c'est le photographier dans l'atelier : il l'identifie et trouve ses ventes,
+   rien à taper. La saisie à la main reste en lien, sous la liste. */
+const lienAjout = () => `atelier.html?ajout=${vue === 'guette' ? 'guette' : 'collection'}`;
+$('#ajout-mobile').onclick = () => { location.href = lienAjout(); };
 
 function squelette() {
   const barre = (l, h) => `<i class="os" style="width:${l};height:${h}px"></i>`;
@@ -1202,12 +1212,14 @@ function rendreObjets() {
     $('#liste-objets').innerHTML = `<div class="vide-liste">
       <h3>${mode === 'achat' ? 'Rien en vue pour le moment' : 'Ta collection commence ici'}</h3>
       <p>${mode === 'achat'
-        ? "Range ici les objets que tu aimerais acquérir : le coffre cherchera les ventes aux enchères qui les proposent et te dira où en sont les prix."
-        : "Le plus simple : estime un objet dans l'atelier, puis clique sur « ranger dans mon espace » en bas de la synthèse. Sa photo, sa signature de veille et les ventes trouvées arrivent ici, et la veille du matin prend le relais."}</p>
-      <div class="boutons"><a href="atelier.html"><button>Estimer un objet dans l'atelier</button></a>
-      <button class="second" data-ajout="${mode}">L'ajouter à la main</button></div></div>`;
+        ? "Photographie un objet que tu aimerais acquérir : l'atelier l'identifie, puis le coffre cherche les ventes aux enchères qui le proposent et te dit où en sont les prix."
+        : "Photographie un objet : l'atelier l'identifie et trouve ses ventes réelles, puis il arrive ici avec sa cote, et la veille du matin prend le relais."}</p>
+      <div class="boutons"><a class="bouton" href="${lienAjout()}">Ajouter un objet</a></div>
+      <p class="aide" style="margin-top:14px">Tu as déjà toutes ses informations ? <button class="lien" data-ajout="${mode}">L'ajouter à la main</button></p></div>`;
+    $('#pied-objets').hidden = true;
     return;
   }
+  $('#pied-objets').hidden = false;
   const achat = mode === 'achat';
   $('#liste-objets').innerHTML = liste.length ? `<div class="registre">
       <div class="entete"><span></span><span>Objet</span><span class="c-regle">Ventes conclues</span><span class="d">Cote</span>
@@ -1484,7 +1496,7 @@ function ouvrirFiche(id) {
 
     <div class="section fiche-pied">
       <button class="second" data-modifier="${esc(id)}">Modifier la fiche et la veille</button>
-      <a href="atelier.html?pour=${encodeURIComponent(id)}"><button class="second">Réestimer dans l'atelier</button></a>
+      <a class="bouton second" href="atelier.html?pour=${encodeURIComponent(id)}">Réestimer dans l'atelier</a>
       <button class="second danger" data-supprimer="${esc(id)}" style="margin-left:auto">Supprimer l'objet</button>
     </div>`;
   if (!$('#dlg-fiche').open) $('#dlg-fiche').showModal();
@@ -1578,7 +1590,7 @@ function ouvrirEdition(id, mode) {
   edition = o ? o.id : null;
   photoEdition = null;
   const dn = o?.donnees || {}, s = dn.situation || {}, sig = dn.signature || {};
-  $('#edition-titre').textContent = o ? 'Modifier la fiche' : 'Ajouter un objet';
+  $('#edition-titre').textContent = o ? 'Modifier la fiche' : 'Ajouter un objet à la main';
   const champs = { 'ed-nom': dn.nom, 'ed-marque': dn.marque, 'ed-modele': dn.modele, 'ed-reference': dn.reference,
     'ed-variante': dn.variante, 'ed-univers': dn.univers, 'ed-sous-categorie': dn.sous_categorie, 'ed-licence': dn.licence,
     'ed-tags': (dn.tags || []).join(', '), 'ed-provenance': dn.provenance, 'ed-prix': s.prix ?? '', 'ed-date': s.date,
@@ -2129,7 +2141,12 @@ function rendreArrivee() {
     </div></div>`;
   $('#arr-ranger').onclick = () => rangerArrivee(a, $('#arr-cible').value);
   $('#arr-ignorer').onclick = () => { localStorage.removeItem('lc_vers_espace'); rendreArrivee(); };
+  // Venue de « Ajouter un objet » ou de « Réestimer », la collectionneuse a déjà cliqué « Ranger »
+  // dans l'atelier : on range sans redemander. Seul un doublon possible garde le choix ouvert.
+  const cible = a.pour && objet(a.pour) ? a.pour : proche ? null : '';
+  if (a.direct && cible !== null && !rangementLance) { rangementLance = true; rangerArrivee(a, cible); }
 }
+let rangementLance = false;
 
 async function rangerArrivee(a, cible) {
   $('#arr-ranger').disabled = true;
@@ -2230,7 +2247,8 @@ document.addEventListener('change', e => {
   api('/lots/' + encodeURIComponent(s.dataset.lier), { method: 'PUT', corps: { objet_id: s.value || null } })
     .then(recharger).catch(err => alert(err.message));
 });
-$('#ajouter-objet').onclick = () => ouvrirEdition(null);
+$('#ajouter-objet').onclick = () => { location.href = lienAjout(); };
+$('#ajout-main').onclick = () => ouvrirEdition(null);
 $('#dlg-fiche').addEventListener('close', () => { ficheOuverte = null; });
 
 /* Une image qui ne charge pas (favicon d'un site, photo abîmée) ne laisse pas d'icône cassée. */

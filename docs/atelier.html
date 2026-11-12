@@ -243,6 +243,26 @@
   .liste li{margin:3px 0}
   .liste li::marker{color:var(--gris)}
 
+  /* fin d'analyse : un bandeau qui flotte en bas, l'action suivante sous la main */
+  .fin-barre{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(760px,calc(100% - 32px));z-index:30;
+    display:flex;align-items:center;gap:10px;background:var(--clair);border:1px solid var(--bord);border-radius:var(--r-carte);
+    padding:12px 12px 12px 18px;box-shadow:0 12px 32px rgba(19,31,106,.16),0 2px 6px rgba(19,31,106,.06); /* taste-skill-ignore : il flotte */
+    transition:opacity 220ms var(--ease-out),transform 220ms var(--ease-out)}
+  @starting-style{.fin-barre{opacity:0;transform:translate(-50%,8px)}}
+  .fin-texte{flex:1;min-width:0;display:flex;flex-direction:column}
+  .fin-texte b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fin-texte span{font-size:13px;color:var(--gris)}
+  .fin-masquer{min-height:36px;width:36px;padding:0;background:none;border:0;color:var(--gris);display:flex;align-items:center;justify-content:center}
+  body.avec-fin .toile{padding-bottom:120px}
+  #synthese{scroll-margin-top:16px}
+  @media(max-width:620px){
+    .fin-barre{flex-wrap:wrap;bottom:8px;width:calc(100% - 16px);padding:12px}
+    .fin-texte{flex-basis:calc(100% - 46px)}
+    .fin-barre #fin-voir{display:none}
+    .fin-barre #fin-ranger{flex:1}
+  }
+  @media (prefers-reduced-motion:reduce){@starting-style{.fin-barre{transform:translateX(-50%)}}}
+
   /* au doigt : des cibles d'au moins 40 px */
   @media (pointer:coarse){
     .saisie button,.vm button,.edit button.ok-edit,.edit button.ko-edit{min-height:40px}
@@ -253,6 +273,7 @@
   @media (hover:hover) and (pointer:fine){
     .lien-espace:hover{background:var(--releve);border-color:var(--encre)}
     button:hover:not(:disabled):not(.crayon){background:#24318a;border-color:#24318a;color:#fff}
+    .fin-masquer:hover:not(:disabled){background:var(--actif);border-color:transparent;color:var(--encre)}
     button.second:hover:not(:disabled){background:var(--releve);border-color:var(--encre);color:var(--encre)}
     .vig button:hover:not(:disabled){background:var(--releve);border-color:var(--encre);color:var(--encre)}
     #zone:hover{border-color:var(--encre)}
@@ -441,6 +462,12 @@
 
 </div>
 
+<div class="fin-barre non-imprime" id="fin-analyse" role="status" hidden>
+  <div class="fin-texte"><b id="fin-titre">Analyse terminée</b><span id="fin-detail"></span></div>
+  <button class="second" id="fin-voir">Voir la synthèse</button>
+  <button id="fin-ranger">Ranger dans ma collection</button>
+  <button class="fin-masquer" id="fin-masquer" aria-label="masquer ce bandeau"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+</div>
 </main>
 <script>
 const PASSERELLE = "https://collector-passerelle.edouard-e8b.workers.dev";
@@ -978,6 +1005,7 @@ L'identification passe avant l'histoire : si tes recherches sont comptées, cons
 à identifier l'objet correctement.`;
 
 $('#identifier').onclick = async () => {
+  masquerFin();
   const b = $('#identifier');
   b.disabled = true;
   $('#etat1').textContent = "";
@@ -1519,6 +1547,7 @@ function afficherMarche(d, pages, diag = {}) {
                     fiches, adresses_ecartees: ecartees.length };
   rendreMarche();
   if (fiches.length) verifierFiches();
+  else analyseTerminee();
 }
 
 /* Niveau de preuve d'une fiche, du plus fort au plus faible. C'est ce qui permet de dire
@@ -2138,6 +2167,46 @@ function brancherSituation() {
 }
 brancherSituation();
 
+/* ---------- arrivée depuis l'espace : « Ajouter un objet » ou « Réestimer » ---------- */
+const PARAMS = new URLSearchParams(location.search);
+const AJOUT = ['collection', 'guette'].includes(PARAMS.get('ajout')) ? PARAMS.get('ajout') : null;
+const DEPUIS_ESPACE = !!(AJOUT || PARAMS.get('pour'));
+if (AJOUT) {
+  const r = document.querySelector(`input[name=mode][value=${AJOUT === 'guette' ? 'achat' : 'collection'}]`);
+  if (r) { r.checked = true; r.dispatchEvent(new Event('change')); }
+  $('.titre-ligne h1').textContent = 'Ajouter un objet';
+  $('.titre-ligne p').textContent = AJOUT === 'guette'
+    ? "Photographie l'objet que tu guettes : l'atelier l'identifie et cherche ses ventes réelles, puis il entre dans « Je guette » avec ce qu'en dit le marché."
+    : "Photographie-le : l'atelier l'identifie et cherche ses ventes réelles, puis il entre dans ta collection avec sa cote, sans rien taper à la main.";
+  document.title = 'Ajouter un objet, Le Collectionnaire';
+}
+if (DEPUIS_ESPACE) $('.lien-espace').textContent = 'Retour à mon espace';
+
+/* ---------- fin d'analyse : on amène au résultat, l'action suivante reste sous la main ---------- */
+const libelleRanger = () => (lireSituation().mode || (AJOUT === 'guette' ? 'achat' : 'collection')) === 'achat'
+  ? 'Ranger dans « Je guette »' : 'Ranger dans ma collection';
+function nomObjet() {
+  const marque = profil.corrections?.marque || profil.marque || '', modele = profil.corrections?.modele || profil.modele || '';
+  return modele && marque && modele.toLowerCase().includes(marque.toLowerCase()) ? modele
+    : [marque, modele].filter(Boolean).join(' ') || profil.univers || 'Objet';
+}
+function masquerFin() { $('#fin-analyse').hidden = true; document.body.classList.remove('avec-fin'); }
+function analyseTerminee() {
+  if (!profil.description) return;
+  const ref = marche.ref || {};
+  const base = ref.sv?.n >= 3 ? [ref.sv, 'ventes conclues'] : ref.so?.n >= 3 ? [ref.so, "annonces d'occasion"]
+    : ref.sc?.n >= 3 ? [ref.sc, 'objets comparables'] : ref.sn?.n >= 3 ? [ref.sn, 'prix neufs'] : null;
+  $('#fin-titre').textContent = nomObjet();
+  $('#fin-detail').textContent = base ? `médiane ${base[0].med} ${ref.dev} sur ${base[0].n} ${base[1]}` : 'pas assez de prix pour un repère, il peut entrer sans cote';
+  $('#fin-ranger').textContent = libelleRanger();
+  $('#fin-analyse').hidden = false;
+  document.body.classList.add('avec-fin');
+  $('#synthese').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+$('#fin-voir').onclick = () => $('#synthese').scrollIntoView({ behavior: 'smooth', block: 'start' });
+$('#fin-ranger').onclick = () => { masquerFin(); versEspace(); };
+$('#fin-masquer').onclick = masquerFin;
+
 /* Les barres que tu aimais dans le routeur, mais avec des prix constatés : chaque barre va
    du moins cher au plus cher des fiches retenues, le trait noir marque la médiane. */
 function graphiqueMesure(retenues, dev) {
@@ -2177,7 +2246,7 @@ function rendreSynthese() {
   const zo = $('#synthese-objet'), zp = $('#synthese-prix');
   if (!zo || !zp) return rendreVerdict();
 
-  if ($('#vers-espace')) $('#vers-espace').disabled = !profil.description;
+  if ($('#vers-espace')) { $('#vers-espace').disabled = !profil.description; $('#vers-espace').textContent = libelleRanger(); }
 
   // l'objet
   if (profil.description) {
@@ -2430,7 +2499,8 @@ async function verifierFiches() {
   await Promise.all([travailleur(), travailleur(), travailleur()]);
   rendreMarche();
   // Les prix sont établis : l'avis peut être rédigé, une seule fois pour cette situation.
-  lancerAvis(true);
+  await lancerAvis(true);
+  analyseTerminee();
 }
 
 /* ---------- outils communs ---------- */
@@ -2504,10 +2574,9 @@ async function versEspace() {
                  preuve: 'atelier, le ' + jour + ' : ' + niveau(f).lib }));
   const marque = profil.corrections?.marque || profil.marque || null;
   const modele = profil.corrections?.modele || profil.modele || null;
-  const nom = modele && marque && modele.toLowerCase().includes(marque.toLowerCase()) ? modele
-            : [marque, modele].filter(Boolean).join(' ') || profil.univers || 'objet';
+  const nom = nomObjet();
   const paquet = {
-    version: 1, date: jour, pour: new URLSearchParams(location.search).get('pour'),
+    version: 1, date: jour, pour: new URLSearchParams(location.search).get('pour'), direct: DEPUIS_ESPACE,
     photo: images[0] ? await vignette(images[0].url, 720) : null,
     objet: { nom, marque, modele, reference: profil.corrections?.reference || profil.reference || null,
       univers: profil.univers || null, sous_categorie: profil.sous_categorie || null,
@@ -2540,6 +2609,7 @@ async function versEspace() {
     $('#sortie-espace').innerHTML = `<div class="warn">le navigateur refuse de stocker l'analyse (stockage plein ou navigation privée).</div>`;
     return;
   }
+  if (DEPUIS_ESPACE) { location.href = 'espace.html'; return; }
   const f = window.open('espace.html', '_blank');
   $('#sortie-espace').innerHTML = `<div class="info"><b>${nom}</b> attend dans ton espace${releve ? `, avec sa cote de ${releve.mediane} ${releve.devise}` : ''}
     et ${ventes.length} vente${ventes.length > 1 ? 's' : ''} conclue${ventes.length > 1 ? 's' : ''}.
