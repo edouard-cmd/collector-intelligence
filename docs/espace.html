@@ -204,6 +204,7 @@
   .nom-bouton{background:none;border:0;height:auto;padding:0;color:var(--encre);font-weight:600;font-size:14px;max-width:100%;
     display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
   .ligne-obj .sous{font-size:12.5px;color:var(--gris);margin-top:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .ligne-obj .sous .quoi{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ligne-obj .regle{display:flex;align-items:center}
   .ligne-obj .chiffre{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;text-align:right}
   .ligne-obj .chiffre b{font-weight:600;font-size:15px;white-space:nowrap}
@@ -332,7 +333,28 @@
   .puits dt{font-size:12px;color:var(--gris)}
   .puits dd{margin:2px 0 0;font-weight:600;font-variant-numeric:tabular-nums}
   .lecture-prix{margin:14px 0 0;font-size:14px;line-height:1.6}
-  .regle-grande{margin:16px 0 0;padding:12px 14px 6px;border:1px solid var(--bord);border-radius:var(--r-carte)}
+  .regle-grande{margin:16px 0 0;padding:12px 14px 10px;border:1px solid var(--bord);border-radius:var(--r-carte)}
+  /* la jauge de l'atelier : des zones « anormalement bas » à « trop cher », les prix en points, ton prix en repère */
+  .barre-prix{margin:6px 0 0}
+  .bp-zones{position:relative;height:16px;border-radius:var(--r-puce);margin-top:40px;background:var(--filet)}
+  .bp-zones i{position:absolute;top:0;bottom:0;display:block}
+  .bp-zones i:first-child{border-radius:var(--r-puce) 0 0 var(--r-puce)}
+  .bp-zones i:nth-last-child(1 of i){border-radius:0 var(--r-puce) var(--r-puce) 0}
+  .bp-zones u{position:absolute;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;
+    background:var(--encre);outline:1.5px solid #fff;text-decoration:none}
+  .bp-zones s{position:absolute;top:-6px;bottom:-6px;width:2px;margin-left:-1px;background:var(--encre);text-decoration:none}
+  .bp-zones s span{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);
+    white-space:nowrap;font-size:12px;text-align:center;background:var(--encre);color:#fff;
+    padding:3px 8px;line-height:1.25;border-radius:var(--r-puce)}
+  .bp-legende{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12.5px;color:var(--gris)}
+  .bp-legende span{display:flex;gap:6px;align-items:center}
+  .bp-legende i{width:12px;height:12px;border-radius:3px;display:inline-block;flex:none}
+  .bp-legende u{width:8px;height:8px;border-radius:50%;background:var(--encre);display:inline-block;flex:none}
+  .regle-grande .bp-zones{margin-top:54px}
+  .barre-prix.mini{margin:0;width:100%;max-width:220px}
+  .barre-prix.mini .bp-zones{height:8px;margin-top:0}
+  .barre-prix.mini .bp-zones u{width:6px;height:6px;margin:-3px 0 0 -3px;outline-width:1px}
+  .barre-prix.mini .bp-zones s{top:-5px;bottom:-5px}
   .regle-grande .tete{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--gris)}
   .regle-grande svg{display:block;width:100%;height:auto;overflow:visible}
   .vente{display:grid;grid-template-columns:90px minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 0;
@@ -1261,7 +1283,7 @@ function alertesDuMois() {
       : x.type === 'rythme' ? `${nomDe(o)} : des ventes plus fréquentes que d'habitude`
       : `${nomDe(o)} : un palier de cote franchi`;
     a.push({ c: x.type === 'palier' ? 'bleu' : 'rose', id: o.id, rang: ordre[x.type] ?? 2, date: x.date, court,
-      h: `<b>${esc(nomDe(o))}</b> : ${typo(esc(x.message))}.${x.explication?.resume ? `<span class="resume">${esc(x.explication.resume)}</span>` : ''}` });
+      h: `<b>${esc(nomDe(o))}</b> : ${esc(typo(x.message))}.${x.explication?.resume ? `<span class="resume">${esc(x.explication.resume)}</span>` : ''}` });
   });
   d.lots.filter(l => l.statut === 'a_verifier').forEach(l => a.push({ c: 'jaune', lot: l.id, rang: 2, date: l.date_vente,
     court: `un résultat d'enchère à confirmer`,
@@ -1342,7 +1364,7 @@ function rendreObjets() {
   $('#pied-objets').hidden = false;
   const achat = mode === 'achat';
   $('#liste-objets').innerHTML = liste.length ? `<div class="registre">
-      <div class="entete"><span></span><span>Objet</span><span class="c-regle">Ventes conclues</span><span class="d">Cote</span>
+      <div class="entete"><span></span><span>Objet</span><span class="c-regle">Face au marché</span><span class="d">Cote</span>
         <span class="d c-prix">${achat ? 'Prix demandé' : 'Ton prix'}</span><span class="d c-ecart">Écart</span></div>
       ${liste.map(ligneObjet).join('')}</div>`
     : `<p class="vide-bloc" style="margin:0 20px 20px">Aucun objet ne correspond à « ${esc(f)} ».</p>`;
@@ -1362,11 +1384,11 @@ function ligneObjet(o) {
   return `<div class="ligne-obj" data-fiche="${esc(o.id)}">
     <span class="vignette">${photo ? `<img src="${esc(photo)}" alt="">` : `<span class="vide">${esc((nomDe(o)[0] || 'C').toUpperCase())}</span>`}</span>
     <span class="nom"><button class="nom-bouton" data-fiche="${esc(o.id)}">${esc(nomDe(o))}</button>
-      <span class="sous">${esc([dn.univers, dn.licence].filter(Boolean).join(', ') || 'objet')}
+      <span class="sous"><span class="quoi">${esc(dn.univers || dn.sous_categorie || 'objet')}</span>
         ${['jaune', 'rouge'].includes(vo.c) ? `<span title="${esc(vo.t)}" style="display:inline-flex;gap:5px;align-items:center">${point(vo)}${vo.c === 'rouge' ? 'veille en échec' : 'veille en attente'}</span>` : ''}
         ${lotsActifs ? `<span class="puce bleu">${lotsActifs} enchère${lotsActifs > 1 ? 's' : ''}</span>` : ''}</span>
       <span class="sous mobile">${s.prix ? `${achat ? 'demandé' : 'payé'} ${prix(s.prix, s.devise)}` : ''}${ecartTxt ? `, <span class="${ecartTxt.cl}">${ecartTxt.t}</span>` : ''}</span></span>
-    <span class="c-regle regle">${reglette(o)}</span>
+    <span class="c-regle regle">${jauge(o)}</span>
     <span class="chiffre">${c.cotable ? `<b>${prix(c.mediane, c.devise)}</b><small>${c.n} vente${c.n > 1 ? 's' : ''}${tend ? `, ${tend}` : ''}</small>`
       : `<span class="gris">non cotable</span><small>${est ? `atelier ${prix(est.mediane, est.devise)}` : `${c.n} vente${c.n > 1 ? 's' : ''} conclue${c.n > 1 ? 's' : ''}`}</small>`}</span>
     <span class="chiffre c-prix">${s.prix ? `<b>${prix(s.prix, s.devise)}</b><small>${s.date ? esc(new Date(s.date + 'T12:00:00').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })) : (achat ? 'demandé' : 'payé')}</small>` : '<span class="tiret">-</span>'}</span>
@@ -1374,40 +1396,68 @@ function ligneObjet(o) {
   </div>`;
 }
 
-/* La réglette : chaque vente conclue enregistrée est un point bleu sur l'axe des prix, la cote
-   (la médiane) est le trait à l'encre, ton prix le triangle. On voit d'où vient le chiffre,
-   et une vente hors norme se voit loin du paquet. */
-function reglette(o, grand) {
-  const c = coteDe(o.id), s = o.donnees.situation || {};
-  const dev = c.devise || s.devise || 'EUR';
-  const v = ventesDe(o.id).filter(t => t.devise === dev && !['famille', 'comparable'].includes(t.correspondance) && t.prix > 0).map(t => t.prix);
-  if (!v.length) return grand ? `<p class="aide" style="margin:0">Aucune vente conclue pour l'instant : la réglette se remplit avec la première.</p>` : '<span class="tiret">-</span>';
-  const p = s.prix > 0 && (s.devise || 'EUR') === dev ? s.prix : null;
-  const tous = [...v, ...(p ? [p] : []), ...(c.cotable ? [c.mediane] : [])];
-  let lo = Math.min(...tous), hi = Math.max(...tous);
-  if (hi - lo < hi * .08) { lo -= hi * .04; hi += hi * .04; }
-  const W = grand ? Math.round(Math.max(300, Math.min(640, innerWidth - 96))) : 200, H = grand ? 70 : 30, m = grand ? 8 : 6, y = grand ? 32 : 13;
-  const X = x => +(m + (W - 2 * m) * (x - lo) / (hi - lo)).toFixed(1);
-  const r = grand ? 5 : 3.5;
-  const pts = v.map(x => `<circle cx="${X(x)}" cy="${y}" r="${r}" fill="#059be1" fill-opacity=".75"><title>${esc(prix(x, dev))}</title></circle>`).join('');
-  const med = c.cotable ? `<line x1="${X(c.mediane)}" x2="${X(c.mediane)}" y1="${y - (grand ? 13 : 9)}" y2="${y + (grand ? 13 : 9)}" stroke="#131f6a" stroke-width="2"><title>cote ${esc(prix(c.mediane, dev))}</title></line>` : '';
-  const tri = p ? `<path d="M${X(p)},${y + (grand ? 10 : 7)} l${grand ? 5 : 4},${grand ? 8 : 6} h-${grand ? 10 : 8} Z" fill="#fff" stroke="#131f6a" stroke-width="1.5"><title>${estGuette(o) ? 'prix demandé' : 'ton prix'} ${esc(prix(p, dev))}</title></path>` : '';
-  if (!grand) return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" role="img" aria-label="${v.length} vente${v.length > 1 ? 's' : ''} conclue${v.length > 1 ? 's' : ''} de ${esc(prix(Math.min(...v), dev))} à ${esc(prix(Math.max(...v), dev))}">
-    <line x1="${m}" x2="${W - m}" y1="${y}" y2="${y}" stroke="#e3e5ee" stroke-width="2"/>${pts}${med}${tri}</svg>`;
-  // grande réglette de la fiche : les bornes et les deux repères écrits, sans chevauchement
-  const lab = (x, t, ancre, yy, gras) => ({ x, t, ancre, yy, gras, l: t.length * 6.4 });
-  const etend = e => e.ancre === 'middle' ? [e.x - e.l / 2, e.x + e.l / 2] : e.ancre === 'end' ? [e.x - e.l, e.x] : [e.x, e.x + e.l];
-  const bas = [];
-  if (p) bas.push(lab(Math.min(Math.max(X(p), 60), W - 60), `${estGuette(o) ? 'demandé' : 'ton prix'} ${prix(p, dev)}`, 'middle', H - 2, true));
-  [lab(m, prix(Math.min(...v), dev), 'start', H - 2), lab(W - m, prix(Math.max(...v), dev), 'end', H - 2)].forEach(e => {
-    const [a, b] = etend(e);
-    if (!bas.some(x => { const [c1, c2] = etend(x); return a < c2 + 8 && b > c1 - 8; })) bas.push(e);
-  });
-  const haut = c.cotable ? [lab(Math.min(Math.max(X(c.mediane), 50), W - 50), `cote ${prix(c.mediane, dev)}`, 'middle', 12, true)] : [];
-  const ecrire = e => `<text x="${e.x}" y="${e.yy}" text-anchor="${e.ancre}" font-size="12" ${e.gras ? 'font-weight="600" fill="#131f6a"' : 'fill="#575e86"'}>${esc(e.t)}</text>`;
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="réglette des ventes conclues">
-    <line x1="${m}" x2="${W - m}" y1="${y}" y2="${y}" stroke="#e3e5ee" stroke-width="2"/>${pts}${med}${tri}
-    ${[...haut, ...bas].map(ecrire).join('')}</svg>`;
+/* La jauge, celle de l'atelier : des zones colorées de « anormalement bas » à « trop cher », les
+   prix observés en points, ton prix en repère. Elle s'appuie sur la cote quand il y en a une (les
+   ventes conclues de l'espace), sinon sur la dernière estimation de l'atelier et les annonces
+   gardées dans son dossier. Sans l'une ni l'autre, rien n'est dessiné : pas de jauge inventée. */
+function repereJauge(o) {
+  const c = coteDe(o.id), s = o.donnees.situation || {}, ds = o.donnees.dossier || null;
+  const prixDe = D => s.prix > 0 && (s.devise || 'EUR') === D ? s.prix : null;
+  if (c.cotable) {
+    const [q1, q3] = fourchette(c);
+    const vals = ventesDe(o.id).filter(t => t.devise === c.devise && !['famille', 'comparable'].includes(t.correspondance) && t.prix > 0).map(t => t.prix);
+    return { neuf: false, M: c.mediane, Q1: q1, Q3: q3, D: c.devise, vals, P: prixDe(c.devise),
+             source: `D'après la cote du jour, sur ${c.n} ventes conclues.` };
+  }
+  const r = dernierReleve(o.id);
+  if (!r || !(r.mediane > 0)) return null;
+  const D = r.devise || 'EUR', neuf = ['neuf', 'neuf_ref'].includes(r.nature);
+  const garde = { obtenu: f => f.statut === 'vendu' && !f.neuf, demande: f => f.statut === 'en_vente' && !f.neuf,
+    comparable: f => f.correspondance === 'comparable', neuf: f => f.neuf, neuf_ref: f => f.neuf }[r.nature] || (() => false);
+  const vals = ds && (ds.devise || 'EUR') === D
+    ? (ds.marche?.fiches || []).filter(f => !f.hors_calcul && f.converti > 0 && garde(f)).map(f => f.converti) : [];
+  return { neuf, M: r.mediane, Q1: r.q1 ?? r.mediane * 0.85, Q3: r.q3 ?? r.mediane * 1.15, D, vals, P: prixDe(D),
+           source: `D'après l'estimation de l'atelier du ${dateFr(r.date)}, sur ${r.n} ${LIB_BASE[r.nature] || r.base || 'prix'}.` };
+}
+function zonesJauge(j) {
+  const { M, Q1, Q3, D, vals, P } = j, f = v => prix(Math.round(v), D);
+  const autour = [...vals, ...(P ? [P] : []), M];
+  if (j.neuf) {
+    const hi = Math.max(1.3 * M, ...autour) * 1.03;
+    return { lo: 0, hi, zones: [
+      [0, 0.15 * M, '#e8eaf3', 'très bas, à vérifier', `sous ${f(0.15 * M)}`],
+      [0.15 * M, 0.5 * M, '#059be1', 'bonne affaire si authentique', `${f(0.15 * M)} à ${f(0.5 * M)}`],
+      [0.5 * M, 0.8 * M, '#9fd8f4', 'à négocier', `${f(0.5 * M)} à ${f(0.8 * M)}`],
+      [0.8 * M, M, '#f2b8d2', 'proche du neuf', `${f(0.8 * M)} à ${f(M)}`],
+      [M, hi, '#d62c7c', 'plus cher que le neuf', `au-delà de ${f(M)}`]] };
+  }
+  const mi = (0.5 * M + Q1) / 2, lo = Math.min(0.4 * M, ...autour) * 0.95, hi = Math.max(1.7 * M, ...autour) * 1.03;
+  return { lo, hi, zones: [
+    [lo, 0.5 * M, '#e8eaf3', 'anormalement bas', `sous ${f(0.5 * M)}`],
+    [0.5 * M, mi, '#059be1', 'très bonne affaire', `${f(0.5 * M)} à ${f(mi)}`],
+    [mi, Q1, '#9fd8f4', 'bonne affaire', `${f(mi)} à ${f(Q1)}`],
+    [Q1, Q3, '#d3d7e6', 'prix du marché', `${f(Q1)} à ${f(Q3)}`],
+    [Q3, 1.5 * M, '#f2b8d2', 'prix élevé', `${f(Q3)} à ${f(1.5 * M)}`],
+    [1.5 * M, hi, '#d62c7c', 'trop cher', `au-delà de ${f(1.5 * M)}`]] };
+}
+function jauge(o, grand) {
+  const j = repereJauge(o);
+  if (!j) return grand ? `<p class="aide" style="margin:6px 0 0">Pas encore de prix pour situer cet objet : estime-le dans l'atelier, ou attends ses premières ventes.</p>`
+    : '<span class="tiret">-</span>';
+  const { lo, hi, zones } = zonesJauge(j);
+  const zs = zones.filter(z => z[1] > z[0]);
+  const x = v => +Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100)).toFixed(2);
+  const qui = estGuette(o) ? 'prix demandé' : 'ton prix';
+  const ou = j.P ? zs.find(z => j.P >= z[0] && j.P < z[1]) || zs[zs.length - 1] : null;
+  const corps = `<div class="bp-zones">${zs.map(([a, b, c, lib]) => `<i style="left:${x(a)}%;width:${(x(b) - x(a)).toFixed(2)}%;background:${c}" title="${esc(lib)}"></i>`).join('')}
+    ${j.vals.map(v => `<u style="left:${x(v)}%" title="${esc(prix(v, j.D))}"></u>`).join('')}
+    ${j.P ? `<s style="left:${x(j.P)}%" title="${esc(`${qui} ${prix(j.P, j.D)}`)}">${grand ? `<span style="${
+      x(j.P) < 12 ? 'left:-4px;transform:none' : x(j.P) > 88 ? 'left:auto;right:-4px;transform:none' : ''}">${qui}<br><b>${esc(prix(j.P, j.D))}</b></span>` : ''}</s>` : ''}</div>`;
+  if (!grand) return `<div class="barre-prix mini" role="img" aria-label="${esc(ou ? `${qui} ${prix(j.P, j.D)} : ${ou[3]}` : `marché autour de ${prix(j.M, j.D)}`)}">${corps}</div>`;
+  return `<div class="barre-prix">${corps}
+    <div class="bp-legende">${zs.map(([a, b, c, lib, leg]) => `<span><i style="background:${c}"></i>${esc(lib)} : ${esc(leg)}</span>`).join('')}
+      ${j.vals.length ? '<span><u></u>un prix observé</span>' : ''}</div>
+    <p class="aide" style="margin:8px 0 0">${esc(j.source)}</p></div>`;
 }
 const estGuette = o => modeDe(o) === 'achat';
 
@@ -1550,7 +1600,7 @@ const plusDeCredits = msg => /crédit/.test(msg || '') ? ` <button class="lien" 
 
 function rendreJournal() {
   $('#liste-journal').innerHTML = d.journal.length ? `<div class="journal">${d.journal.map(j =>
-    `<div><time>${esc(dateFr(j.date))}</time><span>${typo(esc(j.message))}</span></div>`).join('')}</div>`
+    `<div><time>${esc(dateFr(j.date))}</time><span>${esc(typo(j.message))}</span></div>`).join('')}</div>`
     : `<p class="vide-bloc">Le journal se remplit au fil des ajouts et des résultats d'enchères.</p>`;
 }
 
@@ -1669,7 +1719,7 @@ function ouvrirFiche(id) {
           ${(gal || []).length < 8 ? `<button class="second petit" data-ajout-photo="${esc(id)}">Ajouter une vue</button>` : ''}</div>
       </div>
       <div>
-        <span class="univers">${esc([dn.univers, dn.sous_categorie, dn.licence].filter(Boolean).join(', ') || 'objet')}${modeDe(o) === 'achat' ? ', je le guette' : ', dans ma collection'}</span>
+        <span class="univers">${esc(dn.univers || dn.sous_categorie || 'objet')}${modeDe(o) === 'achat' ? ', je le guette' : ', dans ma collection'}</span>
         ${dn.description ? `<p style="margin:6px 0 12px;font-size:14px;line-height:1.55">${esc(dn.description)}</p>` : ''}
         ${c.cotable ? `<div class="reco" style="margin-top:12px"><span>Cote au ${esc(dateFr(aujourdhui()))}</span><b>${prix(c.mediane, c.devise)}</b>
           <small>prix habituel de ${c.n} vente${c.n > 1 ? 's' : ''} conclue${c.n > 1 ? 's' : ''} sur douze mois.
@@ -1680,10 +1730,9 @@ function ouvrirFiche(id) {
             <div><dt>Moyenne</dt><dd>${prix(c.moyenne, c.devise)}</dd></div>
             <div><dt>Écart entre les ventes</dt><dd>± ${String(c.volatilite).replace('.', ',')} %</dd></div>
             <div><dt>Fiabilité</dt><dd>${esc(c.confiance)}</dd></div></dl>`
-          : `<div class="reco" style="margin-top:12px"><span>Cote</span><b class="nc">non cotable</b><small>${esc(c.raison || '')}. La règle : une cote seulement à partir de trois
-              ventes conclues sur douze mois ; les prix demandés n'y entrent jamais.${est ? ` Estimation de l'atelier le ${esc(dateFr(est.date))} :
-              ${prix(est.mediane, est.devise)}, sur ${est.n} ${esc(LIB_BASE[est.nature] || est.base || 'annonces')}.` : ''}</small></div>`}
-        <div class="regle-grande"><div class="tete"><span>Les ventes conclues enregistrées, sur l'axe des prix</span><span style="white-space:nowrap">${ventes.length} vente${ventes.length > 1 ? 's' : ''}</span></div>${reglette(o, true)}</div>
+          : `<div class="reco" style="margin-top:12px"><span>Cote</span><b class="nc">non cotable</b><small>${esc(c.raison || '')}.${est ? ` Estimation de l'atelier le ${esc(dateFr(est.date))} :
+              ${prix(est.mediane, est.devise)}, d'après ${est.n} ${esc(LIB_BASE[est.nature] || est.base || 'annonces')}.` : ''}</small></div>`}
+        <div class="regle-grande"><div class="tete"><span>${modeDe(o) === 'achat' ? 'Le prix demandé' : 'Ton prix'} face au marché</span><span style="white-space:nowrap">${ventes.length} vente${ventes.length > 1 ? 's' : ''} conclue${ventes.length > 1 ? 's' : ''}</span></div>${jauge(o, true)}</div>
         <p class="lecture-prix">
           ${s.prix ? `${modeDe(o) === 'achat' ? 'Prix demandé' : 'Payé'} <b>${prix(s.prix, s.devise)}</b>${s.date ? ' le ' + esc(dateFr(s.date)) : ''}${s.vendeur ? ', à ' + esc(s.vendeur) : ''}${s.plateforme ? ', sur ' + esc(s.plateforme) : ''}.` : ''}
           ${e ? ' ' + libelleEcart(o, e, '') + '.' : ''}
@@ -1696,7 +1745,7 @@ function ouvrirFiche(id) {
 
     ${anomalies.length ? `<div class="section"><h4>Alertes et explications</h4>${anomalies.map(a => `
       <div class="anomalie ${a.type === 'palier' ? 'palier' : ''}">
-        <div class="entete"><i></i><div><p style="margin:0"><b>${esc(dateFr(a.date))}</b> : ${typo(esc(a.message))}.${a.notifie ? ' <span class="aide">E-mail envoyé.</span>' : ''}</p>
+        <div class="entete"><i></i><div><p style="margin:0"><b>${esc(dateFr(a.date))}</b> : ${esc(typo(a.message))}.${a.notifie ? ' <span class="aide">E-mail envoyé.</span>' : ''}</p>
         ${a.explication?.resume ? `<p style="margin:4px 0 0;font-weight:600">${esc(a.explication.resume)}</p>` : ''}</div></div>
         ${(a.explication?.hypotheses || []).map(h => `<div class="hyp"><div class="hyp-barre"><i style="width:${h.confiance}%"></i></div>
           <div><b>${esc(h.hypothese)}</b> <span class="aide">probable à ${h.confiance} %</span><br><span style="font-size:13px">${esc(h.pourquoi || '')}</span>
