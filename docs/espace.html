@@ -987,10 +987,20 @@ async function ouvrirPorte(message) {
 
 function brancherGoogle() {
   const go = () => {
+    // sur téléphone, la petite fenêtre de Google ne revient pas toujours : on passe par une
+    // redirection, que le coffre reçoit et renvoie ici (voir retourDeGoogle, au démarrage)
+    const tel = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    let nonce;
+    if (tel) {
+      nonce = [...crypto.getRandomValues(new Uint8Array(16))].map(x => x.toString(16).padStart(2, '0')).join('');
+      try { localStorage.setItem('lc_nonce', nonce); } catch {}
+    }
     google.accounts.id.initialize({
       client_id: sante.google_client_id,
       callback: recevoirJetonGoogle,
-      ux_mode: 'popup',
+      ux_mode: tel ? 'redirect' : 'popup',
+      login_uri: ESPACE + '/auth/google/retour',
+      ...(tel ? { nonce } : {}),
       cancel_on_tap_outside: true,
       use_fedcm_for_prompt: true,
       auto_select: true,          // déjà venue avec ce compte Google : elle rentre sans recliquer
@@ -2945,6 +2955,19 @@ document.addEventListener('error', e => {
 
 /* ---------- démarrage ---------- */
 
+// retour de Google sur téléphone : la session arrive dans le fragment de l'adresse, aussitôt effacé
+let messagePorte = '';
+(function retourDeGoogle() {
+  if (!/^#(jeton|erreur)=/.test(location.hash)) return;
+  const h = new URLSearchParams(location.hash.slice(1));
+  history.replaceState(null, '', location.pathname + location.search);
+  let attendu = null;
+  try { attendu = localStorage.getItem('lc_nonce'); localStorage.removeItem('lc_nonce'); } catch {}
+  if (h.get('erreur')) { messagePorte = h.get('erreur'); return; }
+  if (!attendu || h.get('nonce') !== attendu || !h.get('jeton')) { messagePorte = "La connexion n'a pas pu être vérifiée, réessaie."; return; }
+  localStorage.setItem('lc_session', JSON.stringify({ jeton: h.get('jeton'), expire: +h.get('expire'),
+    utilisateur: { email: h.get('email'), nom: h.get('nom') || '', photo: h.get('photo') || '' } }));
+})();
 session = lireSession();
 const DEMANDE = new URLSearchParams(location.search);
 if (DEMANDE.get('vue') && VUES[DEMANDE.get('vue')]) vue = DEMANDE.get('vue');
@@ -2955,7 +2978,7 @@ if (session) entrer().then(() => {
     setTimeout(recharger, 4000);
   }
   if (DEMANDE.toString()) history.replaceState(null, '', location.pathname);
-}); else ouvrirPorte();
+}); else ouvrirPorte(messagePorte);
 </script>
 </body>
 </html>
