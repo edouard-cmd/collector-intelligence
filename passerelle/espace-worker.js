@@ -1529,13 +1529,7 @@ async function aiguiller(req, env, cors) {
 
   if (chemin === "/auth/google" && m === "POST") {
     const c = await lireCorps(req);
-    const g = await verifierJetonGoogle(c.credential, env);
-    if (!estAutorise(g.email, env)) throw new Erreur(403, `l'adresse ${g.email} n'est pas autorisée dans cet espace`);
-    const db = await base(env);
-    const t = maintenant();
-    await db.prepare(`INSERT INTO utilisateurs (email, nom, photo, fournisseur, cree_le, vu_le) VALUES (?, ?, ?, 'google', ?, ?)
-                      ON CONFLICT(email) DO UPDATE SET nom = excluded.nom, photo = excluded.photo, vu_le = excluded.vu_le`)
-      .bind(g.email, g.nom, g.photo, t, t).run();
+    const g = await accueillir(c.credential, env);
     return json({ jeton: await creerSession(g, env), expire: Math.floor(Date.now() / 1000) + DUREE_SESSION,
                   utilisateur: g }, 200, cors);
   }
@@ -1612,8 +1606,45 @@ async function aiguiller(req, env, cors) {
   throw new Erreur(404, "route inconnue");
 }
 
+/* Le jeton d'identité de Google ouvre la porte : vérifié, adresse autorisée, visiteuse inscrite. */
+async function accueillir(credential, env) {
+  const g = await verifierJetonGoogle(credential, env);
+  if (!estAutorise(g.email, env)) throw new Erreur(403, `l'adresse ${g.email} n'est pas autorisée dans cet espace`);
+  const db = await base(env);
+  const t = maintenant();
+  await db.prepare(`INSERT INTO utilisateurs (email, nom, photo, fournisseur, cree_le, vu_le) VALUES (?, ?, ?, 'google', ?, ?)
+                    ON CONFLICT(email) DO UPDATE SET nom = excluded.nom, photo = excluded.photo, vu_le = excluded.vu_le`)
+    .bind(g.email, g.nom, g.photo, t, t).run();
+  return g;
+}
+
+/* Sur téléphone, Google ne rend pas le jeton à la page dans une petite fenêtre : il le poste ici
+   (mode « redirect » du bouton). Le jeton est vérifié comme à /auth/google, puis la visiteuse est
+   renvoyée vers son espace avec sa session dans le fragment de l'adresse, que la page lit et efface
+   aussitôt. Le « nonce » tiré par la page voyage dans le jeton : la page le compare au sien avant
+   d'ouvrir la session, ce qui écarte une connexion qu'elle n'a pas demandée. Cette adresse doit
+   figurer dans les « URI de redirection autorisés » du client Google. */
+async function retourGoogle(req, env) {
+  const page = env.URL_ESPACE || URL_ESPACE;
+  const vers = h => new Response(null, { status: 303, headers: {
+    location: `${page}#${new URLSearchParams(h)}`, "cache-control": "no-store", "referrer-policy": "no-referrer" } });
+  try {
+    const credential = String((await req.formData()).get("credential") || "");
+    const g = await accueillir(credential, env);
+    let nonce = "";
+    try { nonce = String(JSON.parse(texteB64(credential.split(".")[1])).nonce || ""); } catch {}
+    return vers({ jeton: await creerSession(g, env), expire: Math.floor(Date.now() / 1000) + DUREE_SESSION,
+                  email: g.email, nom: g.nom, photo: g.photo, nonce });
+  } catch (e) {
+    if (!(e instanceof Erreur)) console.error(e);
+    return vers({ erreur: e instanceof Erreur ? e.message : "la connexion n'a pas abouti, réessaie" });
+  }
+}
+
 export default {
   async fetch(req, env) {
+    // le retour de Google arrive depuis sa propre page : il passe avant le contrôle d'origine
+    if (req.method === "POST" && new URL(req.url).pathname === "/auth/google/retour") return retourGoogle(req, env);
     const cors = enTetesCors(req, env);
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
     try {
