@@ -1381,21 +1381,30 @@ async function veillerObjet(db, env, o) {
 
 /* La veille est-elle due ce matin ? La collectionneuse choisit la fréquence et, si elle veut, le
    jour : 1 à 7 (lundi à dimanche) pour la semaine, 1 à 28 pour le mois, « MM-JJ » pour l'année
-   (champ jour_veille). Le jour choisi est tenu ; s'il a été manqué (plafond du matin, panne), la
-   veille se rattrape le lendemain. Sans jour choisi, elle passe à intervalle régulier. */
+   (champ jour_veille). Le jour choisi est tenu, et lui seul : la veille ne passe un autre matin que
+   pour rattraper un jour choisi manqué (plafond du matin, panne, solde à zéro) depuis la dernière
+   veille ou depuis son démarrage (champ veille_depuis). Sans jour choisi, elle passe à intervalle
+   régulier. La page espace.html porte la même règle pour annoncer le prochain passage. */
 function veilleDue(dn, derniere, quand = new Date()) {
   const r = rythmeDe(dn), j = RYTHMES[r];
   if (!j) return false;
-  if (!derniere) return true;
-  const depuis = (quand - Date.parse(derniere)) / 864e5;
+  const depuis = derniere ? (quand - Date.parse(derniere)) / 864e5 : Infinity;
   if (!(depuis >= 0.5)) return false;
   const jv = String(dn.jour_veille ?? "");
-  const leJour = r === "hebdomadaire" && /^[1-7]$/.test(jv) ? ((quand.getUTCDay() + 6) % 7) + 1 === +jv
-    : r === "mensuelle" && /^([1-9]|1\d|2[0-8])$/.test(jv) ? quand.getUTCDate() === +jv
-    : r === "annuelle" && /^\d{2}-\d{2}$/.test(jv) ? quand.toISOString().slice(5, 10) === jv
+  const leJour = r === "hebdomadaire" && /^[1-7]$/.test(jv) ? t => ((t.getUTCDay() + 6) % 7) + 1 === +jv
+    : r === "mensuelle" && /^([1-9]|1\d|2[0-8])$/.test(jv) ? t => t.getUTCDate() === +jv
+    : r === "annuelle" && /^\d{2}-\d{2}$/.test(jv) ? t => t.toISOString().slice(5, 10) === jv
     : null;
-  if (leJour === null) return depuis >= j - 0.5;
-  return leJour || depuis >= j + 1;
+  if (!leJour) return depuis >= j - 0.5;
+  if (leJour(quand)) return true;
+  const repere = Math.max(derniere ? Date.parse(derniere) : 0, dn.veille_depuis ? Date.parse(dn.veille_depuis) || 0 : 0);
+  if (!repere) return true;
+  for (let t = new Date(quand), k = 0; k < 366; k++) {
+    t.setUTCDate(t.getUTCDate() - 1);
+    if (t <= repere) return false;
+    if (leJour(t)) return true;
+  }
+  return false;
 }
 
 /* Le matin : les objets dont le rythme de veille est échu, les plus anciens d'abord, trois à
