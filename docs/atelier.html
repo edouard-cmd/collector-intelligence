@@ -192,7 +192,7 @@
   .reco{border:1px solid var(--bord);border-radius:var(--r-carte);padding:16px 18px}
   .reco span{display:block;font-size:13px;font-weight:500;color:var(--gris)}
   .reco b{display:block;font-weight:600;font-size:28px;line-height:1.15;margin:4px 0 6px;font-variant-numeric:tabular-nums}
-  .reco b::first-letter,.avis>b::first-letter{text-transform:uppercase}
+  .reco b::first-letter,.avis>b::first-letter,.reco small::first-letter,.maj::first-letter{text-transform:uppercase}
   .reco small{display:block;font-size:13px;color:var(--gris);line-height:1.5}
   .avis{border:1px solid var(--bord);border-radius:var(--r-carte);background:var(--clair);
     padding:16px 20px;margin-top:16px;font-size:14px;line-height:1.6}
@@ -221,6 +221,7 @@
   .synth div{border:0;border-left:1px solid var(--bord);padding:12px 16px;margin-left:-1px}
   .synth b{display:block;font-weight:500;font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}
   .synth span{font-size:12.5px;color:var(--gris)}
+  @media(max-width:620px){.synth{grid-template-columns:1fr}.synth div{border-left:0;margin-left:0;border-top:1px solid var(--bord)}.synth div:first-child{border-top:0}.synth .vide{display:none}}
 
   /* histoire du modèle */
   .hist-titre{font-family:var(--titre);font-size:24px;font-weight:400;margin:0 0 6px;line-height:1.15}
@@ -229,7 +230,7 @@
   .jalon{position:relative;margin-bottom:14px;font-size:14px;line-height:1.5}
   .jalon::before{content:"";position:absolute;left:-24.5px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--encre)}
   .jalon .date{font-weight:600;display:block;font-size:13.5px}
-  .src{font-size:12px;margin-left:4px;white-space:nowrap}
+  .src{font-size:12px;margin-left:6px;white-space:nowrap}
   .src a{color:var(--bleu-texte);text-decoration-color:currentColor}
   .src.douteuse,.src.douteuse a{color:var(--or-texte)}
   .src.absente{color:var(--gris)}
@@ -1188,7 +1189,7 @@ function afficherIdentite(d) {
   const lectures = (d.lectures || []).filter(l => l && l.texte);
   const douteuses = lectures.filter(l => (l.confiance ?? 1) < 0.9 && (l.alternatives || []).length);
   if (douteuses.length) {
-    h += `<div class="info" style="background:var(--jaune-pale);border-color:#f3e2a6"><b>inscriptions mal lisibles</b> :
+    h += `<div class="info" style="background:var(--jaune-pale);border-color:#f3e2a6"><b>Inscriptions mal lisibles</b> :
           vérifie sur l'objet et clique sur la bonne lecture si elle est proposée.`;
     douteuses.forEach(l => {
       h += `<p style="margin:8px 0 0;font-size:14px">« <b>${l.texte}</b> »
@@ -1249,7 +1250,7 @@ function afficherIdentite(d) {
   const fact = (d.facteurs_valeur || []).filter(f => f && f.question).slice(0, 8);
   if (fact.length) {
     h += `<div style="margin:16px 0;border:1px solid var(--bord);border-radius:8px;padding:14px 16px;background:#fff">
-      <b style="font-size:14px">ce qui fait varier le prix de cet objet</b>
+      <b style="font-size:14px">Ce qui fait varier le prix de cet objet</b>
       <p class="aide" style="margin:3px 0 10px">Coche ce que tu as : le prix s'ajuste aussitôt
          dans la synthèse.</p>`;
     fact.forEach((f, i) =>
@@ -1259,10 +1260,10 @@ function afficherIdentite(d) {
         <span style="font-size:14px">${f.question}
         <b style="color:${f.effet_pct >= 0 ? 'var(--bleu-texte)' : 'var(--rose-texte)'}">
         ${f.effet_pct >= 0 ? '+' : ''}${f.effet_pct} %</b></span></label>`);
-    h += `<p id="fvres" style="margin:12px 0 0;font-weight:700;font-size:14.5px"></p></div>`;
+    h += `<p id="fvres" class="maj" style="margin:12px 0 0;font-weight:700;font-size:14.5px"></p></div>`;
   }
 
-  h += `<p style="margin:14px 0 5px;font-size:13px;font-weight:700">mots-clés de la recherche
+  h += `<p style="margin:14px 0 5px;font-size:13px;font-weight:700">Mots-clés de la recherche
         (${(d.requetes || []).length})</p>`;
   (d.requetes || []).forEach(r =>
     h += `<span class="puce ${r.precision === 'large' ? 'large' : ''}">${r.terme}
@@ -1354,12 +1355,11 @@ function normaliser(u) {
 
 function badgeSource(url, vues) {
   if (!url || !/^https?:\/\//i.test(url))
-    return `<span class="src absente">, non sourcé</span>`;
+    return `<span class="src absente">non sourcé</span>`;
   let dom = '';
   try { dom = new URL(url).hostname.replace(/^www\./, ''); } catch {}
   const ok = vues.has(normaliser(url));
-  return `<span class="src ${ok ? '' : 'douteuse'}">,
-    <a href="${url}" target="_blank" rel="noopener">${dom}</a>${ok ? '' : ', non vérifiée'}</span>`;
+  return `<span class="src ${ok ? '' : 'douteuse'}"><a href="${url}" target="_blank" rel="noopener">${dom}</a>${ok ? '' : ', non vérifiée'}</span>`;
 }
 
 $('#raconter').onclick = async () => {
@@ -1783,7 +1783,7 @@ function rendreMarche() {
 
   let h = `<div class="res">
     <div style="background:${fond};color:var(--sombre);padding:11px 14px;
-         border:1px solid var(--bord);border-radius:8px"><b>${libelle}</b>,
+         border:1px solid var(--bord);border-radius:8px" class="maj"><b>${libelle}</b>,
       ${vendues.length} vente${vendues.length > 1 ? 's' : ''} conclue${vendues.length > 1 ? 's' : ''} et
       ${offertes.length} annonce${offertes.length > 1 ? 's' : ''} d'occasion retenue${offertes.length > 1 ? 's' : ''}${
       strict ? ' <b>(prix relus aujourd\'hui uniquement)</b>' : ''}.</div>
@@ -1792,12 +1792,12 @@ function rendreMarche() {
     ${classe && comps.length ? `<div class="info" style="margin:10px 0 0"><b>objets proches
       retenus :</b> ${classe}. Ces objets ne sont pas le tien : ils situent un ordre de grandeur,
       à confirmer par l'état et la provenance.</div>` : ''}
-    <p style="margin:10px 0 0;font-size:13.5px"><b>recherche :</b> ${ligneDiag}.</p>
+    <p style="margin:10px 0 0;font-size:13.5px"><b>Recherche :</b> ${ligneDiag}.</p>
     ${fiches.some(f => f.prix === null) ? `<div class="info" style="margin:10px 0 0">
       <b>${fiches.filter(f => f.prix === null).length} annonce${fiches.filter(f => f.prix === null).length > 1 ? 's' : ''}
       sans prix lisible.</b> Ouvre l'annonce et recopie son prix sur la ligne : il compte aussitôt.</div>` : ''}
     <p style="margin:6px 0 0;font-size:13.5px">
-      <b>vérification :</b>
+      <b>Vérification :</b>
       ${tally.confirme || 0} prix relu${(tally.confirme || 0) > 1 ? 's' : ''} aujourd'hui,
       ${tally.arevoir || 0} à revoir,
       ${tally.nonverif || 0} invérifiable${(tally.nonverif || 0) > 1 ? 's' : ''},
@@ -1970,15 +1970,15 @@ function rendreVerdictNeuf({ el, s, base, M, D, P, source, confiance, noteConv, 
   el.innerHTML = `<div class="res">
     <div class="reco" style="background:${fondReco};color:var(--sombre)">
       <span>le repère</span><b>${reco}</b><small>pourquoi : ${regle}</small></div>
-    <div style="background:${fond};color:var(--sombre);
+    <div class="maj" style="background:${fond};color:var(--sombre);
          padding:11px 15px;border:1px solid var(--bord);border-radius:8px;margin-top:10px">
       <b style="font-size:16px">${titre}</b></div>
     ${barreNeuf(M, vals, P, D)}
     ${cartes(`<div><span>${s.mode === 'achat' ? 'prix demandé' : 'prix payé'}</span><b>${P} ${D}</b>
-        <span>${s.canal ? LIB_CANAL[s.canal] : '&nbsp;'}</span></div>
+        <span${s.canal ? '' : ' class="vide"'}>${s.canal ? LIB_CANAL[s.canal] : '&nbsp;'}</span></div>
       <div><span>rapport au neuf</span><b>${pct} %</b><span>ton prix face au neuf</span></div>`)}
     ${texte.map(t => `<p style="margin:0 0 8px;font-size:14.5px;line-height:1.5">${t}</p>`).join('')}
-    <p class="etat" style="margin-top:10px"><b>calculé sur</b> ${base.n} ${source}, fiabilité ${confiance}. ${noteConv}</p>
+    <p class="etat" style="margin-top:10px"><b>Calculé sur</b> ${base.n} ${source}, fiabilité ${confiance}. ${noteConv}</p>
   </div>`;
 }
 
@@ -2186,19 +2186,19 @@ function rendreVerdict() {
     <div class="reco" style="background:${fondReco};color:var(--sombre)">
       <span>le repère</span><b>${reco}</b>
       <small>pourquoi : ${regle}</small></div>
-    <div style="background:${fond};color:var(--sombre);
+    <div class="maj" style="background:${fond};color:var(--sombre);
          padding:11px 15px;border:1px solid var(--bord);border-radius:8px;margin-top:10px">
       <b style="font-size:16px">${titre}</b></div>
     ${barrePrix(M, Q1, Q3, (base.vals || []).map(v => v * kk), P, D)}
     <div class="synth">
       <div><span>${s.mode === 'achat' ? 'prix demandé' : 'prix payé'}</span><b>${P} ${D}</b>
-        <span>${s.canal ? LIB_CANAL[s.canal] : '&nbsp;'}</span></div>
+        <span${s.canal ? '' : ' class="vide"'}>${s.canal ? LIB_CANAL[s.canal] : '&nbsp;'}</span></div>
       <div><span>prix habituel</span><b>${M} ${D}</b><span>la plupart entre ${Q1} et ${Q3}</span></div>
-      <div><span>écart</span><b>${P > 0 ? `${P >= M ? '+' : ''}${Math.round((P / M - 1) * 100)} %` : '-'}</b>
-        <span>ton prix face au marché</span></div>
+      <div><span>écart</span><b>${P > 0 ? (e => `${e >= 0 ? '+' : ''}${e} %`)(Math.round((s.mode === 'achat' ? P / M - 1 : M / P - 1) * 100)) : '-'}</b>
+        <span>${s.mode === 'achat' ? 'le prix demandé face au marché' : 'le marché face à ton prix'}</span></div>
     </div>
     ${texte.map(t => `<p style="margin:0 0 8px;font-size:14.5px;line-height:1.5">${t}</p>`).join('')}
-    <p class="etat" style="margin-top:10px"><b>calculé sur</b> ${base.n} ${source} trouvées plus haut,
+    <p class="etat" style="margin-top:10px"><b>Calculé sur</b> ${base.n} ${source} trouvées plus haut,
       fiabilité ${confiance}. ${noteConv}</p>
     <p class="etat" style="margin-top:6px">Un repère tiré des prix trouvés, pas un conseil en
       investissement : l'attachement, la rareté à venir et l'évolution du marché n'y entrent pas.</p>
@@ -2721,6 +2721,31 @@ $('#export').onclick = () => {
   a.click();
   $('#sortie3').innerHTML = `<div class="info">analyse <b>${nom}.json</b> téléchargée.</div>`;
 };
+
+/* L'affichage des montants : « 388 € » comme dans l'espace, et non « 388 EUR ». Les données, les
+   calculs et ce qui part à l'IA gardent le code de la devise ; seul le texte affiché est réécrit,
+   ici et nulle part ailleurs, à mesure que la page s'écrit. Les champs de saisie ne sont pas touchés. */
+(() => {
+  const SIGNE = { EUR: '€', USD: '$', GBP: '£' };
+  const MONTANT = /(\d)[   ]?(EUR|USD|GBP)\b/g, EN = /\ben (EUR|USD|GBP)\b/g, POURCENT = /(\d) %/g;
+  const NOM = { EUR: 'euros', USD: 'dollars', GBP: 'livres' };
+  const reecrire = n => {
+    const t = n.nodeValue;
+    if (!/EUR|USD|GBP|\d %/.test(t)) return;
+    const u = t.replace(MONTANT, (_, c, d) => `${c} ${SIGNE[d]}`).replace(EN, (_, d) => `en ${NOM[d]}`).replace(POURCENT, '$1\u00a0%');
+    if (u !== t) n.nodeValue = u;
+  };
+  const parcourir = racine => {
+    if (racine.nodeType === 3) return reecrire(racine);
+    if (racine.nodeType !== 1 || racine.closest('textarea,select,script,style,[contenteditable]')) return;
+    const w = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT, {
+      acceptNode: n => n.parentElement.closest('textarea,select,script,style,[contenteditable]') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+    for (let n; (n = w.nextNode());) reecrire(n);
+  };
+  new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(parcourir)))
+    .observe(document.body, { childList: true, subtree: true });
+  parcourir(document.body);
+})();
 </script>
 </body>
 </html>

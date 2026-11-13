@@ -282,7 +282,8 @@
   #credits-solde .kpis{margin-bottom:var(--gap)}
   @media(max-width:760px){.packs{grid-template-columns:1fr}#vue-credits .kpis{grid-template-columns:1fr 1fr}
     #vue-credits .kpi:nth-child(3){grid-column:1/-1}
-    .mouv{grid-template-columns:76px minmax(0,1fr) 44px}.mouv .apres{display:none}.offrir{grid-template-columns:1fr 1fr}}
+    .mouv{grid-template-columns:auto minmax(0,1fr) 44px}.mouv .apres{display:none}.mouv time{white-space:nowrap}
+    .offrir{grid-template-columns:90px minmax(0,1fr)}.offrir>div:first-child,.offrir>button{grid-column:1/-1}}
 
   /* ---------- journal ---------- */
   #vue-journal{max-width:880px}
@@ -562,7 +563,7 @@
   @media(min-width:901px){.barre-action{display:none}}
   @media(max-width:640px){
     .outils{padding:14px 16px 10px}
-    .outils input[type=search]{width:100%;flex:1 1 100%}
+    .outils input[type=search],.outils select{width:100%;flex:1 1 100%}
     .registre{grid-template-columns:48px minmax(0,1fr) auto;padding:0 16px 4px;column-gap:12px}
     .registre .entete{display:none}
     .registre .c-regle,.registre .c-prix,.registre .c-ecart{display:none!important}
@@ -696,7 +697,7 @@
     <div id="bouton-google"></div>
     <div id="porte-etat"></div>
     <p class="rassure aide">Connexion par ton compte Google : aucun mot de passe n'est stocké ici, et seules
-       les adresses autorisées entrent. La session dure une semaine.</p>
+       les adresses autorisées entrent. Tu restes connectée un mois.</p>
     <div class="diag" id="diag" hidden></div>
   </div>
 </section>
@@ -911,7 +912,7 @@ const ADOUCIR = [
   [/la médiane/g, 'le prix habituel'], [/médiane/g, 'prix habituel'],
 ];
 const adoucir = t => ADOUCIR.reduce((x, [a, b]) => x.replace(a, b), String(t ?? ''));
-const typo = s => adoucir(s).replace(/(\d) (%|€)/g, '$1\u202f$2');
+const typo = s => adoucir(s).replace(/(\d)\s?EUR\b/g, '$1 €').replace(/(\d) (%|€)/g, '$1\u202f$2');
 const joursAvant = s => Math.round((Date.parse(s + 'T12:00:00') - Date.now()) / 864e5);
 const favicon = u => `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domaine(u))}&sz=64`;
 
@@ -966,7 +967,7 @@ async function ouvrirPorte(message) {
       sante = await r.json();
     } catch {
       $('#bouton-google').innerHTML = '';
-      $('#porte-etat').innerHTML = `<div class="warn">le coffre est injoignable.</div>
+      $('#porte-etat').innerHTML = `<div class="warn">Ton espace ne répond pas.</div>
         <p class="aide">Le worker collector-espace n'est pas encore déployé, ou son adresse a changé.
         Adresse attendue : ${esc(ESPACE)}</p>`;
       return;
@@ -977,7 +978,7 @@ async function ouvrirPorte(message) {
   if (!sante.google) manque.push("GOOGLE_CLIENT_ID n'est pas renseigné");
   if (!sante.session) manque.push("SESSION_SECRET est absent ou trop court");
   if (!sante.autorises) manque.push("aucune adresse dans AUTORISES");
-  if (!sante.ia) manque.push("ANTHROPIC_API_KEY est absente (la recherche et la lecture des enchères ne marcheront pas)");
+  if (!sante.ia) manque.push("le coffre n'est pas relié à l'IA, liaison PASSERELLE (la recherche et la lecture des enchères ne marcheront pas)");
   $('#diag').hidden = !manque.length;
   $('#diag').innerHTML = manque.length ? `<b>Réglages à terminer dans Cloudflare :</b><ul>${manque.map(m => `<li>${esc(m)}</li>`).join('')}</ul>` : '';
   if (!sante.google) { $('#bouton-google').innerHTML = ''; return; }
@@ -1007,7 +1008,7 @@ function brancherGoogle() {
   s.onload = go;
   s.onerror = () => {
     $('#bouton-google').innerHTML = '';
-    $('#porte-etat').innerHTML = `<div class="warn">la connexion Google ne se charge pas.</div>
+    $('#porte-etat').innerHTML = `<div class="warn">La connexion Google ne se charge pas.</div>
       <p class="aide">Un bloqueur de publicité ou un réseau filtré peut l'empêcher. Réessaie sans bloqueur.</p>`;
   };
   document.head.appendChild(s);
@@ -1128,16 +1129,24 @@ const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 
 function veilleDue(dn, derniere, quand) {
   const r = dn.rythme || 'arretee', j = JOURS_RYTHME[r];
   if (!j) return false;
-  if (!derniere) return true;
-  const depuis = (quand - Date.parse(derniere)) / 864e5;
+  const depuis = derniere ? (quand - Date.parse(derniere)) / 864e5 : Infinity;
   if (!(depuis >= 0.5)) return false;
   const jv = String(dn.jour_veille ?? '');
-  const leJour = r === 'hebdomadaire' && /^[1-7]$/.test(jv) ? ((quand.getUTCDay() + 6) % 7) + 1 === +jv
-    : r === 'mensuelle' && /^([1-9]|1\d|2[0-8])$/.test(jv) ? quand.getUTCDate() === +jv
-    : r === 'annuelle' && /^\d{2}-\d{2}$/.test(jv) ? quand.toISOString().slice(5, 10) === jv
+  const leJour = r === 'hebdomadaire' && /^[1-7]$/.test(jv) ? t => ((t.getUTCDay() + 6) % 7) + 1 === +jv
+    : r === 'mensuelle' && /^([1-9]|1\d|2[0-8])$/.test(jv) ? t => t.getUTCDate() === +jv
+    : r === 'annuelle' && /^\d{2}-\d{2}$/.test(jv) ? t => t.toISOString().slice(5, 10) === jv
     : null;
-  if (leJour === null) return depuis >= j - 0.5;
-  return leJour || depuis >= j + 1;
+  if (!leJour) return depuis >= j - 0.5;
+  if (leJour(quand)) return true;
+  // rattrapage : un jour choisi est passé sans veille depuis la dernière, ou depuis le démarrage
+  const repere = Math.max(derniere ? Date.parse(derniere) : 0, dn.veille_depuis ? Date.parse(dn.veille_depuis) || 0 : 0);
+  if (!repere) return true;
+  for (let t = new Date(quand), k = 0; k < 366; k++) {
+    t.setUTCDate(t.getUTCDate() - 1);
+    if (t <= repere) return false;
+    if (leJour(t)) return true;
+  }
+  return false;
 }
 // le prochain matin où la veille passera (elle part du coffre vers 7 h 15, heure de Paris)
 function prochaineVeille(o, dn = o.donnees) {
@@ -1159,9 +1168,9 @@ let brouillonVeille = null;
 const PASSAGES_MOIS = { quotidienne: 30, hebdomadaire: 4, mensuelle: 1 };
 const p2 = n => String(n).padStart(2, '0');
 const reglageEnregistre = o => ({ rythme: rythmeDe(o), jour_veille: String(o.donnees.jour_veille ?? '') });
-// le jour d'aujourd'hui sert de départ quand on choisit une fréquence
+// le lendemain sert de départ quand on choisit une fréquence : le premier passage est pour demain matin
 function jourParDefaut(r) {
-  const auj = new Date();
+  const auj = new Date(); auj.setDate(auj.getDate() + 1);
   if (r === 'hebdomadaire') return String(((auj.getDay() + 6) % 7) + 1);
   if (r === 'mensuelle') return String(Math.min(auj.getDate(), 28));
   if (r === 'annuelle') return `${p2(auj.getMonth() + 1)}-${p2(Math.min(auj.getDate(), 28))}`;
@@ -1204,7 +1213,8 @@ function reglageVeille(o) {
     jour = `<div><label for="vr-jour">Le jour</label><select id="vr-jour" data-veille-regle>${Array.from({ length: 28 }, (_, i) => opt(i + 1, i ? i + 1 : '1er', jj === i + 1)).join('')}</select></div>
       <div><label for="vr-mois">Le mois</label><select id="vr-mois" data-veille-regle>${MOIS.map((n, i) => opt(i + 1, n, mm === i + 1)).join('')}</select></div>`;
   }
-  const q = prochaineVeille(o, { ...o.donnees, rythme: aff.rythme, jour_veille: aff.jour_veille || null });
+  const q = prochaineVeille(o, { ...o.donnees, rythme: aff.rythme, jour_veille: aff.jour_veille || null,
+    veille_depuis: programmee && !modifie ? o.donnees.veille_depuis : new Date().toISOString() });
   const solde = d.credits?.solde, manque = solde != null && solde < CREDITS.veille_programmee;
   const quand = `${programmee && !modifie ? 'Prochain passage' : 'Premier passage'} ${q ? esc(libJour(q)) : 'bientôt'}`;
   const id = esc(o.id);
@@ -1228,6 +1238,7 @@ const rendreReglageVeille = o => {
 // enregistre le réglage choisi (ou l'arrêt), puis redessine la fiche à la même hauteur
 async function enregistrerVeille(id, reglage) {
   await majDonnees(id, dn => ({ ...dn, rythme: reglage.rythme, jour_veille: reglage.jour_veille || null,
+    veille_depuis: reglage.rythme === 'arretee' ? null : new Date().toISOString(),
     rythme_avant: reglage.rythme === 'arretee' ? (JOURS_RYTHME[dn.rythme] ? dn.rythme : dn.rythme_avant || null) : null }));
   brouillonVeille = null;
   const ouverte = $('#dlg-fiche').open && ficheOuverte === id, y = $('#dlg-fiche').scrollTop;
@@ -1324,7 +1335,7 @@ function rendreTitre() {
     encheres: d.lots.length ? `${s(d.lots.length, 'lot')} ${d.lots.length > 1 ? 'suivis' : 'suivi'}, dont ${suivis} à venir ou en cours.`
       : 'Aucun lot suivi pour le moment.',
     journal: 'Ce qui est arrivé à ta collection, du plus récent au plus ancien.',
-    credits: "Une recherche lancée, un crédit. La recherche approfondie en compte deux ; et chaque passage de veille programmée aussi. L'avis de l'expert est inclus.",
+    credits: "Une recherche lancée, un crédit ; la recherche approfondie en compte deux. Chaque passage de veille programmée, un crédit. L'avis de l'expert est inclus.",
   }[vue];
   const objets = vue === 'collection' || vue === 'guette';
   $('#ajouter-objet').hidden = !objets;
@@ -2062,14 +2073,25 @@ function graphique(o) {
   const Y = y => +(T + (H - T - B) * (1 - (y - y0) / (y1 - y0))).toFixed(1);
   const fx = v => esc(prix(v, dev));
 
-  // les étiquettes posées sur le dessin, sans chevauchement
-  const etiquettes = [];
-  const poser = (x, y, texte, gras) => {
-    const l = texte.length * 6.6 + 6, droite = x + 10 + l < W - 2, ex = droite ? x + 10 : x - 10;
-    const boite = droite ? [ex, y - 9, ex + l, y + 5] : [ex - l, y - 9, ex, y + 5];
-    if (etiquettes.some(b => boite[0] < b[2] && boite[2] > b[0] && boite[1] < b[3] && boite[3] > b[1])) return '';
-    etiquettes.push(boite);
-    return `<text x="${ex}" y="${y + 4}" text-anchor="${droite ? 'start' : 'end'}" font-size="12" ${gras ? 'font-weight="600"' : ''} fill="#131f6a" stroke="#fff" stroke-width="4" paint-order="stroke">${esc(texte)}</text>`;
+  // les étiquettes posées sur le dessin : chacune cherche sa place autour de son point (à droite, à
+  // gauche, au-dessus, en dessous), sans couvrir une autre étiquette ni un autre point
+  const etiquettes = [], obstacles = [];
+  const croise = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+  const poser = (x, y, texte, gras, ordre = 'dghb') => {
+    const l = texte.length * (gras ? 7 : 6.6) + 6;
+    const places = { d: [x + 10, y, 'start'], g: [x - 10, y, 'end'], h: [x, y - 15, 'middle'], b: [x, y + 19, 'middle'],
+      H: [x, y - 28, 'middle'], q: [x - 2, y - 13, 'end'], p: [x + 2, y - 13, 'start'] };
+    for (const k of ordre) {
+      const [ex, ey, ancre] = places[k];
+      const x0b = ancre === 'start' ? ex : ancre === 'end' ? ex - l : ex - l / 2;
+      const boite = [x0b, ey - 9, x0b + l, ey + 5];
+      if (boite[0] < G || boite[2] > W - 2 || boite[1] < T - 6 || boite[3] > H - B) continue;
+      if (etiquettes.some(e => croise(boite, e))) continue;
+      if (obstacles.some(o => (Math.abs(o[4] - x) > 1 || Math.abs(o[5] - y) > 1) && croise(boite, o))) continue;
+      etiquettes.push(boite);
+      return `<text x="${+ex.toFixed(1)}" y="${+(ey + 4).toFixed(1)}" text-anchor="${ancre}" font-size="12" ${gras ? 'font-weight="600"' : ''} fill="#131f6a" stroke="#fff" stroke-width="4" paint-order="stroke">${esc(texte)}</text>`;
+    }
+    return '';
   };
 
   const bande = cotes.length > 1 ? `<path d="M${cotes.map(p => X(p.x) + ',' + Y(p.haut)).join(' L')} L${cotes.slice().reverse().map(p => X(p.x) + ',' + Y(p.bas)).join(' L')} Z" fill="${SERIE.cote}" fill-opacity=".1"/>` : '';
@@ -2094,11 +2116,14 @@ function graphique(o) {
     ${derCote ? `<circle cx="${X(derCote.x)}" cy="${Y(derCote.y)}" r="4.5" fill="${SERIE.cote}" stroke="#fff" stroke-width="2"/>` : ''}
     ${ventes.map(p => `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="${p.datee ? 5 : 4.5}" fill="${p.datee ? SERIE.vente : '#fff'}" stroke="${p.datee ? '#fff' : SERIE.vente}" stroke-width="2"/>`).join('')}`;
   // les étiquettes : la dernière cote, la dernière estimation, ton prix ; et chaque point quand il y en a peu
-  if (P) h += poser(W - D - 2 - (`${qui} ${prix(P, dev)}`.length * 6.6 + 16), Y(P) - 10, `${qui} ${prix(P, dev)}`, true);
-  if (derCote) h += poser(X(derCote.x), Y(derCote.y), `cote ${prix(derCote.y, dev)}`, true);
-  if (derEstim) h += poser(X(derEstim.x), Y(derEstim.y), `atelier ${prix(derEstim.y, dev)}`, !derCote);
+  [...ventes, ...estim, ...(derCote ? [derCote] : [])].forEach(p => obstacles.push([X(p.x) - 7, Y(p.y) - 7, X(p.x) + 7, Y(p.y) + 7, X(p.x), Y(p.y)]));
+  if (derCote) h += poser(X(derCote.x), Y(derCote.y), `cote ${prix(derCote.y, dev)}`, true, 'dhbg');
+  if (P) { const t = `${qui} ${prix(P, dev)}`, xp = W - D - 14 - (t.length * 7 + 6);
+    h += poser(xp, Y(P) - 10, t, true, 'd') || poser(xp, Y(P) + 13, t, true, 'd'); }
+  if (P) obstacles.push([G, Y(P) - 4, W - D, Y(P) + 4, -9, -9]);
+  if (derEstim) h += poser(X(derEstim.x), Y(derEstim.y), `atelier ${prix(derEstim.y, dev)}`, !derCote, 'hHbdg');
+  if (proj && x1 >= jour(proj.date)) h += poser(X(jour(proj.date)), Y(proj.valeur), `projection ${prix(proj.valeur, dev)}`, false, 'hqHb');
   if (peu) ventes.forEach(p => { h += poser(X(p.x), Y(p.y), prix(p.y, dev), false); });
-  if (proj && x1 >= jour(proj.date)) h += poser(X(jour(proj.date)), Y(proj.valeur), `projection ${prix(proj.valeur, dev)}`, false);
 
   // les cibles : plus grandes que les points, au clavier comme à la souris
   const pts = [...ventes, ...estim, ...(cotes.length ? [derCote] : [])];
@@ -2127,7 +2152,7 @@ function graphique(o) {
         <td>${esc(quoi)}${ou ? `<br><span class="aide">${lien ? `<a href="${esc(lien)}" target="_blank" rel="noopener noreferrer">${esc(ou)}</a>` : esc(ou)}</span>` : ''}</td>
         <td class="n">${fx(p.y)}</td></tr>`; }).join('')}</tbody></table></details>`;
   return `<div class="graphe" data-graphe="${esc(o.id)}">
-    <div class="graphe-tete"><span>${ventes.length} vente${ventes.length > 1 ? 's' : ''} conclue${ventes.length > 1 ? 's' : ''}${estim.length ? `, ${estim.length} estimation${estim.length > 1 ? 's' : ''} de l'atelier` : ''}, en ${esc(dev)}</span>${plages}</div>
+    <div class="graphe-tete"><span>${ventes.length} vente${ventes.length > 1 ? 's' : ''} conclue${ventes.length > 1 ? 's' : ''}${estim.length ? `, ${estim.length} estimation${estim.length > 1 ? 's' : ''} de l'atelier` : ''}, en ${esc({ EUR: 'euros', USD: 'dollars', GBP: 'livres', CHF: 'francs suisses' }[dev] || dev)}</span>${plages}</div>
     ${h}<div class="infobulle" hidden></div>
     <div class="cle-graphe">${legende}</div>${table}</div>`;
 }
