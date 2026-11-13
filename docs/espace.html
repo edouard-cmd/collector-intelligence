@@ -1303,6 +1303,14 @@ function voyantGlobal() {
     return { c: 'rouge', t: "la collecte échoue depuis trois jours : le prestataire est prévenu" };
   if (auj && auj.essais) return { c: auj.reussites === auj.essais ? 'vert' : 'jaune',
     t: `veille de ce matin : ${auj.reussites} objet${auj.reussites > 1 ? 's' : ''} sur ${auj.essais} passé${auj.reussites > 1 ? 's' : ''} en revue, ${auj.nouvelles} nouvelle${auj.nouvelles > 1 ? 's' : ''} vente${auj.nouvelles > 1 ? 's' : ''} conclue${auj.nouvelles > 1 ? 's' : ''}` };
+  // la veille ne passe que les jours choisis : un matin sans objet prévu n'est pas un retard
+  const ceMatin = new Date(); ceMatin.setUTCHours(6, 17, 0, 0);
+  const prevus = d.objets.filter(o => veilleDue(o.donnees, (d.veille || {})[o.id]?.derniere_veille || null, ceMatin)).length;
+  if (!prevus) {
+    const suite = d.objets.map(o => prochaineVeille(o)).filter(Boolean).sort((a, b) => a - b)[0];
+    return { c: 'vert', t: `aucune veille prévue ce matin${suite ? `, prochaine ${libJour(suite)}` : ''}` };
+  }
+  if (new Date() < ceMatin) return { c: 'gris', t: 'la veille passera ce matin' };
   return { c: s.length ? 'jaune' : 'gris', t: s.length ? "la veille de ce matin n'est pas encore passée" : 'la première veille passera demain matin' };
 }
 const point = v => `<i class="voyant v-${v.c}" title="${esc(v.t)}"></i>`;
