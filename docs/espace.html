@@ -681,6 +681,7 @@
   .ligne-obj .vignette{width:60px;height:60px;border-radius:12px}
 
   @media(max-width:900px){
+    .app{grid-template-rows:auto minmax(0,1fr);align-content:start}
     .toile{padding:24px 16px 72px}
     .titre-ligne h1{font-size:32px}
     .kpi.fort b{font-size:34px}
@@ -701,6 +702,94 @@
     .c-tend{height:24px;font-size:11px;padding:0 8px}
     .outils h2{flex:1 1 auto}
   }
+
+  /* fin de la refonte : les écrans de second rang au même niveau que la collection */
+  #arrivee:empty{display:none}
+  .vide-liste .bouton{display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+  .vide-liste h3{font-family:var(--titre);font-weight:400;font-size:30px}
+  .dlg-pied button:not(.second),#arr-ranger,#lot-valider,#res-valider,#ed-enregistrer{background:var(--cta);border-color:var(--cta);color:#fff;font-weight:700;
+    height:46px;padding:0 22px;border-radius:12px;box-shadow:0 8px 18px -8px rgba(214,44,124,.5)}
+  .dlg-pied button.second{height:46px;padding:0 20px;border-radius:12px}
+  @media (hover:hover) and (pointer:fine){.dlg-pied button:not(.second):hover:not(:disabled),#arr-ranger:hover:not(:disabled){background:var(--cta-fonce);border-color:var(--cta-fonce)}}
+  .dlg-pied button:not(.second):disabled,#arr-ranger:disabled{background:var(--actif);border-color:var(--actif);color:var(--gris);box-shadow:none}
+
+  /* l'objet qui arrive de l'atelier : un bloc à part, l'estimation en grand, l'action en rose */
+  .arrivee{grid-template-columns:112px minmax(0,1fr);gap:22px;padding:22px 24px;box-shadow:var(--ombre-haute)!important;
+    outline:2px solid var(--cta);outline-offset:-2px;background:linear-gradient(180deg,#fff 0,#fdf3f8 100%)!important}
+  .arrivee img,.arrivee .arr-vide{width:112px;height:112px;border-radius:14px;object-fit:cover}
+  .arrivee .arr-vide{display:grid;place-items:center;background:var(--rose-pale);font-family:var(--titre);font-size:48px;color:var(--rose-texte)}
+  .arr-titre{margin:0;font-size:13px;font-weight:600;color:var(--rose-texte)}
+  .arrivee h3{font-family:var(--titre);font-weight:400;font-size:26px;line-height:1.15;margin:4px 0 0}
+  .arr-valeur{margin:8px 0 0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .arr-valeur b{font-family:var(--titre);font-weight:400;font-size:30px;line-height:1}
+  .arr-valeur span{font-size:13.5px;color:var(--gris)}
+  .arrivee .actions{margin-top:16px;gap:10px}
+  .arrivee select{height:46px;border-radius:12px;font-size:14px;min-width:0;flex:1 1 260px;width:auto}
+  .arrivee .actions button{height:46px;border-radius:12px}
+  @media(max-width:620px){.arrivee{grid-template-columns:1fr;padding:18px}.arrivee img,.arrivee .arr-vide{width:100%;height:180px}
+    .arrivee .actions select,.arrivee .actions button{flex:1 1 100%;width:100%}}
+
+  /* le journal : chaque événement porte sa couleur, la ligne ouvre la fiche de l'objet */
+  .journal div{grid-template-columns:110px 136px minmax(0,1fr);align-items:center;padding:14px 0;font-size:14.5px}
+  .journal .j-type{justify-self:start;display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;
+    background:var(--marine-pale);color:var(--marine);white-space:nowrap}
+  .journal .j-type::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+  .journal .j-vente .j-type{background:var(--bleu-pale);color:var(--bleu-texte)}
+  .journal .j-palier .j-type{background:var(--jaune-pale);color:var(--or-texte)}
+  .journal .j-alerte .j-type{background:var(--rose-pale);color:var(--rose-texte)}
+  .journal .j-credits .j-type{background:var(--releve);color:var(--gris)}
+  .journal .ouvrable{cursor:pointer;border-radius:10px}
+  @media (hover:hover) and (pointer:fine){.journal .ouvrable:hover{background:var(--releve)}}
+  @media(max-width:620px){.journal div{grid-template-columns:1fr;gap:6px}}
+
+  /* au doigt : les actions isolées deviennent de vraies cibles */
+  @media (pointer:coarse),(max-width:620px){
+    .pied-action .lien,#trier-ecart,#ajout-main,.alerte a,.panneau-corps>p>.lien{display:inline-flex;align-items:center;min-height:40px}
+    .vide-liste .lien,.veille-tout-de-suite .lien{display:inline-flex;align-items:center;min-height:40px}
+    [data-plage]{min-height:38px;height:auto}
+  }
+  /* les coulisses : ce qui sert à vérifier, replié par défaut */
+  details.coulisses{margin-top:24px;border-radius:14px;border:1px dashed #cfd3e2;background:#fbfbfe}
+  details.coulisses>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:14px 18px;font-size:14px;font-weight:600;color:var(--gris)}
+  details.coulisses>summary::-webkit-details-marker{display:none}
+  details.coulisses>summary::before{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform 200ms var(--ease-out)}
+  details.coulisses[open]>summary::before{transform:rotate(45deg)}
+  details.coulisses>div{padding:0 18px 18px;font-size:14px}
+  details.coulisses p{margin:8px 0 0}
+
+  /* l'attente : une progression lisible, un temps annoncé, des étapes qui se cochent */
+  .attente-v2{margin-top:24px;border-radius:18px;padding:28px;background:linear-gradient(135deg,#131f6a 0%,#1f2f8f 60%,#2a3aa0 100%);color:#fff;
+    display:grid;grid-template-columns:120px 1fr;gap:28px;align-items:center;box-shadow:var(--ombre-haute);overflow:hidden;position:relative}
+  .attente-v2 .scene{width:120px;height:120px;position:relative}
+  .attente-v2 .scene .carte{position:absolute;width:56px;height:72px;border-radius:10px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28)}
+  .attente-v2 .scene .carte::after{content:"";position:absolute;left:8px;right:8px;bottom:10px;height:6px;border-radius:3px;background:rgba(255,255,255,.35)}
+  .attente-v2 .scene .c1{left:4px;top:30px;transform:rotate(-10deg);animation:clignote 2.4s ease-in-out infinite}
+  .attente-v2 .scene .c2{left:32px;top:18px;animation:clignote 2.4s ease-in-out .8s infinite}
+  .attente-v2 .scene .c3{left:60px;top:30px;transform:rotate(10deg);animation:clignote 2.4s ease-in-out 1.6s infinite}
+  .attente-v2 .scene .loupe{position:absolute;width:46px;height:46px;border-radius:50%;border:5px solid var(--jaune);left:0;top:40px;
+    box-shadow:0 6px 16px rgba(0,0,0,.25);animation:balaye 2.4s cubic-bezier(.45,0,.25,1) infinite alternate}
+  .attente-v2 .scene .loupe::after{content:"";position:absolute;width:20px;height:6px;border-radius:3px;background:var(--jaune);right:-17px;bottom:-6px;transform:rotate(45deg)}
+  @keyframes balaye{0%{transform:translate(0,0)}50%{transform:translate(34px,-14px)}100%{transform:translate(70px,2px)}}
+  @keyframes clignote{0%,100%{background:rgba(255,255,255,.12)}50%{background:rgba(5,155,225,.55);border-color:rgba(255,255,255,.6)}}
+  .attente-v2 .haut{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .attente-v2 .quoi{font-family:var(--titre);font-size:26px;line-height:1.15}
+  .attente-v2 .reste{font-size:14px;font-weight:600;color:#cfe9fb;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .attente-v2 .barre{height:10px;border-radius:5px;background:rgba(255,255,255,.16);margin:16px 0 18px;overflow:hidden}
+  .attente-v2 .barre b{display:block;height:100%;width:2%;border-radius:5px;background:linear-gradient(90deg,var(--bleu),var(--rose));transition:width 900ms linear;position:relative;overflow:hidden}
+  .attente-v2 ol{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .attente-v2 li{display:flex;align-items:center;gap:10px;font-size:14px;color:rgba(255,255,255,.55);transition:color 300ms ease}
+  .attente-v2 li::before{content:"";flex:0 0 18px;width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.3);box-sizing:border-box}
+  .attente-v2 li.fait{color:rgba(255,255,255,.85)}
+  .attente-v2 li.fait::before{border:0;background:var(--bleu) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 8.5 2.5 2.5L12 5.5'/%3E%3C/svg%3E") center/12px no-repeat}
+  .attente-v2 li.encours{color:#fff;font-weight:600}
+  .attente-v2 li.encours::before{border-color:var(--jaune);border-top-color:transparent;animation:tourne .8s linear infinite}
+  .attente-v2 .astuce{margin:18px 0 0;padding-top:14px;border-top:1px solid rgba(255,255,255,.16);font-size:14px;color:#dfe3f7;min-height:44px}
+  .attente-v2 .astuce b{color:var(--jaune);font-weight:700}
+  .attente-v2.compacte{grid-template-columns:1fr;padding:22px 24px}
+  .attente-v2.compacte .scene{display:none}
+  @media(max-width:620px){.attente-v2{grid-template-columns:1fr;padding:22px}.attente-v2 .scene{display:none}.attente-v2 .quoi{font-size:22px}}
+  @media(prefers-reduced-motion:reduce){.attente-v2 .loupe,.attente-v2 .carte,.certi i u{animation:none}}
+
 </style>
 </head>
 <body>
@@ -885,20 +974,25 @@
         <label for="ed-notes">Notes générales</label>
         <textarea id="ed-notes" placeholder="ce dont tu n'es pas sûre, ce qu'il faut savoir sur cette pièce"></textarea>
 
-        <p class="groupe-titre" style="margin-top:20px">Signature de veille</p>
+        <p class="groupe-titre" style="margin-top:28px">Veille des ventes conclues</p>
+        <div class="grille2">
+          <div><label for="ed-rythme">À quel rythme guetter ses ventes ?</label>
+            <select id="ed-rythme"><option value="quotidienne">Chaque jour</option><option value="hebdomadaire">Chaque semaine</option>
+              <option value="mensuelle">Chaque mois</option><option value="annuelle">Chaque année</option><option value="arretee">Arrêtée</option></select></div>
+        </div>
+        <details class="coulisses"><summary>Réglages avancés de la veille</summary><div>
         <p class="aide">Ce que la veille du matin cherche pour trouver les nouvelles ventes conclues de cet objet,
-           et ce qu'elle écarte. Une vente hors fourchette n'entre pas dans la cote.</p>
+           et ce qu'elle écarte. Une vente hors fourchette n'entre pas dans la cote. Préparé par l'atelier : à ne
+           retoucher qu'en cas de ventes hors sujet.</p>
         <div class="grille2">
           <div><label for="ed-termes">Mots-clés de la veille, un par ligne</label><textarea id="ed-termes"></textarea></div>
           <div><label for="ed-exclusions">Mots à exclure, un par ligne</label><textarea id="ed-exclusions" placeholder="copie&#10;pièces détachées&#10;lot"></textarea></div>
         </div>
-        <div class="grille3">
+        <div class="grille2">
           <div><label for="ed-bas">Fourchette, bas</label><input type="number" id="ed-bas" min="0" step="any"></div>
           <div><label for="ed-haut">Fourchette, haut</label><input type="number" id="ed-haut" min="0" step="any"></div>
-          <div><label for="ed-rythme">Rythme de veille</label>
-            <select id="ed-rythme"><option value="quotidienne">Chaque jour</option><option value="hebdomadaire">Chaque semaine</option>
-              <option value="mensuelle">Chaque mois</option><option value="annuelle">Chaque année</option><option value="arretee">Arrêtée</option></select></div>
         </div>
+        </div></details>
       </div>
     </div>
     <div id="ed-etat"></div>
@@ -1749,7 +1843,7 @@ const portee = new ResizeObserver(es => es.forEach(x => {
 }));
 function caler() { $$('.carte-obj').forEach(c => portee.observe(c)); }
 document.addEventListener('keydown', e => {
-  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('carte-obj')) { e.preventDefault(); e.target.click(); }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('.carte-obj,[data-fiche][role=button]')) { e.preventDefault(); e.target.click(); }
 });
 
 /* La jauge, celle de l'atelier : des zones colorées de « anormalement bas » à « trop cher », les
@@ -1958,8 +2052,13 @@ function rendreCredits() {
 const plusDeCredits = msg => /crédit/.test(msg || '') ? ` <button class="lien" data-aller="credits">Recharger mes crédits</button>` : '';
 
 function rendreJournal() {
-  $('#liste-journal').innerHTML = d.journal.length ? `<div class="journal">${d.journal.map(j =>
-    `<div><time>${esc(dateFr(j.date))}</time><span>${esc(typo(j.message))}</span></div>`).join('')}</div>`
+  const TYPES = { veille: ['vente', 'Nouvelle vente'], palier: ['palier', 'Palier franchi'], anomalie: ['alerte', 'À regarder'],
+    objet: ['objet', 'Collection'], credits: ['credits', 'Crédits'] };
+  $('#liste-journal').innerHTML = d.journal.length ? `<div class="journal">${d.journal.map(j => {
+    const [cl, lib] = TYPES[j.type] || ['enchere', 'Enchère'];
+    const lien = j.objet_id && objet(j.objet_id) ? ` data-fiche="${esc(j.objet_id)}" role="button" tabindex="0"` : '';
+    return `<div class="j-${cl}${lien ? ' ouvrable' : ''}"${lien}><time>${esc(dateFr(j.date))}</time><span class="j-type">${lib}</span><span>${esc(typo(j.message))}</span></div>`;
+  }).join('')}</div>`
     : `<p class="vide-bloc">Le journal se remplit au fil des ajouts et des résultats d'enchères.</p>`;
 }
 
@@ -2122,7 +2221,7 @@ function ouvrirFiche(id) {
       ${ventes.length ? ventes.map(t => `<div class="vente">
           <b>${lectureVente(t, o).principal}</b>
           <span>${lienSur(t.url_source) ? `<a href="${esc(lienSur(t.url_source))}" target="_blank" rel="noopener noreferrer">${esc(t.libelle || t.plateforme || domaine(t.url_source))}</a>` : esc(t.libelle)}
-            <span class="src"><br>${esc(t.plateforme || domaine(t.url_source))}, ${t.date ? 'vendue le ' + esc(dateFr(t.date)) : 'date inconnue, trouvée le ' + esc(dateFr(t.cree_le))}, ${esc(ORIG[t.origine] || t.origine)}${t.verifie === 1 ? ', prix relu sur la page' : ''}${t.frais_inclus === 1 ? ', frais inclus' : t.frais_inclus === 0 ? ', hors frais' : ''}${['famille', 'comparable'].includes(t.correspondance) ? ', autre modèle, hors cote' : ''}${lectureVente(t, o).note ? ', ' + esc(lectureVente(t, o).note) : ''}</span></span>
+            <span class="src" title="${esc((ORIG[t.origine] || t.origine || '') + (t.verifie === 1 ? ', prix relu sur la page' : ''))}"><br>${esc(t.plateforme || domaine(t.url_source))}, ${t.date ? 'vendue le ' + esc(dateFr(t.date)) : 'date inconnue, trouvée le ' + esc(dateFr(t.cree_le))}${t.verifie === 1 ? ', vérifiée' : ''}${t.frais_inclus === 1 ? ', frais inclus' : t.frais_inclus === 0 ? ', hors frais' : ''}${['famille', 'comparable'].includes(t.correspondance) ? ', autre modèle, hors cote' : ''}${lectureVente(t, o).note ? ', ' + esc(lectureVente(t, o).note) : ''}</span></span>
           <button class="second petit" data-retirer-vente="${esc(t.id)}" title="retirer cette vente">Retirer</button></div>`).join('')
         : `<p class="aide">Aucune vente conclue enregistrée. Elles arrivent de l'atelier, de la veille du matin et des enchères suivies.</p>`}
     </div>
@@ -2536,7 +2635,8 @@ async function supprimerObjet(id) {
 /* Veille à la demande sur un objet : la même passe que celle du matin. */
 async function veillerMaintenant(id, bouton) {
   bouton.disabled = true;
-  $('#fiche-veille').innerHTML = attente('la veille cherche les nouvelles ventes conclues');
+  attendre('#fiche-veille', ['choix des sites où cet objet se vend', 'recherche des ventes conclues récentes',
+    'tri des ventes qui correspondent vraiment', 'vérification des prix', 'mise à jour de la cote'], 60, 'La veille cherche ses nouvelles ventes');
   try {
     const r = await api(`/objets/${encodeURIComponent(id)}/veille`, { method: 'POST' });
     creditsSession += CREDITS.veille;
@@ -2719,7 +2819,7 @@ async function lancerRecherche() {
     return;
   }
   $('#rech-lancer').disabled = true;
-  const fin = attendre('#rech-sortie', ['choix des maisons de ventes pour cet objet', 'recherche des lots', 'tri des lots qui correspondent vraiment', 'vérification des liens', 'encore un instant']);
+  const fin = attendre('#rech-sortie', ['choix des maisons de ventes pour cet objet', 'recherche des lots', 'tri des lots qui correspondent vraiment', 'vérification des liens', 'encore un instant'], 70, 'On cherche ses prochaines enchères');
   try {
     const rep = await appelerIA(SYS_ENCHERES,
       `Date du jour : ${aujourdhui()}\nOBJET : ${dn.description || nomDe(o)}\n` +
@@ -2926,20 +3026,52 @@ function analyser(t) {
   throw new Error("réponse de l'IA illisible, relancer");
 }
 
-function attendre(cible, etapes) {
-  const el = $(cible);
-  el.innerHTML = `<div class="attente"><i class="rotor"></i><span id="att-txt">${esc(etapes[0])}</span><em id="att-t">0 s</em></div>
-    <p class="aide" id="att-flux"></p>`;
-  suivi = ({ recherches, recu }) => { const f = $('#att-flux'); if (f) f.textContent = `${recherches} recherche${recherches > 1 ? 's' : ''} web effectuée${recherches > 1 ? 's' : ''}, ${recu.toLocaleString('fr-FR')} caractères reçus`; };
-  const t0 = Date.now(); let i = 0;
-  const m = setInterval(() => {
-    const s = Math.round((Date.now() - t0) / 1000), t = $('#att-t');
-    if (!t) return clearInterval(m);
-    t.textContent = s + ' s';
-    const k = Math.min(Math.floor(s / 12), etapes.length - 1);
-    if (k !== i) { i = k; $('#att-txt').textContent = etapes[i]; }
-  }, 1000);
-  return () => { clearInterval(m); suivi = null; el.innerHTML = ''; };
+/* L'attente, la même que dans l'atelier : une durée annoncée, une barre, des étapes qui se cochent. */
+const ASTUCES = [
+  "<b>Le saviez-vous ?</b> Seules les ventes conclues font la cote : les prix demandés n'y entrent jamais.",
+  "<b>Le saviez-vous ?</b> Seules les ventes réellement conclues font la cote, jamais une estimation.",
+  "<b>Astuce :</b> plus tu ajoutes d'angles (dessous, marquages, étiquette), plus l'identification est sûre.",
+  "<b>Le saviez-vous ?</b> Chaque prix garde le lien de son annonce : tu peux toujours aller vérifier.",
+  "<b>Astuce :</b> coche ce que tu possèdes (boîte, facture, accessoires), le prix s'ajuste aussitôt.",
+  "<b>Le saviez-vous ?</b> Une fois l'objet dans ta collection, Le Collectionnaire guette ses nouvelles ventes pour toi.",
+  "<b>Le saviez-vous ?</b> Un prix trop beau est le premier signe d'une contrefaçon : le verdict te le signale.",
+];
+const duree = s => s < 60 ? `${s} s` : `${Math.floor(s / 60)} min${s % 60 ? ' ' + String(s % 60).padStart(2, '0') : ''}`;
+function attendre(cible, etapes, prevu = 60, titre) {
+  const el = document.querySelector(cible);
+  const liste = etapes.filter(e => !/^encore/i.test(e));
+  const maj = s => s.charAt(0).toUpperCase() + s.slice(1);
+  let k = Math.floor(Math.random() * ASTUCES.length);
+  el.innerHTML = `<div class="attente-v2${prevu <= 25 ? ' compacte' : ''}" role="status" aria-live="polite">
+    <div class="scene" aria-hidden="true"><i class="carte c1"></i><i class="carte c2"></i><i class="carte c3"></i><i class="loupe"></i></div>
+    <div>
+      <div class="haut"><span class="quoi">${titre || maj(liste[0])}</span><span class="reste" id="att-t">environ ${duree(prevu)}</span></div>
+      <div class="barre"><b id="att-b"></b></div>
+      <ol id="att-l">${liste.map((e, i) => `<li${i ? '' : ' class="encours"'}>${maj(e)}</li>`).join('')}</ol>
+      <p class="astuce" id="att-a">${ASTUCES[k]}</p>
+    </div></div>`;
+  let recu = 0, recherches = 0;
+  suivi = (x) => { recu = x.recu; recherches = x.recherches; };
+  const t0 = Date.now();
+  const pas = () => {
+    const tt = document.getElementById('att-t');
+    if (!tt) return false;
+    const s = (Date.now() - t0) / 1000;
+    let p = s <= prevu ? s / prevu * 88 : 88 + 9 * (1 - Math.exp(-(s - prevu) / 40));
+    let i = Math.min(Math.floor(s / prevu * liste.length), liste.length - 1);
+    if (recherches) i = Math.max(i, Math.min(recherches, liste.length - 2));
+    if (recu) { p = Math.max(p, 90 + Math.min(8, recu / 400)); i = liste.length - 1; }
+    document.getElementById('att-b').style.width = Math.max(2, p).toFixed(1) + '%';
+    document.querySelectorAll('#att-l li').forEach((li, j) => li.className = j < i ? 'fait' : j === i ? 'encours' : '');
+    const reste = Math.round(prevu - s);
+    tt.textContent = recu ? 'presque terminé' : reste > 5 ? `encore environ ${duree(Math.ceil(reste / 5) * 5)}`
+      : 'quelques secondes encore, la recherche se termine';
+    if (Math.floor(s) % 8 === 7) { k = (k + 1) % ASTUCES.length; const a = document.getElementById('att-a'); if (a) a.innerHTML = ASTUCES[k]; }
+    return true;
+  };
+  const minuteur = setInterval(() => { if (!pas()) clearInterval(minuteur); }, 1000);
+  pas();
+  return () => { clearInterval(minuteur); suivi = null; el.innerHTML = ''; };
 }
 
 /* Une adresse proposée par l'IA n'est gardée que si elle figure parmi les pages que la
@@ -2981,16 +3113,18 @@ function rendreArrivee() {
     (o.marque && o.modele && x.donnees.marque === o.marque && x.donnees.modele === o.modele && (x.donnees.reference || '') === (o.reference || '')))?.id || '');
   const mode = o.situation?.mode === 'achat' ? 'achat' : 'collection';
   $('#arrivee').innerHTML = `<div class="arrivee panneau">
-    ${a.photo ? `<img src="${esc(a.photo)}" alt="">` : '<span></span>'}
-    <div>
+    ${a.photo ? `<img src="${esc(a.photo)}" alt="">` : `<span class="arr-vide">${esc((o.nom || 'C')[0].toUpperCase())}</span>`}
+    <div class="arr-corps">
+      <p class="arr-titre">Un objet t'attend, analysé dans l'atelier le ${esc(dateFr(a.date))}</p>
       <h3>${esc(o.nom || 'objet')}</h3>
-      <p class="aide" style="margin:4px 0 0">Analysé dans l'atelier le ${esc(dateFr(a.date))}. ${r ? `Estimation de l'atelier ${prix(r.mediane, r.devise)}, sur ${r.n} ${esc(LIB_BASE[r.nature] || r.base)}` : "Pas d'estimation établie"}${a.ventes?.length ? `, ${a.ventes.length} vente${a.ventes.length > 1 ? 's' : ''} conclue${a.ventes.length > 1 ? 's' : ''} avec leur adresse, qui ouvriront sa cote` : ''}.</p>
+      ${r ? `<p class="arr-valeur"><b>${prix(r.mediane, r.devise)}</b><span>estimation de l'atelier, sur ${r.n} ${esc(LIB_BASE[r.nature] || r.base)}</span></p>` : `<p class="aide" style="margin:6px 0 0">Pas d'estimation établie.</p>`}
+      ${a.ventes?.length ? `<p class="aide" style="margin:6px 0 0">${a.ventes.length} vente${a.ventes.length > 1 ? 's' : ''} conclue${a.ventes.length > 1 ? 's' : ''} avec leur adresse, qui ouvriront sa cote.</p>` : ''}
       <div class="actions">
         <select id="arr-cible" aria-label="où ranger">
           <option value="">${mode === 'achat' ? 'Nouvel objet dans « Je guette »' : 'Nouvel objet dans ma collection'}</option>
           ${d.objets.map(x => `<option value="${esc(x.id)}" ${x.id === proche ? 'selected' : ''}>Nouvelle estimation pour : ${esc(nomDe(x))}</option>`).join('')}
         </select>
-        <button id="arr-ranger">Ranger</button>
+        <button id="arr-ranger">Ranger l'objet</button>
         <button class="second" id="arr-ignorer">Ignorer</button>
       </div>
       <div id="arr-etat"></div>
