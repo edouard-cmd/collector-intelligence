@@ -578,6 +578,129 @@
     .dlg-corps{padding:16px 16px 24px}
     .dlg-pied{padding:12px 16px}
   }
+
+  /* =====================================================================================
+     Refonte de novembre 2026 (retours de Florine). La charte déclinée plus franchement : titres
+     en DM Serif plus grands, panneaux en cartes séparées par l'air, le rose pour l'action
+     principale, la collection en mosaïque où les photos mènent. Ces règles priment sur le dessus.
+     ===================================================================================== */
+  :root{--fond:#f3f4f9;--bord:#e4e6ef;--r-carte:18px;--r-ctrl:10px;--gap:24px;--cta:#d62c7c;--cta-fonce:#b51f66;
+    --ombre:0 1px 2px rgba(19,31,106,.04),0 10px 30px -12px rgba(19,31,106,.14);
+    --ombre-haute:0 2px 6px rgba(19,31,106,.08),0 26px 50px -18px rgba(19,31,106,.32)}
+  body{font-size:15px;-webkit-font-smoothing:antialiased}
+  .barre{background:#fff;padding:24px 14px 18px}
+  .barre .logo{height:40px;width:auto}
+  .nav button,.nav a{height:40px;font-size:14.5px;border-radius:10px;padding:0 12px}
+  .nav svg{width:18px;height:18px;flex-basis:18px}
+  .nav [aria-current=page]{background:var(--marine);color:#fff}
+  .nav [aria-current=page] svg,.nav [aria-current=page] em{color:#fff}
+  .nav button[aria-current=page]:hover:not(:disabled){background:var(--marine);color:#fff}
+  .toile{padding:44px 44px 96px}
+  .titre-ligne{margin-bottom:32px;gap:20px}
+  .titre-ligne h1{font-size:clamp(34px,4vw,50px);line-height:1.04;letter-spacing:-.01em}
+  .constat{font-size:16px;line-height:1.6;margin-top:12px;max-width:62ch}
+  #ajouter-objet,.vide-liste .bouton{background:var(--cta);border-color:var(--cta);color:#fff;height:50px;padding:0 22px;font-size:15.5px;font-weight:700;
+    border-radius:14px;box-shadow:0 8px 20px -8px rgba(214,44,124,.55)}
+  #ajouter-objet::before,.vide-liste .bouton::before{content:"";width:18px;height:18px;background:currentColor;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M10 4v12M4 10h12'/%3E%3C/svg%3E") center/contain no-repeat;
+            mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M10 4v12M4 10h12'/%3E%3C/svg%3E") center/contain no-repeat}
+  @media (hover:hover) and (pointer:fine){#ajouter-objet:hover:not(:disabled),.vide-liste .bouton:hover{background:var(--cta-fonce);border-color:var(--cta-fonce)}}
+  button{height:40px;border-radius:var(--r-ctrl);font-size:14.5px}
+  button.petit{height:34px}
+
+  /* les chiffres de la collection : la valeur en grand, à l'encre de la charte */
+  .kpis{border:0;border-radius:var(--r-carte);box-shadow:var(--ombre);overflow:hidden;margin-bottom:var(--gap)}
+  .kpi{padding:24px 26px}
+  .kpi span{font-size:13.5px}
+  .kpi b{font-family:var(--titre);font-weight:400;font-size:32px;line-height:1.1;margin:8px 0 6px}
+  .kpi.fort{background:var(--marine);color:#fff}
+  .kpi.fort span,.kpi.fort small{color:#c7cdf0}
+  .kpi.fort b{font-size:44px;font-weight:400;color:#fff}
+
+  /* les panneaux : des cartes franches, le titre comme un chapitre */
+  .panneau{border:0;border-radius:var(--r-carte);box-shadow:var(--ombre)}
+  .panneau-tete{padding:24px 26px 12px}
+  .panneau-tete h2,.outils h2{font-family:var(--titre);font-weight:400;font-size:26px;line-height:1.15}
+  .panneau-corps{padding:0 26px 22px}
+  .rangee{gap:var(--gap);margin-bottom:var(--gap);align-items:start}
+  #ajout-mobile{background:var(--cta);border-color:var(--cta);color:#fff;font-weight:700;border-radius:999px;padding:0 14px}
+  dialog{border-radius:20px}
+  .dlg-tete h2{font-size:30px}
+  .section>h4,.groupe-titre{font-family:var(--titre);font-weight:400;font-size:22px;line-height:1.2;margin-bottom:14px}
+  .section>h4 small{font-family:var(--texte)}
+  #fiche-corps .reco b{font-family:var(--titre);font-weight:400;font-size:44px;line-height:1.05}
+  .outils{padding:24px 26px 18px;gap:12px}
+  .outils input[type=search],.outils select{height:42px;font-size:14px;border-radius:12px}
+  .outils input[type=search]{width:280px}
+
+  /* la bascule mosaïque / liste */
+  .bascule{display:inline-flex;padding:4px;border-radius:12px;background:var(--releve);border:1px solid var(--bord);gap:2px}
+  .bascule button{height:34px;padding:0 12px;border:0;background:none;color:var(--gris);font-size:13.5px;font-weight:600;border-radius:9px;gap:7px}
+  .bascule button svg{width:16px;height:16px}
+  .bascule button[aria-pressed=true]{background:#fff;color:var(--marine);box-shadow:0 1px 3px rgba(19,31,106,.14)}
+  @media (hover:hover) and (pointer:fine){.bascule button:hover:not([aria-pressed=true]){background:#eceef5;color:var(--marine)}}
+
+  /* la mosaïque : entre la grille et Pinterest, chaque photo garde sa proportion */
+  .mosaique{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));grid-auto-rows:4px;column-gap:20px;row-gap:0;
+    padding:4px 26px 26px;align-items:start}
+  .carte-obj{position:relative;display:flex;flex-direction:column;background:#fff;border-radius:16px;overflow:hidden;cursor:pointer;
+    box-shadow:0 0 0 1px var(--bord),0 2px 6px rgba(19,31,106,.05);transition:box-shadow 220ms var(--ease-out),transform 220ms var(--ease-out)}
+  .carte-obj:focus-visible{outline:2px solid var(--bleu-texte);outline-offset:3px}
+  .c-photo{background:var(--marine-pale);line-height:0}
+  .c-photo img{width:100%;height:auto;display:block;animation:apparait 420ms var(--ease-out) both}
+  .c-photo.vide{aspect-ratio:4/5;display:grid;place-items:center;background:linear-gradient(160deg,var(--marine-pale),#dfe3f3)}
+  .c-photo.vide span{font-family:var(--titre);font-size:64px;line-height:1;color:#9aa1c6}
+  @keyframes apparait{from{opacity:0;transform:scale(1.02)}}
+  .c-badges{position:absolute;top:12px;left:12px;right:12px;display:flex;gap:6px;flex-wrap:wrap}
+  .c-tend{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;
+    background:rgba(255,255,255,.94);color:var(--marine);box-shadow:0 2px 8px rgba(19,31,106,.16)}
+  .c-tend::before{content:"";width:7px;height:7px;border-radius:50%;background:#8d93b6}
+  .c-tend.hausse::before{background:var(--bleu)} .c-tend.baisse::before{background:var(--rose)} .c-tend.enchere::before{background:var(--jaune)}
+  .c-corps{padding:14px 16px 16px}
+  .c-quoi{display:block;font-size:12px;font-weight:600;color:var(--gris);text-transform:uppercase;letter-spacing:.06em}
+  .c-nom{font-family:var(--titre);font-weight:400;font-size:20px;line-height:1.15;margin:4px 0 12px;text-wrap:balance}
+  .c-chiffres{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+  .c-cote b{display:block;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+  .c-cote b.gris{color:var(--pale)}
+  .c-cote small{display:block;font-size:12px;color:var(--gris)}
+  .c-ecart{flex:0 0 auto;height:28px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+  .c-ecart.hausse{background:var(--bleu-pale);color:var(--bleu-texte)}
+  .c-ecart.baisse{background:var(--rose-pale);color:var(--rose-texte)}
+  .c-pied{margin:10px 0 0;font-size:12.5px;color:var(--gris)}
+  .c-jauge{margin-top:12px}
+  .c-jauge .tiret{display:none}
+  .c-jauge .barre-prix.mini{margin:0}
+  @media (hover:hover) and (pointer:fine){
+    .carte-obj:hover{transform:translateY(-3px);box-shadow:0 0 0 1px var(--bord),var(--ombre-haute)}
+  }
+  @media (prefers-reduced-motion:reduce){.carte-obj,.c-photo img{transition:none;animation:none}.carte-obj:hover{transform:none}}
+
+  /* la liste garde ses colonnes, avec plus d'air */
+  .registre{padding:0 26px 10px}
+  .ligne-obj{padding:14px 8px}
+  .ligne-obj .vignette{width:60px;height:60px;border-radius:12px}
+
+  @media(max-width:900px){
+    .toile{padding:24px 16px 72px}
+    .titre-ligne h1{font-size:32px}
+    .kpi.fort b{font-size:34px}
+    .kpi b{font-size:24px}
+    .bascule span{display:none}
+    .outils{padding:18px 16px 14px}
+    .mosaique{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px;padding:4px 12px 16px}
+    .panneau-tete,.panneau-corps{padding-left:18px;padding-right:18px}
+    .panneau-tete h2,.outils h2{font-size:22px}
+  }
+  @media(max-width:620px){
+    .c-corps{padding:12px 12px 14px}
+    .c-nom{font-size:17px}
+    .c-cote b{font-size:16px}
+    .c-chiffres{flex-wrap:wrap}
+    .c-jauge{display:none}
+    .c-badges{top:8px;left:8px}
+    .c-tend{height:24px;font-size:11px;padding:0 8px}
+    .outils h2{flex:1 1 auto}
+  }
 </style>
 </head>
 <body>
@@ -652,6 +775,10 @@
     <section id="vue-objets" class="panneau" aria-labelledby="t-objets">
       <div class="outils">
         <h2 id="t-objets">Les objets</h2>
+        <div class="bascule" role="group" aria-label="Affichage des objets">
+          <button type="button" data-aff="mosaique" aria-pressed="true" title="Mosaïque"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="2" width="5" height="7" rx="1.2"/><rect x="9" y="2" width="5" height="4" rx="1.2"/><rect x="2" y="11" width="5" height="3" rx="1.2"/><rect x="9" y="8" width="5" height="6" rx="1.2"/></svg><span>Mosaïque</span></button>
+          <button type="button" data-aff="liste" aria-pressed="false" title="Liste"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M5.5 4h8M5.5 8h8M5.5 12h8"/><rect x="2" y="3" width="1.5" height="2" rx=".5"/><rect x="2" y="7" width="1.5" height="2" rx=".5"/><rect x="2" y="11" width="1.5" height="2" rx=".5"/></svg><span>Liste</span></button>
+        </div>
         <input type="search" id="filtre" placeholder="Chercher un objet ou une marque" aria-label="filtrer">
         <select id="tri" aria-label="trier">
           <option value="recent">Les plus récents</option>
@@ -1504,6 +1631,14 @@ function rendreVue() {
 function allerA(v) { vue = v; menu(false); rendreVue(); window.scrollTo({ top: 0 }); }
 $$('.onglets button').forEach(b => b.onclick = () => allerA(b.dataset.vue));
 $('#filtre').oninput = () => rendreObjets();
+/* Deux façons de voir ses objets : la mosaïque, où les photos mènent, et la liste, où les chiffres
+   s'alignent. Le choix est gardé sur cet appareil. */
+let affichage = (() => { try { return localStorage.getItem('lc_affichage') || 'mosaique'; } catch { return 'mosaique'; } })();
+$$('.bascule button').forEach(b => b.onclick = () => {
+  affichage = b.dataset.aff;
+  try { localStorage.setItem('lc_affichage', affichage); } catch {}
+  rendreObjets();
+});
 $('#tri').onchange = () => rendreObjets();
 
 function rendreObjets() {
@@ -1537,6 +1672,14 @@ function rendreObjets() {
   }
   $('#pied-objets').hidden = false;
   const achat = mode === 'achat';
+  $$('.bascule button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.aff === affichage)));
+  if (affichage === 'mosaique') {
+    $('#liste-objets').innerHTML = liste.length ? `<div class="mosaique">${liste.map(carteObjet).join('')}</div>`
+      : `<p class="vide-bloc" style="margin:0 20px 20px">Aucun objet ne correspond à « ${esc(f)} ».</p>`;
+    caler();
+    chargerPhotos(liste);
+    return;
+  }
   $('#liste-objets').innerHTML = liste.length ? `<div class="registre">
       <div class="entete"><span></span><span>Objet</span><span class="c-regle">Face au marché</span><span class="d">Cote</span>
         <span class="d c-prix">${achat ? 'Prix demandé' : 'Ton prix'}</span><span class="d c-ecart">Écart</span></div>
@@ -1569,6 +1712,45 @@ function ligneObjet(o) {
     <span class="chiffre c-ecart">${ecartTxt ? `<b class="${ecartTxt.cl}">${ecartTxt.t}</b><small>${esc(ecartTxt.l)}</small>` : '<span class="tiret">-</span>'}</span>
   </div>`;
 }
+
+/* Une carte de la mosaïque : la photo à sa vraie proportion, le nom, la cote en grand, l'écart
+   avec ton prix en pastille, la tendance sur la photo, la jauge du marché en bas. */
+function carteObjet(o) {
+  const c = coteDe(o.id), s = o.donnees.situation || {}, e = ecartDe(o), est = dernierReleve(o.id), dn = o.donnees;
+  const achat = modeDe(o) === 'achat', photo = photos.get(o.id);
+  const tend = { hausse: ['en hausse', 'hausse'], baisse: ['en baisse', 'baisse'], stable: ['stable', 'stable'] }[c.tendance?.sens];
+  const k = e ? (achat ? (s.prix - c.mediane) / c.mediane : e.ratio) : null;
+  const bon = k === null ? null : achat ? k <= 0 : k >= 0;
+  const lotsActifs = lotsDe(o.id).filter(l => ['a_venir', 'en_cours'].includes(l.statut)).length;
+  return `<article class="carte-obj" data-fiche="${esc(o.id)}" tabindex="0" role="button" aria-label="${esc(nomDe(o))}">
+    <div class="c-photo${photo ? '' : ' vide'}">${photo ? `<img src="${esc(photo)}" alt="">` : `<span>${esc((nomDe(o)[0] || 'C').toUpperCase())}</span>`}</div>
+    <div class="c-badges">${tend ? `<span class="c-tend ${tend[1]}">${tend[0]}</span>` : c.cotable ? '' : '<span class="c-tend gris">non cotable</span>'}
+      ${lotsActifs ? `<span class="c-tend enchere">${lotsActifs} enchère${lotsActifs > 1 ? 's' : ''}</span>` : ''}</div>
+    <div class="c-corps">
+      <span class="c-quoi">${esc(dn.marque || dn.univers || 'objet')}</span>
+      <h3 class="c-nom">${esc(nomDe(o))}</h3>
+      <div class="c-chiffres">
+        <span class="c-cote">${c.cotable ? `<b>${prix(c.mediane, c.devise)}</b><small>cote, ${c.n} ventes</small>`
+          : est ? `<b>${prix(est.mediane, est.devise)}</b><small>estimation de l'atelier</small>` : `<b class="gris">-</b><small>pas encore de prix</small>`}</span>
+        ${k !== null ? `<span class="c-ecart ${bon ? 'hausse' : 'baisse'}" title="${achat ? 'prix demandé face à la cote' : 'cote face à ton prix'}">${pct(k)}</span>` : ''}
+      </div>
+      ${s.prix ? `<p class="c-pied">${achat ? 'Demandé' : 'Payé'} ${prix(s.prix, s.devise)}${s.date && !achat ? `, ${esc(new Date(s.date + 'T12:00:00').toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }))}` : ''}</p>` : ''}
+      <div class="c-jauge">${jauge(o)}</div>
+    </div>
+  </article>`;
+}
+/* Mosaïque à la Pinterest, mais dans l'ordre du tri : une grille à rangées fines où chaque carte
+   prend la hauteur de sa photo. On recalcule sa portée quand sa taille change (photo chargée,
+   fenêtre redimensionnée). */
+const RANG = 4, GOUTTIERE = 20;
+const portee = new ResizeObserver(es => es.forEach(x => {
+  const h = x.target.getBoundingClientRect().height;
+  x.target.style.gridRowEnd = `span ${Math.ceil((h + GOUTTIERE) / RANG)}`;
+}));
+function caler() { $$('.carte-obj').forEach(c => portee.observe(c)); }
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('carte-obj')) { e.preventDefault(); e.target.click(); }
+});
 
 /* La jauge, celle de l'atelier : des zones colorées de « anormalement bas » à « trop cher », les
    prix observés en points, ton prix en repère. Elle s'appuie sur la cote quand il y en a une (les
@@ -1646,6 +1828,9 @@ async function chargerPhotos(liste) {
         photos.set(o.id, r.data);
         const img = document.querySelector(`.ligne-obj[data-fiche="${CSS.escape(o.id)}"] .vignette`);
         if (img) img.querySelector('.vide')?.replaceWith(Object.assign(document.createElement('img'), { src: r.data, alt: '' }));
+        const cp = document.querySelector(`.carte-obj[data-fiche="${CSS.escape(o.id)}"] .c-photo`);
+        if (cp && r.data) { const im = Object.assign(document.createElement('img'), { src: r.data, alt: '' });
+          im.onload = () => { cp.classList.remove('vide'); cp.replaceChildren(im); }; }
       } catch { photos.set(o.id, null); }
     }
   };

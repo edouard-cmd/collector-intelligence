@@ -316,6 +316,286 @@
   @media(max-width:400px){
     .bandeau .marque-img img{height:26px;width:auto}
   }
+
+  /* =====================================================================================
+     Refonte de novembre 2026 (retours de Florine). Même charte, déclinée plus franchement :
+     titres en DM Serif nettement plus grands, blocs en cartes séparées par l'air et une ombre
+     douce, le rose de la charte réservé aux actions principales, le bleu aux ventes conclues,
+     le jaune aux points d'attention. Les règles ci-dessous priment sur celles du dessus.
+     ===================================================================================== */
+  :root{
+    --fond:#f3f4f9; --bord:#e4e6ef; --r-carte:18px; --r-ctrl:12px; --r-puce:999px;
+    --cta:#d62c7c; --cta-fonce:#b51f66; --ombre:0 1px 2px rgba(19,31,106,.04),0 10px 30px -12px rgba(19,31,106,.14);
+    --ombre-haute:0 2px 6px rgba(19,31,106,.06),0 24px 48px -16px rgba(19,31,106,.26);
+  }
+  body{font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+  /* bandeau : blanc, collé en haut, la marque à gauche, le solde et l'espace à droite */
+  .bandeau{position:sticky;top:0;z-index:40;height:68px;padding:0 32px;background:rgba(255,255,255,.92);
+    backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--bord)}
+  .bandeau .marque-img img{height:36px!important}
+  .bandeau .outil{font-size:13px;font-weight:600;color:var(--gris);text-transform:uppercase;letter-spacing:.08em}
+  #cout a{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:999px;background:var(--marine-pale);
+    text-decoration:none;font-size:13px;color:var(--marine)}
+  #cout a::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--jaune);box-shadow:0 0 0 3px #fff3c4}
+  .lien-espace{height:40px;padding:0 16px;border-radius:999px;font-size:14px;border-color:var(--marine);color:var(--marine)}
+
+  .toile{max-width:1240px;padding:48px 32px 96px}
+  .titre-ligne{margin:0 0 40px}
+  .titre-ligne h1{font-size:clamp(34px,4.2vw,52px);line-height:1.04;letter-spacing:-.01em}
+  .titre-ligne p{font-size:17px;line-height:1.6;margin-top:14px;max-width:62ch}
+  .wrap{grid-template-columns:minmax(0,1fr) 300px;gap:32px}
+
+  /* les blocs : des cartes franches, séparées par l'air, le titre comme un chapitre */
+  fieldset{border:1px solid var(--bord);border-radius:var(--r-carte);box-shadow:var(--ombre);padding:32px 36px 36px;margin:0 0 28px}
+  legend{display:flex;align-items:center;gap:14px;font-family:var(--titre);font-weight:400;font-size:30px;line-height:1.1;
+    letter-spacing:-.005em;margin:0 0 14px}
+  legend .pic{flex:0 0 44px;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--marine-pale);color:var(--marine)}
+  legend .pic svg{width:22px;height:22px}
+  legend .pic.p-bleu{background:var(--bleu-pale);color:var(--bleu-texte)}
+  legend .pic.p-rose{background:var(--rose-pale);color:var(--rose-texte)}
+  legend .pic.p-jaune{background:var(--jaune-pale);color:var(--or-texte)}
+  fieldset>.aide:first-of-type{font-size:15px;line-height:1.6;max-width:68ch;margin:0 0 20px}
+  #synthese{border:0;background:linear-gradient(180deg,#fff 0,#fff 100%);box-shadow:var(--ombre-haute);outline:2px solid var(--marine);outline-offset:-2px}
+  label{font-size:14px;font-weight:600;margin:24px 0 8px}
+  .aide{font-size:14px}
+  input[type=number],input[type=date],input[type=text],input[type=password],textarea,select{height:48px;border-radius:var(--r-ctrl);font-size:15px;padding:0 14px;border-color:#d5d9e6}
+  textarea{padding:12px 14px;min-height:104px}
+  .hist-h{font-family:var(--titre);font-weight:400;font-size:22px;line-height:1.2;margin:36px 0 14px}
+  .hist-h::first-letter{text-transform:uppercase}
+
+  /* les actions : le rose pour l'action principale, des verbes clairs, des cibles généreuses */
+  button{min-height:44px;padding:0 20px;border-radius:var(--r-ctrl);font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:10px}
+  button.cta,#identifier,#vers-espace,#fin-ranger,#avis-go:not(.second){background:var(--cta);border-color:var(--cta);color:#fff;
+    min-height:54px;padding:0 26px;font-size:16px;font-weight:700;border-radius:14px;box-shadow:0 8px 20px -8px rgba(214,44,124,.55)}
+  #identifier::after,#vers-espace::after,#fin-ranger::after{content:"";width:18px;height:18px;flex:0 0 18px;background:currentColor;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 10h12M11 5l5 5-5 5'/%3E%3C/svg%3E") center/contain no-repeat;
+            mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 10h12M11 5l5 5-5 5'/%3E%3C/svg%3E") center/contain no-repeat}
+  #identifier:disabled,#vers-espace:disabled{background:var(--actif);border-color:var(--actif);color:var(--gris);box-shadow:none}
+  button.second{border-color:var(--marine);border-width:1.5px}
+  .lancer{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:28px;padding-top:24px;border-top:1px solid var(--filet)}
+  .lancer .etat{margin:0;font-size:14px}
+  .credit-pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:999px;background:var(--jaune-pale);
+    color:var(--or-texte);font-size:13px;font-weight:700}
+  .actions-fin{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:28px;padding-top:24px;border-top:1px solid var(--filet)}
+  @media (hover:hover) and (pointer:fine){
+    button.cta:hover:not(:disabled),#identifier:hover:not(:disabled),#vers-espace:hover:not(:disabled),#fin-ranger:hover:not(:disabled),#avis-go:not(.second):hover:not(:disabled){background:var(--cta-fonce);border-color:var(--cta-fonce)}
+    .lien-espace:hover{background:var(--marine);color:#fff;border-color:var(--marine)}
+  }
+
+  /* dépôt des photos */
+  #zone{border:2px dashed #c9cee0;border-radius:16px;background:#fbfbfe;padding:40px 24px}
+  #zone svg{width:28px;height:28px;color:var(--marine);margin:0;padding:0}
+  #zone .zone-pic{width:64px;height:64px;border-radius:18px;background:var(--bleu-pale);display:grid;place-items:center;margin:0 auto 14px}
+  #zonetxt{font-size:18px;font-weight:700}
+  .vig{width:104px;height:104px}
+  .vig img{border-radius:12px}
+
+  /* ta situation : deux grandes cartes à choisir */
+  .choix{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .choix label{min-height:60px;border-radius:14px;border:1.5px solid #d5d9e6;padding:0 18px;font-weight:600;font-size:15px;margin:0}
+  .choix label:has(input:checked){background:var(--bleu-pale);border-color:var(--marine);box-shadow:inset 0 0 0 1px var(--marine)}
+  .situation{margin-top:32px;padding:24px;border-radius:16px;background:var(--releve);border:1px solid var(--filet)}
+  .situation .hist-h{margin:0 0 4px}
+  .situation>.aide{margin:0 0 16px}
+  @media(max-width:620px){.choix{grid-template-columns:1fr}}
+
+  /* le parcours : une frise d'étapes reliées, la progression en tête */
+  .chaine{top:92px;border-radius:var(--r-carte);box-shadow:var(--ombre);padding:24px 22px 18px}
+  .chaine-titre{font-family:var(--titre);font-weight:400;font-size:24px;margin:0 0 4px}
+  .ch-prog{margin:0 0 16px}
+  .ch-prog span{display:block;font-size:13px;color:var(--gris);margin-bottom:8px}
+  .ch-prog i{display:block;height:6px;border-radius:3px;background:var(--filet);overflow:hidden}
+  .ch-prog b{display:block;height:100%;width:0;border-radius:3px;background:linear-gradient(90deg,var(--bleu),var(--rose));transition:width 600ms var(--ease-out)}
+  .b{position:relative;grid-template-columns:28px 1fr;gap:12px;min-height:38px;padding:5px 8px}
+  .b::before{content:"";position:absolute;left:21px;top:-6px;height:12px;width:2px;background:var(--filet)}
+  .b:first-of-type::before{display:none}
+  .b.on::before{background:var(--marine)}
+  .b b{width:28px;height:28px;font-size:12px;font-weight:700}
+  .b span{font-size:14px}
+  .chaine .etat{font-size:13px;line-height:1.55}
+
+  /* résultats : à plat dans leur carte, séparés par des filets, jamais une carte dans la carte */
+  .res{border:0;border-top:1px solid var(--filet);border-radius:0;padding:28px 0 0;margin-top:28px;background:none}
+  .res h3{font-family:var(--titre);font-weight:400;font-size:24px;margin:0 0 16px}
+  .info{border-radius:14px;padding:16px 18px;font-size:15px;border-color:var(--filet);margin-top:16px}
+  .warn{border-radius:14px;padding:14px 18px;font-size:15px}
+  .tag{border-radius:999px;padding:3px 10px;font-size:12px}
+  .puce{border-radius:999px}
+
+  /* fiche d'identité de l'objet */
+  .ident{display:grid;grid-template-columns:168px 1fr;gap:28px;align-items:start}
+  .ident-photo{width:168px;height:168px;border-radius:16px;object-fit:cover;background:var(--releve);box-shadow:var(--ombre)}
+  .ident-nom{font-family:var(--titre);font-size:34px;line-height:1.08;margin:0 0 8px}
+  .ident-desc{margin:0 0 16px;font-size:15px;color:var(--gris);max-width:60ch}
+  .ident-champs{display:flex;flex-wrap:wrap;gap:8px 20px;margin:0 0 16px;font-size:14px}
+  .ident-champs>span{display:inline-flex;gap:6px;align-items:center}
+  .ident-champs em{font-style:normal;color:var(--gris)}
+  .ident-puces{display:flex;flex-wrap:wrap;gap:8px}
+  .ident-puces span{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;background:var(--marine-pale);font-size:13px;font-weight:600}
+  .certitudes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}
+  .certi{padding:16px 18px;border-radius:14px;background:var(--releve);border:1px solid var(--filet)}
+  .certi span{display:block;font-size:13px;color:var(--gris)}
+  .certi b{display:block;font-family:var(--titre);font-weight:400;font-size:32px;line-height:1.1;margin:2px 0 10px;font-variant-numeric:tabular-nums}
+  .certi i{display:block;height:8px;border-radius:4px;background:#fff;overflow:hidden;box-shadow:inset 0 0 0 1px var(--filet)}
+  .certi i u{display:block;height:100%;border-radius:4px;background:var(--bleu);text-decoration:none;transform-origin:left;animation:remplir 900ms var(--ease-out) both}
+  .certi.moyen i u{background:var(--jaune)}
+  .certi.bas i u{background:var(--rose)}
+  @keyframes remplir{from{transform:scaleX(0)}}
+  @media(max-width:620px){.ident{grid-template-columns:1fr}.ident-photo{width:100%;height:220px}.certitudes{grid-template-columns:1fr}.ident-nom{font-size:28px}}
+
+  /* ce qui fait varier le prix : des cases à cocher en cartes */
+  .facteurs{margin:28px 0 0;padding:24px;border-radius:16px;background:var(--releve);border:1px solid var(--filet)}
+  .facteurs .hist-h{margin:0 0 4px}
+  .facteurs-grille{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+  .facteur{display:flex!important;gap:12px;align-items:flex-start;margin:0!important;padding:14px 16px;border-radius:12px;background:#fff;
+    border:1.5px solid var(--bord);cursor:pointer;font-weight:500!important;font-size:14px!important;line-height:1.45}
+  .facteur:has(input:checked){border-color:var(--marine);background:#fff;box-shadow:inset 0 0 0 1px var(--marine)}
+  .facteur input{margin-top:2px!important;width:18px!important;height:18px!important;flex:0 0 18px}
+  .facteur .effet{margin-left:auto;flex:0 0 auto;font-weight:700;font-size:13px;padding:2px 10px;border-radius:999px}
+  .effet.plus{background:var(--bleu-pale);color:var(--bleu-texte)}
+  .effet.moins{background:var(--rose-pale);color:var(--rose-texte)}
+  #fvres{margin:16px 0 0!important;font-size:15px!important}
+  @media(max-width:620px){.facteurs-grille{grid-template-columns:1fr}}
+
+  /* les coulisses : ce qui sert à vérifier, replié par défaut */
+  details.coulisses{margin-top:24px;border-radius:14px;border:1px dashed #cfd3e2;background:#fbfbfe}
+  details.coulisses>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:14px 18px;font-size:14px;font-weight:600;color:var(--gris)}
+  details.coulisses>summary::-webkit-details-marker{display:none}
+  details.coulisses>summary::before{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform 200ms var(--ease-out)}
+  details.coulisses[open]>summary::before{transform:rotate(45deg)}
+  details.coulisses>div{padding:0 18px 18px;font-size:14px}
+  details.coulisses p{margin:8px 0 0}
+
+  /* l'attente : une progression lisible, un temps annoncé, des étapes qui se cochent */
+  .attente-v2{margin-top:24px;border-radius:18px;padding:28px;background:linear-gradient(135deg,#131f6a 0%,#1f2f8f 60%,#2a3aa0 100%);color:#fff;
+    display:grid;grid-template-columns:120px 1fr;gap:28px;align-items:center;box-shadow:var(--ombre-haute);overflow:hidden;position:relative}
+  .attente-v2 .scene{width:120px;height:120px;position:relative}
+  .attente-v2 .scene .carte{position:absolute;width:56px;height:72px;border-radius:10px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28)}
+  .attente-v2 .scene .carte::after{content:"";position:absolute;left:8px;right:8px;bottom:10px;height:6px;border-radius:3px;background:rgba(255,255,255,.35)}
+  .attente-v2 .scene .c1{left:4px;top:30px;transform:rotate(-10deg);animation:clignote 2.4s ease-in-out infinite}
+  .attente-v2 .scene .c2{left:32px;top:18px;animation:clignote 2.4s ease-in-out .8s infinite}
+  .attente-v2 .scene .c3{left:60px;top:30px;transform:rotate(10deg);animation:clignote 2.4s ease-in-out 1.6s infinite}
+  .attente-v2 .scene .loupe{position:absolute;width:46px;height:46px;border-radius:50%;border:5px solid var(--jaune);left:0;top:40px;
+    box-shadow:0 6px 16px rgba(0,0,0,.25);animation:balaye 2.4s cubic-bezier(.45,0,.25,1) infinite alternate}
+  .attente-v2 .scene .loupe::after{content:"";position:absolute;width:20px;height:6px;border-radius:3px;background:var(--jaune);right:-17px;bottom:-6px;transform:rotate(45deg)}
+  @keyframes balaye{0%{transform:translate(0,0)}50%{transform:translate(34px,-14px)}100%{transform:translate(70px,2px)}}
+  @keyframes clignote{0%,100%{background:rgba(255,255,255,.12)}50%{background:rgba(5,155,225,.55);border-color:rgba(255,255,255,.6)}}
+  .attente-v2 .haut{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .attente-v2 .quoi{font-family:var(--titre);font-size:26px;line-height:1.15}
+  .attente-v2 .reste{font-size:14px;font-weight:600;color:#cfe9fb;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .attente-v2 .barre{height:10px;border-radius:5px;background:rgba(255,255,255,.16);margin:16px 0 18px;overflow:hidden}
+  .attente-v2 .barre b{display:block;height:100%;width:2%;border-radius:5px;background:linear-gradient(90deg,var(--bleu),var(--rose));transition:width 900ms linear;position:relative;overflow:hidden}
+  .attente-v2 ol{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .attente-v2 li{display:flex;align-items:center;gap:10px;font-size:14px;color:rgba(255,255,255,.55);transition:color 300ms ease}
+  .attente-v2 li::before{content:"";flex:0 0 18px;width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.3);box-sizing:border-box}
+  .attente-v2 li.fait{color:rgba(255,255,255,.85)}
+  .attente-v2 li.fait::before{border:0;background:var(--bleu) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 8.5 2.5 2.5L12 5.5'/%3E%3C/svg%3E") center/12px no-repeat}
+  .attente-v2 li.encours{color:#fff;font-weight:600}
+  .attente-v2 li.encours::before{border-color:var(--jaune);border-top-color:transparent;animation:tourne .8s linear infinite}
+  .attente-v2 .astuce{margin:18px 0 0;padding-top:14px;border-top:1px solid rgba(255,255,255,.16);font-size:14px;color:#dfe3f7;min-height:44px}
+  .attente-v2 .astuce b{color:var(--jaune);font-weight:700}
+  .attente-v2.compacte{grid-template-columns:1fr;padding:22px 24px}
+  .attente-v2.compacte .scene{display:none}
+  @media(max-width:620px){.attente-v2{grid-template-columns:1fr;padding:22px}.attente-v2 .scene{display:none}.attente-v2 .quoi{font-size:22px}}
+  @media(prefers-reduced-motion:reduce){.attente-v2 .loupe,.attente-v2 .carte,.certi i u{animation:none}}
+
+  /* le marché : un bandeau d'état, la répartition en barre, les annonces en lignes aérées */
+  .etat-marche{display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:14px;font-size:15px}
+  .etat-marche b{font-weight:700}
+  .repartition{margin:20px 0 4px}
+  .repartition .pile{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--filet);gap:2px}
+  .repartition .pile i{display:block;height:100%}
+  .repartition .cles{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:10px;font-size:13px;color:var(--gris)}
+  .repartition .cles span{display:inline-flex;align-items:center;gap:8px}
+  .repartition .cles i{width:10px;height:10px;border-radius:3px;display:inline-block}
+  .repartition .cles b{color:var(--encre);font-variant-numeric:tabular-nums}
+  .pf-titre{display:flex;gap:10px;align-items:center;margin:28px 0 6px;font-size:15px;font-weight:700}
+  .pf-titre span{color:var(--gris);font-weight:500;font-size:13px}
+  .art{grid-template-columns:120px 1fr;padding:14px 0;font-size:14px}
+  .art .px a{font-size:17px;font-weight:700}
+  .art .meta{margin-top:4px}
+  .art.exclue{opacity:.62}
+  .art.cache,.pf-titre.cache{display:none}
+  .voir-tout{margin-top:16px}
+
+  /* histoire : une frise aux années en évidence */
+  .hist-titre{font-size:32px;line-height:1.1;margin:0 0 8px}
+  .hist-accroche{font-size:17px;line-height:1.65;max-width:64ch}
+  .frise{border-left:2px solid var(--bleu-pale);margin:18px 0 8px 6px;padding-left:28px}
+  .jalon{margin-bottom:20px;font-size:15px}
+  .jalon::before{left:-36px;top:2px;width:14px;height:14px;background:#fff;border:3px solid var(--bleu)}
+  .jalon .date{font-family:var(--titre);font-weight:400;font-size:22px;line-height:1.1;margin-bottom:2px;color:var(--marine)}
+
+  /* synthèse : la valeur en grand, la jauge, le verdict */
+  .valeur-tete{display:grid;grid-template-columns:1.3fr 1fr;gap:0;border-radius:18px;overflow:hidden;margin:24px 0 8px;box-shadow:var(--ombre)}
+  .valeur-tete .v-gauche{background:var(--marine);color:#fff;padding:26px 28px}
+  .valeur-tete .v-gauche span{display:block;font-size:14px;color:#c7cdf0}
+  .valeur-tete .v-gauche b{display:block;font-family:var(--titre);font-weight:400;font-size:clamp(40px,5vw,56px);line-height:1.02;margin:6px 0 8px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .valeur-tete .v-gauche small{font-size:14px;color:#dfe3f7}
+  .valeur-tete .v-droite{background:var(--bleu-pale);padding:26px 28px;display:flex;flex-direction:column;justify-content:center}
+  .valeur-tete .v-droite span{font-size:14px;color:var(--gris)}
+  .valeur-tete .v-droite b{font-family:var(--titre);font-weight:400;font-size:30px;line-height:1.1;margin:4px 0 6px}
+  .valeur-tete .v-droite small{font-size:13.5px;color:var(--gris);line-height:1.5}
+  .valeur-tete.jaune .v-droite{background:var(--jaune-pale)}
+  .valeur-tete.rose .v-droite{background:var(--rose-pale)}
+  @media(max-width:700px){.valeur-tete{grid-template-columns:1fr}}
+  .reco{border-radius:16px;padding:22px 24px;border:0}
+  .reco b{font-family:var(--titre);font-weight:400;font-size:32px}
+  .synth{border-radius:16px;margin:20px 0}
+  .synth div{padding:18px 20px}
+  .synth b{font-family:var(--titre);font-weight:400;font-size:30px;line-height:1.15}
+  .synth span{font-size:13px}
+  .bp-zones{height:26px;border-radius:13px;overflow:visible}
+  .bp-zones i:first-child{border-radius:13px 0 0 13px}
+  .bp-zones i:nth-last-child(1 of i){border-radius:0 13px 13px 0}
+  .bp-zones u{width:10px;height:10px;margin:-5px 0 0 -5px;outline:2px solid #fff}
+  .bp-zones s{top:-8px;bottom:-8px;width:3px;border-radius:2px}
+  .bp-zones s span{padding:5px 10px;border-radius:8px;font-size:12.5px;box-shadow:0 6px 14px -6px rgba(19,31,106,.5)}
+  .bp-legende{gap:8px 18px;font-size:13px}
+  .avis{border-radius:18px;padding:26px 28px;border:0;background:linear-gradient(180deg,#fdf1f7 0,#fff 140px);box-shadow:inset 0 0 0 1px #f3cfe0}
+  .avis>b{font-family:var(--titre);font-weight:400;font-size:34px}
+  .avis-phrase{font-size:17px;line-height:1.5}
+  .synth-objet{grid-template-columns:180px 1fr;gap:28px}
+  .synth-photo{width:180px;height:180px;border-radius:16px}
+
+  #synthese,fieldset,#sortie-marche{scroll-margin-top:92px}
+  @media(max-width:620px){.vm{flex-direction:column;align-items:stretch}.vm button{width:100%}}
+
+  /* fin d'analyse : la barre flottante prend la charte */
+  .fin-barre{border-radius:18px;padding:14px 14px 14px 22px;border:0;background:var(--marine);color:#fff;box-shadow:0 24px 48px -12px rgba(19,31,106,.5)}
+  .fin-texte b{font-family:var(--titre);font-weight:400;font-size:20px}
+  .fin-texte span{color:#c7cdf0}
+  .fin-barre button.second{background:transparent;color:#fff;border-color:rgba(255,255,255,.5)}
+  .fin-masquer{color:#c7cdf0!important}
+  #fin-ranger{min-height:48px;box-shadow:none}
+
+  /* téléphone et tablette : le parcours devient une barre de progression, plus de pastilles qui débordent */
+  @media(max-width:900px){
+    .bandeau{height:60px;padding:0 16px}
+    .toile{padding:28px 16px 80px}
+    .wrap{grid-template-columns:minmax(0,1fr);gap:16px}
+    .titre-ligne{margin-bottom:24px}
+    .chaine{display:block;position:sticky;top:60px;z-index:20;padding:12px 16px;border-radius:14px;box-shadow:var(--ombre)}
+    .chaine .b,.chaine .etat,.chaine-titre{display:none}
+    .ch-prog{margin:0}
+    .ch-prog span{margin-bottom:6px;font-weight:600;color:var(--encre)}
+    fieldset{padding:24px 20px 26px;border-radius:16px}
+    legend{font-size:25px;gap:12px}
+    legend .pic{flex-basis:38px;width:38px;height:38px;border-radius:10px}
+    .lancer>button,.actions-fin>button{width:100%}
+  }
+  @media(max-width:620px){
+    .bandeau .marque-img img{height:30px!important}
+    .bandeau .droite{gap:8px}
+    .lien-espace{height:36px;padding:0 12px;font-size:13px}
+    #cout a{height:32px;padding:0 10px;font-size:12.5px}
+    .lancer{gap:12px}
+    .art{grid-template-columns:1fr}
+    .valeur-tete .v-gauche,.valeur-tete .v-droite{padding:22px}
+    .synth-objet{grid-template-columns:1fr}
+    .synth-photo{width:100%;height:220px}
+  }
 </style>
 </head>
 <body>
@@ -340,12 +620,12 @@
 <div>
 
 <fieldset>
-  <legend>Objet photographié</legend>
+  <legend><span class="pic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.6l1.5-2.2h6.8L16.9 7h2.6A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5Z"/><circle cx="12" cy="12.8" r="3.6"/></svg></span>Ton objet</legend>
   <div id="zone">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.6l1.5-2.2h6.8L16.9 7h2.6A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5Z"/><circle cx="12" cy="12.8" r="3.6"/></svg>
-    <div id="zonetxt">Déposer une ou plusieurs photos, ou cliquer pour choisir</div>
-    <p class="aide" style="margin:6px 0 0">Jusqu'à 8 vues du même objet : ensemble, dessous,
-       marquages, étiquette, défauts. Plus il y a d'angles, plus l'identification est sûre.</p>
+    <div class="zone-pic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.6l1.5-2.2h6.8L16.9 7h2.6A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5Z"/><circle cx="12" cy="12.8" r="3.6"/></svg></div>
+    <div id="zonetxt">Ajoute tes photos</div>
+    <p class="aide" style="margin:6px auto 0;max-width:46ch">Glisse-les ici ou clique pour choisir. Jusqu'à 8 vues : ensemble,
+       dessous, marquages, étiquette, défauts. Plus il y a d'angles, plus l'identification est sûre.</p>
     <div id="galerie"></div>
   </div>
   <input type="file" id="fichier" accept="image/*" multiple hidden>
@@ -359,7 +639,9 @@
   <p class="aide">Facultatif : dimensions, matière, poids, odeur du cuir.</p>
   <input type="text" id="complement" placeholder="Environ 25 cm de large, cuir très patiné">
 
-  <p class="hist-h" style="margin-top:20px">Ta situation</p>
+  <div class="situation">
+  <p class="hist-h">Ta situation</p>
+  <p class="aide">Elle sert au verdict final : acheter, garder ou vendre.</p>
   <div class="choix">
     <label><input type="radio" name="mode" value="achat"> Je me renseigne avant d'acheter</label>
     <label><input type="radio" name="mode" value="collection"> Il est dans ma collection</label>
@@ -387,63 +669,62 @@
     <p class="aide" style="margin-top:8px">Ce prix reste de côté pendant la recherche, pour ne pas
        l'influencer. Il ne sert qu'à la fin, pour te dire où il se situe face au marché.</p>
   </div>
+  </div>
 
-  <div style="margin-top:16px">
-    <button id="identifier" disabled>Identifier l'objet</button>
-    <span class="etat" id="cout-identifier"><span data-credits="identification">1 crédit</span></span>
+  <div class="lancer">
+    <button id="identifier" disabled>Analyser mon objet</button>
+    <span class="credit-pill" id="cout-identifier"><span data-credits="identification">1 crédit</span></span>
     <span class="etat" id="etat1"></span>
   </div>
-  <label style="display:flex;gap:9px;align-items:center;font-weight:400;margin:10px 0 0">
+  <label style="display:flex;gap:10px;align-items:center;font-weight:500;margin:14px 0 0;font-size:14px">
     <input type="checkbox" id="enchainer" checked style="width:auto">
-    <span>Chercher aussitôt les prix du marché : <span data-credits="marche">1 crédit</span> de plus,
+    <span>Enchaîner avec les prix du marché : <span data-credits="marche">1 crédit</span> de plus,
     <span data-credits="marche_approfondi">2 crédits</span> pour un objet de valeur</span></label>
   <div id="sortie1"></div>
 </fieldset>
 
 <fieldset>
-  <legend>Histoire du modèle</legend>
-  <p class="aide">D'où vient ce modèle, pourquoi il est recherché, ce qui a fait bouger sa cote.
-     Chaque date renvoie à la page qui l'établit. Elle s'écrit pendant l'identification ; si elle
-     est trop courte, le bouton la réécrit (<span data-credits="histoire">1 crédit</span>).</p>
-  <button id="raconter" class="second" disabled>Raconter l'histoire</button>
+  <legend><span class="pic p-jaune"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5Z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5Z"/></svg></span>Son histoire</legend>
+  <p class="aide">D'où vient ce modèle, pourquoi il est recherché, ce qui a fait bouger sa cote. Elle
+     s'écrit pendant l'analyse ; si elle est trop courte, le bouton la réécrit (<span data-credits="histoire">1 crédit</span>).</p>
+  <div class="lancer" style="margin-top:0;padding-top:0;border:0"><button id="raconter" class="second" disabled>Raconter son histoire</button></div>
   <div id="sortie-hist"></div>
 </fieldset>
 
 <fieldset>
-  <legend>Marché : annonces et ventes réelles</legend>
-  <p class="aide">Les annonces de cet objet sur les sites où il se vend : chaque ligne est une vraie
-     annonce, avec son lien et le prix qu'elle affiche. Tout le reste est calculé sur ces prix-là.</p>
+  <legend><span class="pic p-bleu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg></span>Les prix du marché</legend>
+  <p class="aide">Les vraies annonces et ventes de cet objet, chacune avec son lien. Tout ce qui suit est
+     calculé sur ces prix-là, jamais sur une estimation.</p>
   <label style="display:flex;gap:9px;align-items:center;font-weight:400;margin:10px 0 0">
     <input type="checkbox" id="approfondi" checked style="width:auto"> <span>Recherche approfondie :
     plus de sites et un meilleur tri, <span data-credits="marche_approfondi">2 crédits</span> au lieu de <span data-credits="marche">1 crédit</span></span></label>
   <p class="aide" id="intensite" style="margin:6px 0 0"></p>
-  <div style="margin-top:12px">
-    <button id="chercher" class="second" disabled>Chercher sur le marché</button>
+  <div class="lancer" style="margin-top:16px;padding-top:0;border:0">
+    <button id="chercher" class="second" disabled>Trouver les prix du marché</button>
   </div>
   <div id="sortie-marche"></div>
 </fieldset>
 
 <fieldset id="synthese">
-  <legend>Synthèse</legend>
-  <p class="aide">L'essentiel au même endroit : l'objet, les prix relevés, ton prix face au marché et
-     l'avis de l'expert. Chaque chiffre vient des annonces trouvées ; l'avis les commente sans en ajouter.</p>
+  <legend><span class="pic p-rose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9Z"/></svg></span>Ce qu'il vaut</legend>
+  <p class="aide">L'essentiel au même endroit : sa valeur, ton prix face au marché et l'avis de l'expert.</p>
   <div id="synthese-objet"></div>
-  <div id="synthese-prix"></div>
   <div id="sortie-verdict"><p class="aide">Indique ta situation et un prix en haut de page ;
      le verdict viendra après la recherche des prix.</p></div>
   <div id="synthese-avis"></div>
-  <div class="non-imprime" style="margin-top:16px">
-    <button id="vers-espace" disabled>Ranger dans mon espace</button>
-    <button id="imprimer" class="second">Imprimer ou enregistrer la synthèse en PDF</button>
+  <div id="synthese-prix"></div>
+  <div class="non-imprime actions-fin">
+    <button id="vers-espace" disabled>Ajouter à ma collection</button>
+    <button id="imprimer" class="second">Télécharger en PDF</button>
     <div id="sortie-espace"></div></div>
 </fieldset>
 
 
 <fieldset>
-  <legend>Archive</legend>
+  <legend><span class="pic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v4H3zM5 9v10h14V9M10 13h4"/></svg></span>Garder une trace</legend>
   <p class="aide">Enregistre l'analyse complète dans un fichier : identification, histoire,
      annonces trouvées, verdict et avis. À garder avec les photos de l'objet.</p>
-  <button id="export" class="second" disabled>Télécharger l'analyse</button>
+  <button id="export" class="second" disabled>Télécharger l'analyse complète</button>
   <div id="sortie3"></div>
 </fieldset>
 
@@ -452,6 +733,7 @@
 <!-- chaîne du schéma -->
 <div class="chaine">
   <p class="chaine-titre">Le parcours</p>
+  <div class="ch-prog" aria-live="polite"><span id="ch-txt">Étape 1 sur 11 : les photos</span><i><b id="ch-barre"></b></i></div>
   <div class="b" data-b="1"><b>1</b><span>Les photos</span></div>
   <div class="b ia" data-b="2"><b>2</b><span>Identification</span></div>
   <div class="b ia" data-b="3"><b>3</b><span>Version exacte ou modèle</span></div>
@@ -471,7 +753,7 @@
 <div class="fin-barre non-imprime" id="fin-analyse" role="status" hidden>
   <div class="fin-texte"><b id="fin-titre">Analyse terminée</b><span id="fin-detail"></span></div>
   <button class="second" id="fin-voir">Voir la synthèse</button>
-  <button id="fin-ranger">Ranger dans ma collection</button>
+  <button id="fin-ranger">Ajouter à ma collection</button>
   <button class="fin-masquer" id="fin-masquer" aria-label="masquer ce bandeau"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
 </div>
 </main>
@@ -481,10 +763,20 @@ let images = [], profil = {}, cout = 0, dernierBrut = null, suivi = null;
 const MAX_VUES = 8, COTE_MAX = 1568;
 
 const $ = s => document.querySelector(s);
-const allume = n => document.querySelectorAll('.b').forEach(b => {
+const allume = n => { document.querySelectorAll('.b').forEach(b => {
   if (+b.dataset.b <= n && !b.classList.contains('prevu')) b.classList.add('on');
-});
-const allumeUn = n => document.querySelector(`.b[data-b="${n}"]`)?.classList.add('on');
+}); majParcours(); };
+const allumeUn = n => { document.querySelector(`.b[data-b="${n}"]`)?.classList.add('on'); majParcours(); };
+/* La progression du parcours, lisible d'un coup d'œil : sur téléphone, elle remplace la frise. */
+function majParcours() {
+  const toutes = [...document.querySelectorAll('.b')], faites = toutes.filter(b => b.classList.contains('on'));
+  const n = faites.length, der = faites.slice(-1)[0], suiv = toutes.find(b => !b.classList.contains('on'));
+  const lib = b => (b?.querySelector('span')?.textContent || '').toLowerCase();
+  const t = document.getElementById('ch-txt'), barre = document.getElementById('ch-barre');
+  if (t) t.textContent = n >= toutes.length ? 'Analyse complète'
+    : n ? `${n} étape${n > 1 ? 's' : ''} sur ${toutes.length}, prochaine : ${lib(suiv)}` : `Étape 1 sur ${toutes.length} : ${lib(toutes[0])}`;
+  if (barre) barre.style.width = Math.max(3, n / toutes.length * 100) + '%';
+}
 
 /* ---------- dépôt de la photo ---------- */
 const zone = $('#zone'), fichier = $('#fichier');
@@ -541,7 +833,7 @@ function peindre() {
 
   $('#zonetxt').textContent = images.length
     ? `${images.length} vue${images.length > 1 ? 's' : ''}${images.length >= MAX_VUES ? ', maximum atteint' : ', en ajouter'}`
-    : 'déposer une ou plusieurs photos, ou cliquer pour choisir';
+    : 'Ajoute tes photos';
   $('#identifier').disabled = images.length === 0;
   if (images.length) allume(1);
 }
@@ -769,28 +1061,54 @@ function reparer(t) {
   throw new Error(`réponse tronquée et non recollable (${t.length} caractères reçus)`);
 }
 
-/* Un appel long sans retour visuel passe pour un plantage. On ne peut pas mesurer
-   l'avancement d'un appel unique, alors on montre ce qui se passe et le temps écoulé. */
-function attendre(cible, etapes) {
+/* Un appel long sans retour visuel passe pour un plantage. On ne peut pas mesurer l'avancement
+   d'un appel unique : on annonce donc une durée typique, on fait avancer la barre au fil du temps
+   et des signes reçus (recherches lancées, premiers mots de la réponse), on coche les étapes, et
+   une astuce occupe l'œil. Passé la durée annoncée, la barre ralentit sans jamais mentir sur la fin. */
+const ASTUCES = [
+  "<b>Le saviez-vous ?</b> Seules les ventes réellement conclues font la cote, jamais une estimation.",
+  "<b>Astuce :</b> plus tu ajoutes d'angles (dessous, marquages, étiquette), plus l'identification est sûre.",
+  "<b>Le saviez-vous ?</b> Chaque prix garde le lien de son annonce : tu peux toujours aller vérifier.",
+  "<b>Astuce :</b> coche ce que tu possèdes (boîte, facture, accessoires), le prix s'ajuste aussitôt.",
+  "<b>Le saviez-vous ?</b> Une fois l'objet dans ta collection, Le Collectionnaire guette ses nouvelles ventes pour toi.",
+  "<b>Le saviez-vous ?</b> Un prix trop beau est le premier signe d'une contrefaçon : le verdict te le signale.",
+];
+const eu = (v, D = 'EUR') => `${Math.round(+v).toLocaleString('fr-FR')}\u00a0${D === 'EUR' ? '€' : D}`;
+const duree = s => s < 60 ? `${s} s` : `${Math.floor(s / 60)} min${s % 60 ? ' ' + String(s % 60).padStart(2, '0') : ''}`;
+function attendre(cible, etapes, prevu = 60, titre) {
   const el = document.querySelector(cible);
-  el.innerHTML = `<div class="attente"><i class="rotor"></i>
-    <span id="att-txt">${etapes[0]}</span><em id="att-t">0 s</em></div>
-    <p class="etat" id="att-flux" style="margin:6px 0 0"></p>`;
-  suivi = ({ recherches, recu }) => {
-    const f = document.getElementById('att-flux');
-    if (f) f.textContent = `${recherches} recherche${recherches > 1 ? 's' : ''} web effectuée${
-      recherches > 1 ? 's' : ''}, ${recu.toLocaleString('fr-FR')} caractères de réponse reçus`;
-  };
+  const liste = etapes.filter(e => !/^encore/i.test(e));
+  const maj = s => s.charAt(0).toUpperCase() + s.slice(1);
+  let k = Math.floor(Math.random() * ASTUCES.length);
+  el.innerHTML = `<div class="attente-v2${prevu <= 25 ? ' compacte' : ''}" role="status" aria-live="polite">
+    <div class="scene" aria-hidden="true"><i class="carte c1"></i><i class="carte c2"></i><i class="carte c3"></i><i class="loupe"></i></div>
+    <div>
+      <div class="haut"><span class="quoi">${titre || maj(liste[0])}</span><span class="reste" id="att-t">environ ${duree(prevu)}</span></div>
+      <div class="barre"><b id="att-b"></b></div>
+      <ol id="att-l">${liste.map((e, i) => `<li${i ? '' : ' class="encours"'}>${maj(e)}</li>`).join('')}</ol>
+      <p class="astuce" id="att-a">${ASTUCES[k]}</p>
+    </div></div>`;
+  let recu = 0, recherches = 0;
+  suivi = (x) => { recu = x.recu; recherches = x.recherches; };
   const t0 = Date.now();
-  let i = 0;
-  const minuteur = setInterval(() => {
-    const s = Math.round((Date.now() - t0) / 1000);
-    const t = document.getElementById('att-t');
-    if (!t) return clearInterval(minuteur);
-    t.textContent = s + " s";
-    const suivant = Math.min(Math.floor(s / 12), etapes.length - 1);
-    if (suivant !== i) { i = suivant; document.getElementById('att-txt').textContent = etapes[i]; }
-  }, 1000);
+  const pas = () => {
+    const tt = document.getElementById('att-t');
+    if (!tt) return false;
+    const s = (Date.now() - t0) / 1000;
+    let p = s <= prevu ? s / prevu * 88 : 88 + 9 * (1 - Math.exp(-(s - prevu) / 40));
+    let i = Math.min(Math.floor(s / prevu * liste.length), liste.length - 1);
+    if (recherches) i = Math.max(i, Math.min(recherches, liste.length - 2));
+    if (recu) { p = Math.max(p, 90 + Math.min(8, recu / 400)); i = liste.length - 1; }
+    document.getElementById('att-b').style.width = Math.max(2, p).toFixed(1) + '%';
+    document.querySelectorAll('#att-l li').forEach((li, j) => li.className = j < i ? 'fait' : j === i ? 'encours' : '');
+    const reste = Math.round(prevu - s);
+    tt.textContent = recu ? 'presque terminé' : reste > 5 ? `encore environ ${duree(Math.ceil(reste / 5) * 5)}`
+      : 'quelques secondes encore, la recherche se termine';
+    if (Math.floor(s) % 8 === 7) { k = (k + 1) % ASTUCES.length; const a = document.getElementById('att-a'); if (a) a.innerHTML = ASTUCES[k]; }
+    return true;
+  };
+  const minuteur = setInterval(() => { if (!pas()) clearInterval(minuteur); }, 1000);
+  pas();
   return () => { clearInterval(minuteur); suivi = null; el.innerHTML = ''; };
 }
 
@@ -1082,14 +1400,13 @@ $('#identifier').onclick = async () => {
   b.disabled = true;
   $('#etat1').textContent = "";
   const fin1 = attendre('#sortie1', [
-    `lecture des ${images.length} vue${images.length > 1 ? 's' : ''}`,
+    `lecture de tes ${images.length} photo${images.length > 1 ? 's' : ''}`,
     "recherche des références du modèle",
     "vérification des versions possibles",
-    "choix des mots-clés de recherche",
     "repérage de ce qui fait varier le prix",
     "reconstitution de l'histoire du modèle",
     "encore un instant, la recherche continue"
-  ]);
+  ], 75, "On identifie ton objet");
   try {
     let texte = images.length > 1
       ? `Identifie cet objet de collection. ${images.length} vues du MÊME objet te sont fournies,
@@ -1141,7 +1458,7 @@ celle du nouveau modèle.`;
     if (histoireNeuve) afficherHistoire(histoireNeuve, vuesId);
     rendreSynthese();
     $('#raconter').disabled = false;
-    $('#raconter').textContent = profil.histoire ? "Régénérer l'histoire" : "Raconter l'histoire";
+    $('#raconter').textContent = profil.histoire ? "Réécrire son histoire" : "Raconter son histoire";
     allume(4);
     $('#chercher').disabled = false;
     regler_intensite();
@@ -1170,21 +1487,33 @@ function afficherIdentite(d) {
   const cv = Math.round((d.certitude_variante ?? d.certitude ?? 0) * 100);
   const faible = cm < 60;
   const f = d.fourchette_plausible || {};
+  const niv = x => x >= 80 ? '' : x >= 60 ? ' moyen' : ' bas';
+  const marqueC = profil.corrections?.marque || d.marque || '', modeleC = profil.corrections?.modele || d.modele || '';
+  const nomAff = modeleC && marqueC && modeleC.toLowerCase().includes(marqueC.toLowerCase()) ? modeleC
+    : [marqueC, modeleC].filter(Boolean).join(' ') || d.univers || 'Objet';
   let h = `<div class="res">
-    ${d.tronque ? `<div class="info">réponse incomplète : relance l'identification pour
-      l'avoir en entier.</div>` : ''}
-    <h3>Identification</h3>
-    <dl class="kv">
-      <dt>univers</dt><dd>${d.univers || "-"}</dd>
-      <dt>objet</dt><dd>${d.description || "-"}</dd>
-      <dt>marque</dt><dd>${editable('marque', d.marque)}</dd>
-      <dt>nom du modèle</dt><dd>${editable('modele', d.modele)}</dd>
-      <dt>référence</dt><dd>${editable('reference', d.reference)}</dd>
-      <dt>état apparent</dt><dd>${d.etat_apparent || "-"}</dd>
-      ${MAILLE[d.maille] ? `<dt>se vend</dt><dd>${MAILLE[d.maille]}</dd>` : ''}
-      <dt>modèle</dt><dd>sûr à ${cm} %<div class="jauge"><i style="width:${cm}%"></i></div></dd>
-      <dt>version exacte</dt><dd>sûre à ${cv} %<div class="jauge"><i style="width:${cv}%"></i></div></dd>
-    </dl>`;
+    ${d.tronque ? `<div class="info">Réponse incomplète : relance l'analyse pour l'avoir en entier.</div>` : ''}
+    <div class="ident">
+      ${images[0] ? `<img class="ident-photo" src="${images[0].url}" alt="">` : ''}
+      <div>
+        <p class="ident-nom">${nomAff}</p>
+        <p class="ident-desc">${d.description || ''}</p>
+        <div class="ident-champs">
+          <span><em>Marque</em> ${editable('marque', d.marque)}</span>
+          <span><em>Modèle</em> ${editable('modele', d.modele)}</span>
+          <span><em>Référence</em> ${editable('reference', d.reference)}</span>
+        </div>
+        <div class="ident-puces">
+          ${d.etat_apparent ? `<span title="${String(d.etat_apparent).replace(/"/g, '&quot;')}">${String(d.etat_apparent).split(/[,:;(]/)[0].slice(0, 48)}</span>` : ''}
+          ${d.variante ? `<span>${String(d.variante).split(/[,;(]/)[0].slice(0, 40)}</span>` : ''}
+          ${MAILLE[d.maille] ? `<span>se vend ${MAILLE[d.maille]}</span>` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="certitudes">
+      <div class="certi${niv(cm)}"><span>Modèle reconnu</span><b>${cm} %</b><i><u style="width:${cm}%"></u></i></div>
+      <div class="certi${niv(cv)}"><span>Version exacte</span><b>${cv} %</b><i><u style="width:${cv}%"></u></i></div>
+    </div>`;
 
   const lectures = (d.lectures || []).filter(l => l && l.texte);
   const douteuses = lectures.filter(l => (l.confiance ?? 1) < 0.9 && (l.alternatives || []).length);
@@ -1203,15 +1532,12 @@ function afficherIdentite(d) {
     h += `</div>`;
   }
 
-  h += `<p class="aide" style="margin:10px 0 0">Une lecture est fausse ? Clique sur le crayon à côté de la
-        marque, du modèle ou de la référence et corrige avec l'objet en main : ta lecture prime
-        sur celle des photos, et l'identification repart sur la bonne base.</p>`;
+  h += `<p class="aide" style="margin:14px 0 0">Une lecture est fausse ? Corrige-la au crayon, l'objet en main :
+        ta lecture prime sur celle des photos et l'analyse repart sur la bonne base.</p>`;
 
-  if (d.hypotheses_concurrentes && d.hypotheses_concurrentes.length)
-    h += `<p style="margin:12px 0 0;font-size:14px"><b>autres possibilités :</b>
-          ${d.hypotheses_concurrentes.join(", ")}</p>`;
-  if (d.leve_de_doute)
-    h += `<p style="margin:6px 0 0;font-size:14px"><b>pour trancher :</b> ${d.leve_de_doute}</p>`;
+  if (cv < 80 && ((d.hypotheses_concurrentes || []).length || d.leve_de_doute))
+    h += `<div class="info">${(d.hypotheses_concurrentes || []).length ? `<b>Ce pourrait aussi être</b> ${d.hypotheses_concurrentes.join(", ")}.` : ''}
+          ${d.leve_de_doute ? `<br><b>Pour trancher :</b> ${d.leve_de_doute}` : ''}</div>`;
 
   const vues = (d.vues_manquantes || [])
     .map(v => typeof v === "string" ? { quoi: v } : v)
@@ -1219,9 +1545,8 @@ function afficherIdentite(d) {
     .slice(0, 5);
   if (vues.length) {
     const deja = new Set(images.map(im => im.libelle).filter(Boolean));
-    h += `<div class="info"><b>photos à ajouter</b>
-          <p style="margin:3px 0 0;font-size:13px">Prends la photo, clique sur le bouton en
-          face de la vue correspondante, puis relance.</p>`;
+    h += `<div class="info"><b>Photos qui affineraient le résultat</b>
+          <p style="margin:3px 0 0;font-size:14px;color:var(--gris)">Prends la photo, ajoute-la en face de la vue demandée, puis relance.</p>`;
     vues.forEach((v, i) =>
       h += `<div class="vm">
         <div style="flex:1">
@@ -1232,43 +1557,43 @@ function afficherIdentite(d) {
           ${deja.has(v.quoi) ? 'disabled' : ''}>${deja.has(v.quoi) ? 'Ajoutée' : 'Ajouter une photo'}</button>
       </div>`);
     h += `<div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button id="relancer" ${deja.size ? '' : 'disabled'}>Relancer l'identification</button>
+            <button id="relancer" ${deja.size ? '' : 'disabled'}>Relancer avec ces photos</button>
             <span class="etat" id="place">${MAX_VUES - images.length} emplacement${
               MAX_VUES - images.length > 1 ? 's' : ''} libre${MAX_VUES - images.length > 1 ? 's' : ''}</span>
           </div></div>`;
   }
 
   if (d.contexte_ecarte && !/^\s*(aucun|rien|pas de|null)/i.test(d.contexte_ecarte))
-    h += `<div class="info"><b>pas retenu de ce que tu as écrit :</b> ${d.contexte_ecarte}</div>`;
+    h += `<div class="info"><b>Pas retenu de ce que tu as écrit :</b> ${d.contexte_ecarte}</div>`;
   if (faible)
-    h += `<div class="warn">identification encore incertaine : la recherche des prix risque de
+    h += `<div class="warn">Identification encore incertaine : la recherche des prix risque de
           viser à côté. Ajoute une photo plus nette, ou corrige la marque et le modèle au crayon.</div>`;
   else if (cv < 60)
-    h += `<div class="info">le modèle est sûr, la version exacte moins. La recherche peut se
-          lancer, elle couvre les versions possibles ; préciser la version donnera un prix plus serré.</div>`;
+    h += `<div class="info">Le modèle est sûr, la version exacte moins. La recherche couvre les versions
+          possibles ; préciser la version donnera un prix plus serré.</div>`;
 
   const fact = (d.facteurs_valeur || []).filter(f => f && f.question).slice(0, 8);
   if (fact.length) {
-    h += `<div style="margin:16px 0;border:1px solid var(--bord);border-radius:8px;padding:14px 16px;background:#fff">
-      <b style="font-size:14px">Ce qui fait varier le prix de cet objet</b>
-      <p class="aide" style="margin:3px 0 10px">Coche ce que tu as : le prix s'ajuste aussitôt
-         dans la synthèse.</p>`;
+    h += `<div class="facteurs">
+      <p class="hist-h">Ce qui fait varier son prix</p>
+      <p class="aide" style="margin:0">Coche ce que tu as : le prix s'ajuste aussitôt dans le résultat.</p>
+      <div class="facteurs-grille">`;
     fact.forEach((f, i) =>
-      h += `<label style="display:flex;gap:9px;align-items:flex-start;font-weight:400;
-            margin:8px 0;cursor:pointer">
-        <input type="checkbox" class="fv" data-i="${i}" style="width:auto;margin-top:3px">
-        <span style="font-size:14px">${f.question}
-        <b style="color:${f.effet_pct >= 0 ? 'var(--bleu-texte)' : 'var(--rose-texte)'}">
-        ${f.effet_pct >= 0 ? '+' : ''}${f.effet_pct} %</b></span></label>`);
-    h += `<p id="fvres" class="maj" style="margin:12px 0 0;font-weight:700;font-size:14.5px"></p></div>`;
+      h += `<label class="facteur">
+        <input type="checkbox" class="fv" data-i="${i}">
+        <span>${f.question}</span>
+        <span class="effet ${f.effet_pct >= 0 ? 'plus' : 'moins'}">${f.effet_pct >= 0 ? '+' : ''}${f.effet_pct} %</span></label>`);
+    h += `</div><p id="fvres" class="maj" style="font-weight:700"></p></div>`;
   }
 
-  h += `<p style="margin:14px 0 5px;font-size:13px;font-weight:700">Mots-clés de la recherche
-        (${(d.requetes || []).length})</p>`;
-  (d.requetes || []).forEach(r =>
-    h += `<span class="puce ${r.precision === 'large' ? 'large' : ''}">${r.terme}
-          ${r.langue ? `<small>${r.langue}</small>` : ''}</span>`);
-  h += `</div>`;
+  // Les coulisses : utiles pour vérifier, pas pour décider. Repliées par défaut.
+  const req = d.requetes || [];
+  h += `<details class="coulisses"><summary>Les coulisses de l'identification</summary><div>
+    <p><b>Catégorie :</b> ${[d.univers, d.sous_categorie].filter(Boolean).join(', ') || '-'}</p>
+    ${req.length ? `<p><b>Mots-clés préparés pour la recherche (${req.length}) :</b></p><p>${req.map(r =>
+      `<span class="puce ${r.precision === 'large' ? 'large' : ''}">${r.terme}${r.langue ? `<small>${r.langue}</small>` : ''}</span>`).join('')}</p>` : ''}
+    ${d.contexte_retenu ? `<p><b>Retenu de ce que tu as écrit :</b> ${d.contexte_retenu}</p>` : ''}
+  </div></details></div>`;
   $('#sortie1').innerHTML = h;
   brancherVues();
   brancherCorrection(d);
@@ -1286,7 +1611,7 @@ function afficherIdentite(d) {
       $('#fvres').innerHTML = coches.length
         ? `${coches.length} case${coches.length > 1 ? 's' : ''} cochée${coches.length > 1 ? 's' : ''} :
            <b>${pct >= 0 ? '+' : ''}${pct} %</b> sur le prix, pris en compte dans la synthèse`
-        : `aucune case cochée`;
+        : `Aucune case cochée pour l'instant`;
     };
     document.querySelectorAll('.fv').forEach(c => c.onchange = recalc);
     recalc();
@@ -1368,11 +1693,11 @@ $('#raconter').onclick = async () => {
   b.disabled = true;
   const fin = attendre('#sortie-hist', [
     "recherche des origines du modèle",
-    "lecture des pages consultées",
+    "lecture des sources",
     "reconstitution de la chronologie",
     "vérification des dates et des chiffres",
     "encore un instant"
-  ]);
+  ], 45, "On retrace son histoire");
   try {
     const d = await appeler(SYS_HIST,
       `Modèle identifié : ${profil.description}\n` +
@@ -1436,12 +1761,12 @@ function afficherHistoire(d, vues) {
 
   const surv = (d.a_surveiller || []).filter(Boolean);
   if (surv.length)
-    h += `<div class="info"><b>à surveiller</b>, ce qui pourrait faire bouger la cote :
+    h += `<div class="info" style="background:var(--jaune-pale);border-color:#f3e2a6"><b>À surveiller</b>, ce qui pourrait faire bouger la cote :
           <ul class="liste">${surv.map(s => `<li>${s}</li>`).join('')}</ul></div>`;
 
-  h += `<p class="etat" style="margin-top:14px">${cites.length} source${cites.length > 1 ? 's' : ''}
+  h += `<details class="coulisses"><summary>Les coulisses de l'histoire</summary><div><p>${cites.length} source${cites.length > 1 ? 's' : ''}
         citée${cites.length > 1 ? 's' : ''}, dont ${verifies} ouverte${verifies > 1 ? 's' : ''} pendant la recherche${
-        cites.length > verifies ? ` ; les autres sont marquées « non vérifiée »` : ''}.</p>`;
+        cites.length > verifies ? ` ; les autres sont marquées « non vérifiée »` : ''}. Chaque date renvoie à la page qui l'établit.</p></div></details>`;
 
   $('#sortie-hist').innerHTML = h + `</div>`;
 }
@@ -1537,12 +1862,12 @@ async function lancerMarche(demande) {
   const profond = $('#approfondi').checked;
   const fin = attendre('#sortie-marche', [
     "choix des sites où cet objet se vend",
-    "recherche des annonces",
+    "recherche des annonces et des ventes",
     "tri des annonces qui correspondent vraiment",
     "lecture des prix affichés",
     "vérification des liens",
     "encore un instant"
-  ]);
+  ], profond ? 100 : 55, "On cherche ses prix réels");
   // on n'emmène la page que si elle a cliqué elle-même : enchaînée, la recherche tourne sans la déranger
   if (demande === true) $('#sortie-marche').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -1581,7 +1906,7 @@ async function lancerMarche(demande) {
     $('#sortie-marche').innerHTML = `<div class="warn">échec : ${e.message}</div>`;
   }
   b.disabled = false;
-  b.textContent = "Relancer la recherche";
+  b.textContent = "Relancer la recherche des prix";
   marcheEnCours = false;
 }
 
@@ -1602,6 +1927,7 @@ function stats(prix) {
 }
 
 let marche = { fiches: [], ecartees: [], lecture: "" };
+let annoncesDepliees = false, coulissesMarche = false;
 
 function afficherMarche(d, pages, diag = {}) {
   const fiches = [], ecartees = [];
@@ -1781,62 +2107,60 @@ function rendreMarche() {
   marche.ref = { sv, so, sn, sc, dev, k };
   marche.retenues = fiches.filter(retenue).map(f => ({ ...f, prix: px(f) }));
 
+  // la répartition des annonces : ce qui compte, ce qui est écarté, en une barre
+  const exclues = fiches.filter(f => raison(f)).length;
+  const parts = [[vendues.length, '#059be1', 'ventes conclues'], [offertes.length, '#8d93b6', "en vente d'occasion"],
+    [neuves.length, '#cdd1e0', 'neuves'], [fiches.filter(comparable).length, '#f8c81f', 'objets proches'],
+    [exclues, '#f2b8d2', 'écartées']].filter(x => x[0]);
+  const totalParts = parts.reduce((s, x) => s + x[0], 0) || 1;
+  const repartition = `<div class="repartition" role="img" aria-label="${parts.map(x => `${x[0]} ${x[2]}`).join(', ')}">
+    <div class="pile">${parts.map(([n, c]) => `<i style="width:${n / totalParts * 100}%;background:${c}"></i>`).join('')}</div>
+    <div class="cles">${parts.map(([n, c, l]) => `<span><i style="background:${c}"></i><b>${n}</b> ${l}</span>`).join('')}</div></div>`;
+
   let h = `<div class="res">
-    <div style="background:${fond};color:var(--sombre);padding:11px 14px;
-         border:1px solid var(--bord);border-radius:8px" class="maj"><b>${libelle}</b>,
+    <div style="background:${fond};color:var(--sombre);border:1px solid var(--bord)" class="etat-marche maj"><span><b>${libelle}</b> :
       ${vendues.length} vente${vendues.length > 1 ? 's' : ''} conclue${vendues.length > 1 ? 's' : ''} et
       ${offertes.length} annonce${offertes.length > 1 ? 's' : ''} d'occasion retenue${offertes.length > 1 ? 's' : ''}${
-      strict ? ' <b>(prix relus aujourd\'hui uniquement)</b>' : ''}.</div>
+      strict ? ' <b>(prix relus aujourd\'hui uniquement)</b>' : ''}.</span></div>
+    ${repartition}
     ${boutonElargir}
 
-    ${classe && comps.length ? `<div class="info" style="margin:10px 0 0"><b>objets proches
-      retenus :</b> ${classe}. Ces objets ne sont pas le tien : ils situent un ordre de grandeur,
-      à confirmer par l'état et la provenance.</div>` : ''}
-    <p style="margin:10px 0 0;font-size:13.5px"><b>Recherche :</b> ${ligneDiag}.</p>
-    ${fiches.some(f => f.prix === null) ? `<div class="info" style="margin:10px 0 0">
+    ${classe && comps.length ? `<div class="info"><b>Objets proches retenus :</b> ${classe}. Ces objets ne
+      sont pas le tien : ils situent un ordre de grandeur, à confirmer par l'état et la provenance.</div>` : ''}
+    ${fiches.some(f => f.prix === null) ? `<div class="info">
       <b>${fiches.filter(f => f.prix === null).length} annonce${fiches.filter(f => f.prix === null).length > 1 ? 's' : ''}
       sans prix lisible.</b> Ouvre l'annonce et recopie son prix sur la ligne : il compte aussitôt.</div>` : ''}
-    <p style="margin:6px 0 0;font-size:13.5px">
-      <b>Vérification :</b>
-      ${tally.confirme || 0} prix relu${(tally.confirme || 0) > 1 ? 's' : ''} aujourd'hui,
-      ${tally.arevoir || 0} à revoir,
-      ${tally.nonverif || 0} invérifiable${(tally.nonverif || 0) > 1 ? 's' : ''},
-      ${tally.disparue || 0} annonce${(tally.disparue || 0) > 1 ? 's' : ''} disparue${(tally.disparue || 0) > 1 ? 's' : ''}
-      ${enCours ? `, <span class="bloc">${enCours} en cours de vérification</span>` : ''}</p>
-
-    <label style="display:flex;gap:9px;align-items:center;font-weight:400;margin:8px 0 0;font-size:13.5px">
-      <input type="checkbox" id="strict" style="width:auto" ${strict ? 'checked' : ''}>
-      ne compter que les prix relus aujourd'hui</label>
-
-    <p class="aide" style="margin:10px 0 0">Chaque annonce avec son prix, ci-dessous. Ce qu'ils disent
-      ensemble (fourchette, graphique, verdict) est dans la synthèse, en bas de page.</p>`;
+    ${enCours ? `<p class="etat" style="margin-top:12px">Vérification des liens en cours, ${enCours} annonce${enCours > 1 ? 's' : ''} encore à relire.</p>` : ''}
+    <p class="hist-h">Les annonces trouvées</p>`;
 
   const parPf = {};
   fiches.forEach(f => (parPf[f.plateforme || f.domaine] ||= []).push(f));
+  let rang = 0;
+  const VISIBLES = 6;
   Object.entries(parPf).sort((a, b) => b[1].length - a[1].length).forEach(([pf, lot]) => {
-    h += `<p style="margin:18px 0 4px;font-size:14px;font-weight:700;display:flex;gap:8px;
-          align-items:center">${logo(lot[0])}${pf}
-          <span style="color:var(--gris);font-weight:400">${lot.length} annonce${lot.length > 1 ? 's' : ''}</span></p>`;
+    h += `<p class="pf-titre${rang >= VISIBLES && !annoncesDepliees ? ' cache' : ''}">${logo(lot[0])}${pf}
+          <span>${lot.length} annonce${lot.length > 1 ? 's' : ''}</span></p>`;
     [...lot].sort((a, b) => (a.prix ?? 1e9) - (b.prix ?? 1e9)).forEach(f => {
       const idx = fiches.indexOf(f);
       const n = niveau(f);
       const pourquoi = raison(f);
       const exclue = !!pourquoi;
-      h += `<div class="art" style="border-left-color:${COULEUR_PREUVE[n.cle]};${exclue ? 'background:rgba(19,31,106,.04)' : ''}">
+      const cache = rang++ >= VISIBLES && !annoncesDepliees;
+      h += `<div class="art${exclue ? ' exclue' : ''}${cache ? ' cache' : ''}" title="${n.lib.replace(/"/g, '&quot;')}">
         <div class="px"><a href="${f.url}" target="_blank" rel="noopener">${
-          f.prix !== null ? `${f.prix} ${f.devise || ''}` : "ouvrir l'annonce"}</a>${
+          f.prix !== null ? `${f.prix.toLocaleString('fr-FR')} ${f.devise === 'EUR' || !f.devise ? '€' : f.devise}` : "Ouvrir l'annonce"}</a>${
           f.prix !== null && (f.devise || 'EUR') !== dev && px(f) !== null
             ? `<small style="display:block;color:var(--gris);font-weight:400">soit ${px(f)} ${dev}</small>` : ''}</div>
         <div class="tt">${(f.titre || '').slice(0, 110)}</div>
         <div class="meta">
           <span class="tag ${f.statut === 'vendu' ? 'vendu' : 'envente'}">${
-            f.statut === 'vendu' ? 'vendu' : f.statut === 'en_vente' ? 'en vente' : 'statut ?'}</span>
-          ${CORRESP[f.correspondance] ? `<span class="tag">${CORRESP[f.correspondance]}</span>` : ''}
+            f.statut === 'vendu' ? 'vendu' : f.statut === 'en_vente' ? 'en vente' : 'statut inconnu'}</span>
+          ${!exclue && f.correspondance && f.correspondance !== 'exacte' && CORRESP[f.correspondance] ? `<span class="tag">${CORRESP[f.correspondance]}</span>` : ''}
           ${f.neuf ? '<span class="tag">neuf</span>' : ''}
-          <span class="tag" style="background:${COULEUR_PREUVE[n.cle]}${n.cle === 'disparue' ? ';color:#831c4a' : ''}">${n.lib}</span>
-          ${n.vente ? `<span class="tag" style="background:var(--jaune-pale)">${f.neuf ? 'rupture signalée' : 'semble vendue'} : ${n.vente}</span>` : ''}
-          ${exclue ? `<span class="tag" style="border-style:dashed">pas compté, ${pourquoi}</span>` : ''}
-          <br>${f.etat ? f.etat.slice(0, 40) + ', ' : ''}${f.domaine}${f.age ? ', en ligne le ' + jourFr(f.age) : ''}
+          ${n.cle === 'disparue' ? `<span class="tag" style="background:var(--alerte);color:#831c4a">annonce disparue</span>` : ''}
+          ${n.vente ? `<span class="tag" style="background:var(--jaune-pale)">${f.neuf ? 'rupture signalée' : 'semble vendue'}</span>` : ''}
+          ${exclue ? `<span class="tag" style="background:#fff;box-shadow:inset 0 0 0 1px var(--filet-fort)">pas compté : ${pourquoi}</span>` : ''}
+          <br>${f.etat ? f.etat.slice(0, 40) + ', ' : ''}${f.domaine}
           ${f.prix === null ? `<div class="saisie">prix affiché sur l'annonce :
             <input type="number" min="0" step="any" class="pm" data-i="${idx}" placeholder="à recopier">
             <select class="pmd" data-i="${idx}">${['EUR', 'USD', 'GBP', 'CHF'].map(x =>
@@ -1845,17 +2169,36 @@ function rendreMarche() {
         </div></div>`;
     });
   });
+  if (fiches.length > VISIBLES)
+    h += `<button class="second voir-tout" id="voir-tout">${annoncesDepliees ? 'Replier la liste'
+      : `Voir les ${fiches.length - VISIBLES} autres annonces`}</button>`;
 
   if (lecture)
-    h += `<p class="hist-h">lecture du marché</p>
-          <p style="margin:0;font-size:14.5px;line-height:1.55">${lecture}</p>`;
+    h += `<p class="hist-h">Ce qu'en dit le marché</p>
+          <p style="margin:0;font-size:15px;line-height:1.65;max-width:68ch">${lecture}</p>`;
 
-  h += `<p class="aide" style="margin-top:16px">Chaque lien a été ouvert pendant la recherche, chaque prix
-    relu sur sa page quand le site le permet, et tous les calculs portent sur ces seules annonces.
-    C'est un échantillon de ce qui est en ligne, pas un inventaire complet.</p>`;
+  h += `<details class="coulisses" id="coulisses-marche"${coulissesMarche ? ' open' : ''}><summary>Les coulisses de la recherche</summary><div>
+    ${ligneDiag ? `<p><b>Recherche :</b> ${ligneDiag}.</p>` : ''}
+    <p><b>Vérification :</b>
+      ${tally.confirme || 0} prix relu${(tally.confirme || 0) > 1 ? 's' : ''} aujourd'hui,
+      ${tally.arevoir || 0} à revoir,
+      ${tally.nonverif || 0} invérifiable${(tally.nonverif || 0) > 1 ? 's' : ''},
+      ${tally.disparue || 0} annonce${(tally.disparue || 0) > 1 ? 's' : ''} disparue${(tally.disparue || 0) > 1 ? 's' : ''}
+      ${enCours ? `, <span class="bloc">${enCours} en cours de vérification</span>` : ''}.</p>
+    <label style="display:flex;gap:9px;align-items:center;font-weight:500;margin:10px 0 0;font-size:14px">
+      <input type="checkbox" id="strict" style="width:auto" ${strict ? 'checked' : ''}>
+      Ne compter que les prix relus aujourd'hui</label>
+    <p>Chaque lien a été ouvert pendant la recherche, chaque prix relu sur sa page quand le site le permet
+      (survole une annonce pour voir son niveau de preuve), et tous les calculs portent sur ces seules annonces.
+      C'est un échantillon de ce qui est en ligne, pas un inventaire complet.</p>
+  </div></details>`;
 
   $('#sortie-marche').innerHTML = h + `</div>`;
   brancherElargir();
+  const vt = document.getElementById('voir-tout');
+  if (vt) vt.onclick = () => { annoncesDepliees = !annoncesDepliees; rendreMarche(); };
+  const cm = document.getElementById('coulisses-marche');
+  if (cm) cm.ontoggle = () => { coulissesMarche = cm.open; };
   document.querySelectorAll('.pmok').forEach(b => b.onclick = () => {
     const i = +b.dataset.i;
     const champ = [...document.querySelectorAll('.pm')].find(x => +x.dataset.i === i);
@@ -1914,7 +2257,7 @@ function rendreVerdictNeuf({ el, s, base, M, D, P, source, confiance, noteConv, 
   const vals = (base.vals || []).map(v => v * taux);
   const bas = r(base.min * taux), haut = r(base.max * taux);
   const cartes = (extra = '') => `<div class="synth">
-      <div><span>prix neuf habituel</span><b>${M} ${D}</b>
+      <div><span>prix neuf habituel</span><b>${eu(M, D)}</b>
         <span>${base.n} annonces, de ${bas} à ${haut}</span></div>${extra}</div>`;
   if (P === null || isNaN(P)) {
     el.innerHTML = `<div class="res">${cartes()}${barreNeuf(M, vals, null, D)}
@@ -1953,7 +2296,7 @@ function rendreVerdictNeuf({ el, s, base, M, D, P, source, confiance, noteConv, 
     titre = `tu l'as payé ${pct} % du prix neuf`; fond = ratio < 0.5 ? 'var(--data)' : 'var(--clair)';
     reco = ratio < 0.5 ? "conserver, bel achat" : "conserver"; fondReco = 'var(--clair)';
     regle = "aucune vente d'occasion trouvée : la valeur de revente ne peut pas être calculée, seulement comparée au neuf";
-    texte.push(`Pour l'assurance, la valeur de remplacement est le prix neuf : ${M} ${D}.`);
+    texte.push(`Pour l'assurance, la valeur de remplacement est le prix neuf : ${eu(M, D)}.`);
     if (ratio < 0.15) texte.push(`À ce prix d'achat, fais authentifier la pièce : c'est elle qui porte toute la valeur.`);
   }
   texte.push(`Aucune vente ni annonce d'occasion de cet objet n'a été trouvée : la comparaison se fait
@@ -1974,7 +2317,7 @@ function rendreVerdictNeuf({ el, s, base, M, D, P, source, confiance, noteConv, 
          padding:11px 15px;border:1px solid var(--bord);border-radius:8px;margin-top:10px">
       <b style="font-size:16px">${titre}</b></div>
     ${barreNeuf(M, vals, P, D)}
-    ${cartes(`<div><span>${s.mode === 'achat' ? 'prix demandé' : 'prix payé'}</span><b>${P} ${D}</b>
+    ${cartes(`<div><span>${s.mode === 'achat' ? 'prix demandé' : 'prix payé'}</span><b>${eu(P, D)}</b>
         <span${s.canal ? '' : ' class="vide"'}>${s.canal ? LIB_CANAL[s.canal] : '&nbsp;'}</span></div>
       <div><span>rapport au neuf</span><b>${pct} %</b><span>ton prix face au neuf</span></div>`)}
     ${texte.map(t => `<p style="margin:0 0 8px;font-size:14.5px;line-height:1.5">${t}</p>`).join('')}
@@ -2063,13 +2406,17 @@ function rendreVerdict() {
     return rendreVerdictNeuf({ el, s, base, M, D, P, source, confiance, noteConv, taux });
 
   const marcheSeul = `<div class="synth">
-      <div><span>prix habituel</span><b>${M} ${D}</b>
-        <span>la plupart entre ${Q1} et ${Q3}</span></div>
+      <div><span>prix habituel</span><b>${eu(M, D)}</b>
+        <span>la plupart entre ${Q1.toLocaleString('fr-FR')} et ${eu(Q3, D)}</span></div>
       <div><span>calculé sur</span><b style="font-size:16px">${base.n} ${source}</b>
         <span>fiabilité ${confiance}</span></div></div>`;
 
   if (P === null || isNaN(P)) {
-    el.innerHTML = `<div class="res">${marcheSeul}
+    el.innerHTML = `<div class="valeur-tete">
+      <div class="v-gauche"><span>Sa valeur sur le marché</span><b>${M.toLocaleString('fr-FR')} ${D === 'EUR' ? '€' : D}</b>
+        <small>la plupart entre ${Q1.toLocaleString('fr-FR')} et ${Q3.toLocaleString('fr-FR')} ${D === 'EUR' ? '€' : D}</small></div>
+      <div class="v-droite"><span>Calculé sur</span><b>${base.n} ${source}</b><small>fiabilité ${confiance}</small></div>
+    </div><div class="res" style="border:0;margin-top:8px;padding-top:0">
       ${barrePrix(M, Q1, Q3, (base.vals || []).map(v => v * kk), null, D)}
       <p class="aide" style="margin:0">Indique ${s.mode === 'achat' ? 'le prix demandé' : 'le prix payé'}
       en haut de page pour obtenir le verdict.</p></div>`;
@@ -2099,16 +2446,16 @@ function rendreVerdict() {
       marche: () => { titre = "au prix du marché"; fond = 'var(--clair)';
         texte.push(`Ni affaire ni excès : c'est le prix auquel cet objet s'échange.`); },
       dessus: () => { titre = "au-dessus du marché, à négocier"; fond = 'var(--jaune-pale)';
-        texte.push(`Une offre autour de ${M} ${D} est défendable, et les annonces trouvées plus
-          haut te donnent de quoi l'argumenter. Au-delà de ${Q3} ${D}, tu paies plus que la plupart des acheteurs.`); },
+        texte.push(`Une offre autour de ${eu(M, D)} est défendable, et les annonces trouvées plus
+          haut te donnent de quoi l'argumenter. Au-delà de ${eu(Q3, D)}, tu paies plus que la plupart des acheteurs.`); },
       trop: () => { titre = "nettement trop cher"; fond = 'var(--alerte)';
         texte.push(`Plus d'une fois et demie le prix de marché. À négocier fortement, ou à laisser passer.`); },
     })[pos]();
   } else {
     const ecart = M - P;
     const pct = P > 0 ? Math.round((M / P - 1) * 100) : null;
-    titre = ecart >= 0 ? `plus-value latente : +${ecart} ${D}${pct !== null ? ` (+${pct} %)` : ''}`
-                       : `moins-value latente : ${ecart} ${D} (${pct} %)`;
+    titre = ecart >= 0 ? `plus-value latente : +${eu(ecart, D)}${pct !== null ? ` (+${pct} %)` : ''}`
+                       : `moins-value latente : ${eu(ecart, D)} (${pct} %)`;
     fond = ecart >= 0 ? 'var(--data)' : 'var(--jaune-pale)';
     texte.push({
       tres_bas: `Tu l'as payé moins de la moitié de sa valeur de marché : belle trouvaille, à condition
@@ -2126,13 +2473,13 @@ function rendreVerdict() {
     }
     if (sn && nature !== 'neuf')
       texte.push(`Pour l'assurance, la valeur de remplacement est plutôt le prix neuf :
-        ${r(sn.med * (s.devise !== dev && tauxCache[dev + s.devise] ? tauxCache[dev + s.devise].taux : 1))} ${D}.`);
-    else texte.push(`Pour l'assurance, déclare plutôt le haut de la fourchette : ${Q3} ${D}.`);
+        ${eu(r(sn.med * (s.devise !== dev && tauxCache[dev + s.devise] ? tauxCache[dev + s.devise].taux : 1)), D)}.`);
+    else texte.push(`Pour l'assurance, déclare plutôt le haut de la fourchette : ${eu(Q3, D)}.`);
   }
 
   if (nature === 'demande')
     texte.push(`La référence est faite de prix demandés, pas de prix obtenus : les ventes se concluent
-      en général un peu en dessous. Le marché réel est donc probablement plus bas que ${M} ${D}.`);
+      en général un peu en dessous. Le marché réel est donc probablement plus bas que ${eu(M, D)}.`);
   if (nature === 'comparable')
     texte.push(`La référence est faite d'objets comparables, pas du tien : ce verdict donne un ordre
       de grandeur, pas une cote.`);
@@ -2152,7 +2499,7 @@ function rendreVerdict() {
         regle = "moins cher que la plupart des ventes"; },
       marche: () => { reco = "acheter, prix juste"; fondReco = 'var(--data)';
         regle = "dans la fourchette où se font la plupart des ventes"; },
-      dessus: () => { reco = `négocier, viser ${M} ${D}`; fondReco = 'var(--jaune-pale)';
+      dessus: () => { reco = `négocier, viser ${eu(M, D)}`; fondReco = 'var(--jaune-pale)';
         regle = "plus cher que la plupart des ventes, sans dépasser une fois et demie le prix habituel"; },
       trop: () => { reco = "passer"; fondReco = 'var(--alerte)';
         regle = "plus d'une fois et demie le prix habituel"; },
@@ -2182,26 +2529,26 @@ function rendreVerdict() {
     valeur_marche: M, fourchette: [Q1, Q3], base: source, fiches: base.n, confiance, texte: texte.slice(),
     date: new Date().toISOString().slice(0, 10) };
 
-  el.innerHTML = `<div class="res">
-    <div class="reco" style="background:${fondReco};color:var(--sombre)">
-      <span>le repère</span><b>${reco}</b>
-      <small>pourquoi : ${regle}</small></div>
-    <div class="maj" style="background:${fond};color:var(--sombre);
-         padding:11px 15px;border:1px solid var(--bord);border-radius:8px;margin-top:10px">
-      <b style="font-size:16px">${titre}</b></div>
+  el.innerHTML = `<div class="valeur-tete">
+      <div class="v-gauche"><span>Sa valeur sur le marché</span><b>${M.toLocaleString('fr-FR')} ${D === 'EUR' ? '€' : D}</b>
+        <small>la plupart des ventes entre ${Q1.toLocaleString('fr-FR')} et ${Q3.toLocaleString('fr-FR')} ${D === 'EUR' ? '€' : D}</small></div>
+      <div class="v-droite" style="background:${fondReco}"><span>Notre repère</span><b class="maj">${reco}</b>
+        <small class="maj">${regle}</small></div>
+    </div>
+    <div class="res" style="border:0;margin-top:8px;padding-top:0">
+    <div class="maj etat-marche" style="background:${fond};color:var(--sombre);border:1px solid var(--bord);margin-top:20px">
+      <b style="font-size:17px">${titre}</b></div>
     ${barrePrix(M, Q1, Q3, (base.vals || []).map(v => v * kk), P, D)}
     <div class="synth">
-      <div><span>${s.mode === 'achat' ? 'prix demandé' : 'prix payé'}</span><b>${P} ${D}</b>
+      <div><span>${s.mode === 'achat' ? 'prix demandé' : 'prix payé'}</span><b>${eu(P, D)}</b>
         <span${s.canal ? '' : ' class="vide"'}>${s.canal ? LIB_CANAL[s.canal] : '&nbsp;'}</span></div>
-      <div><span>prix habituel</span><b>${M} ${D}</b><span>la plupart entre ${Q1} et ${Q3}</span></div>
+      <div><span>prix habituel</span><b>${eu(M, D)}</b><span>la plupart entre ${Q1.toLocaleString('fr-FR')} et ${eu(Q3, D)}</span></div>
       <div><span>écart</span><b>${P > 0 ? (e => `${e >= 0 ? '+' : ''}${e} %`)(Math.round((s.mode === 'achat' ? P / M - 1 : M / P - 1) * 100)) : '-'}</b>
         <span>${s.mode === 'achat' ? 'le prix demandé face au marché' : 'le marché face à ton prix'}</span></div>
     </div>
     ${texte.map(t => `<p style="margin:0 0 8px;font-size:14.5px;line-height:1.5">${t}</p>`).join('')}
-    <p class="etat" style="margin-top:10px"><b>Calculé sur</b> ${base.n} ${source} trouvées plus haut,
-      fiabilité ${confiance}. ${noteConv}</p>
-    <p class="etat" style="margin-top:6px">Un repère tiré des prix trouvés, pas un conseil en
-      investissement : l'attachement, la rareté à venir et l'évolution du marché n'y entrent pas.</p>
+    <p class="etat" style="margin-top:10px"><b>Calculé sur</b> ${base.n} ${source}, fiabilité ${confiance}. ${noteConv}
+      Un repère tiré des prix trouvés, pas un conseil en investissement.</p>
   </div>`;
 }
 
@@ -2242,7 +2589,7 @@ if (DEPUIS_ESPACE) $('.lien-espace').innerHTML = '<span><span class="long">Retou
 
 /* ---------- fin d'analyse : on amène au résultat, l'action suivante reste sous la main ---------- */
 const libelleRanger = () => (lireSituation().mode || (AJOUT === 'guette' ? 'achat' : 'collection')) === 'achat'
-  ? 'Ranger dans « Je guette »' : 'Ranger dans ma collection';
+  ? 'Ajouter à « Je guette »' : 'Ajouter à ma collection';
 function nomObjet() {
   const marque = profil.corrections?.marque || profil.marque || '', modele = profil.corrections?.modele || profil.modele || '';
   return modele && marque && modele.toLowerCase().includes(marque.toLowerCase()) ? modele
@@ -2255,7 +2602,7 @@ function analyseTerminee() {
   const base = ref.sv?.n >= 3 ? [ref.sv, 'ventes conclues'] : ref.so?.n >= 3 ? [ref.so, "annonces d'occasion"]
     : ref.sc?.n >= 3 ? [ref.sc, 'objets comparables'] : ref.sn?.n >= 3 ? [ref.sn, 'prix neufs'] : null;
   $('#fin-titre').textContent = nomObjet();
-  $('#fin-detail').textContent = base ? `prix habituel ${base[0].med} ${ref.dev}, d'après ${base[0].n} ${base[1]}` : 'pas assez de prix pour un repère, il peut entrer sans cote';
+  $('#fin-detail').textContent = base ? `Prix habituel ${eu(base[0].med, ref.dev)}, d'après ${base[0].n} ${base[1]}` : 'pas assez de prix pour un repère, il peut entrer sans cote';
   $('#fin-ranger').textContent = libelleRanger();
   $('#fin-analyse').hidden = false;
   document.body.classList.add('avec-fin');   // pas de saut de page : la barre propose « Voir la synthèse »
@@ -2279,7 +2626,7 @@ function graphiqueMesure(retenues, dev) {
   const bas = Math.min(...lignes.map(l => l.min)), haut = Math.max(...lignes.map(l => l.max));
   const pos = v => haut === bas ? 50 : ((v - bas) / (haut - bas)) * 100;
   const COUL = { vendu: '#059be1', neuf: '#cdd1e0', occasion: '#8d93b6' };
-  let h = `<p class="hist-h">les prix, site par site</p>
+  let h = `<p class="hist-h" style="font-size:18px;margin-top:28px">Les prix, site par site</p>
     <p class="aide" style="margin:0 0 10px">Chaque barre va de l'annonce la moins chère à la plus
       chère ; le trait marque le prix habituel.<br>
       <span class="cle-graph"><i style="background:#059be1"></i>ventes conclues</span>
@@ -2315,17 +2662,15 @@ function rendreSynthese() {
     const cv = Math.round((profil.certitude_variante ?? profil.certitude ?? 0) * 100);
     const fr = profil.facteurs_retenus || [];
     zo.innerHTML = `<div class="synth-objet">${photo}<div>
-      <p class="hist-titre" style="font-size:20px">${nom || profil.univers || 'objet'}</p>
+      <p class="hist-titre" style="font-size:30px">${nom || profil.univers || 'Objet'}</p>
       <p style="margin:0 0 8px;font-size:14px;line-height:1.5">${profil.description}</p>
       <dl class="kv">
         ${profil.corrections?.reference || profil.reference
-          ? `<dt>référence</dt><dd>${profil.corrections?.reference || profil.reference}</dd>` : ''}
-        <dt>univers</dt><dd>${[profil.univers, profil.sous_categorie].filter(Boolean).join(', ') || '-'}</dd>
-        ${profil.licence ? `<dt>licence</dt><dd>${profil.licence}</dd>` : ''}
-        ${profil.variante ? `<dt>version</dt><dd>${profil.variante}</dd>` : ''}
-        <dt>état apparent</dt><dd>${profil.etat_apparent || '-'}</dd>
-        <dt>identification</dt><dd>modèle sûr à ${cm} %, version exacte à ${cv} %</dd>
-        ${fr.length ? `<dt>tu as indiqué</dt><dd>${fr.join(', ')}</dd>` : ''}
+          ? `<dt>Référence</dt><dd>${profil.corrections?.reference || profil.reference}</dd>` : ''}
+        ${profil.licence ? `<dt>Licence</dt><dd>${profil.licence}</dd>` : ''}
+        ${profil.variante ? `<dt>Version</dt><dd>${profil.variante}</dd>` : ''}
+        <dt>État apparent</dt><dd>${profil.etat_apparent || '-'}</dd>
+        ${fr.length ? `<dt>Tu as indiqué</dt><dd>${fr.join(', ')}</dd>` : ''}
       </dl>
       ${profil.histoire?.accroche ? `<p style="margin:10px 0 0;font-size:14px;line-height:1.5;
         font-style:italic">${profil.histoire.accroche}</p>` : ''}
@@ -2336,8 +2681,8 @@ function rendreSynthese() {
   const ref = marche.ref;
   if (ref) {
     const carte = (lib, s, note) => s ? `<div><span>${lib} (${s.n})</span>
-      <b>${s.med} ${ref.dev}</b><span>de ${s.min} à ${s.max}${note ? ', ' + note : ''}</span></div>` : '';
-    zp.innerHTML = `<p class="hist-h">prix relevés</p>
+      <b>${eu(s.med, ref.dev)}</b><span>de ${eu(s.min, ref.dev)} à ${eu(s.max, ref.dev)}${note ? ', ' + note : ''}</span></div>` : '';
+    zp.innerHTML = `<p class="hist-h">Le détail des prix relevés</p>
       <div class="synth">
         ${carte('ventes conclues', ref.sv, 'prix obtenus')}
         ${carte("en vente d'occasion", ref.so, 'prix demandés')}
@@ -2421,7 +2766,7 @@ async function lancerAvis(auto) {
   if (auto && profil.avis && profil.avis.cle === cle) return;
   avisEnCours = true;
   const fin = attendre('#synthese-avis', ["lecture des prix observés", "comparaison avec ton prix",
-    "points à vérifier sur cet objet", "rédaction de l'avis"]);
+    "points à vérifier sur cet objet", "rédaction de l'avis"], 20, "L'expert rédige son avis");
   try {
     const d = await appeler(SYS_AVIS, contexteAvis(), false, 1500, "claude-sonnet-5");
     fin();
@@ -2478,9 +2823,9 @@ function dessinerBarre(zones, vals, P, D, lo, hi) {
   return `<div class="barre-prix">
     <div class="bp-zones">${zones.map(([a, b, c]) =>
       `<i style="left:${x(a)}%;width:${x(b) - x(a)}%;background:${c}"></i>`).join('')}
-      ${vals.map(v => `<u style="left:${x(v)}%" title="${r(v)} ${D}"></u>`).join('')}
+      ${vals.map(v => `<u style="left:${x(v)}%" title="${eu(r(v), D)}"></u>`).join('')}
       ${P !== null && P !== undefined && !isNaN(P)
-        ? `<s style="left:${x(P)}%"><span>ton prix<br><b>${r(P)} ${D}</b></span></s>` : ''}
+        ? `<s style="left:${x(P)}%"><span>ton prix<br><b>${eu(r(P), D)}</b></span></s>` : ''}
     </div>
     <div class="bp-legende">${zones.map(([a, b, c, lib, leg]) =>
       `<span><i style="background:${c}"></i>${lib} : ${leg}</span>`).join('')}
@@ -2494,12 +2839,12 @@ function barrePrix(M, Q1, Q3, vals, P, D) {
   const lo = Math.min(0.4 * M, ...(vals.length ? vals : [M]), P ?? Infinity) * 0.95;
   const hi = Math.max(1.7 * M, ...(vals.length ? vals : [M]), P ?? 0) * 1.03;
   return dessinerBarre([
-    [lo, 0.5 * M, '#e8eaf3', "anormalement bas", `sous ${r(0.5 * M)} ${D}`],
-    [0.5 * M, mi, '#059be1', "très bonne affaire", `${r(0.5 * M)} à ${r(mi)} ${D}`],
-    [mi, Q1, '#9fd8f4', "bonne affaire", `${r(mi)} à ${r(Q1)} ${D}`],
-    [Q1, Q3, '#d3d7e6', "prix du marché", `${r(Q1)} à ${r(Q3)} ${D}`],
-    [Q3, 1.5 * M, '#f2b8d2', "prix élevé", `${r(Q3)} à ${r(1.5 * M)} ${D}`],
-    [1.5 * M, hi, '#d62c7c', "trop cher", `au-delà de ${r(1.5 * M)} ${D}`],
+    [lo, 0.5 * M, '#e8eaf3', "anormalement bas", `sous ${eu(r(0.5 * M), D)}`],
+    [0.5 * M, mi, '#059be1', "très bonne affaire", `${r(0.5 * M).toLocaleString('fr-FR')} à ${eu(r(mi), D)}`],
+    [mi, Q1, '#9fd8f4', "bonne affaire", `${r(mi).toLocaleString('fr-FR')} à ${eu(r(Q1), D)}`],
+    [Q1, Q3, '#d3d7e6', "prix du marché", `${r(Q1).toLocaleString('fr-FR')} à ${eu(r(Q3), D)}`],
+    [Q3, 1.5 * M, '#f2b8d2', "prix élevé", `${r(Q3).toLocaleString('fr-FR')} à ${eu(r(1.5 * M), D)}`],
+    [1.5 * M, hi, '#d62c7c', "trop cher", `au-delà de ${eu(r(1.5 * M), D)}`],
   ], vals, P, D, lo, hi);
 }
 
@@ -2508,11 +2853,11 @@ function barreNeuf(N, vals, P, D) {
   const r = v => Math.round(v);
   const hi = Math.max(1.3 * N, ...(vals.length ? vals : [N]), P ?? 0) * 1.03;
   return dessinerBarre([
-    [0, 0.15 * N, '#e8eaf3', "très bas, authenticité à vérifier", `sous ${r(0.15 * N)} ${D}`],
-    [0.15 * N, 0.5 * N, '#059be1', "bonne affaire si authentique", `${r(0.15 * N)} à ${r(0.5 * N)} ${D}`],
-    [0.5 * N, 0.8 * N, '#9fd8f4', "à négocier", `${r(0.5 * N)} à ${r(0.8 * N)} ${D}`],
-    [0.8 * N, N, '#f2b8d2', "proche du neuf", `${r(0.8 * N)} à ${r(N)} ${D}`],
-    [N, hi, '#d62c7c', "plus cher que le neuf", `au-delà de ${r(N)} ${D}`],
+    [0, 0.15 * N, '#e8eaf3', "très bas, authenticité à vérifier", `sous ${eu(r(0.15 * N), D)}`],
+    [0.15 * N, 0.5 * N, '#059be1', "bonne affaire si authentique", `${r(0.15 * N).toLocaleString('fr-FR')} à ${eu(r(0.5 * N), D)}`],
+    [0.5 * N, 0.8 * N, '#9fd8f4', "à négocier", `${r(0.5 * N).toLocaleString('fr-FR')} à ${eu(r(0.8 * N), D)}`],
+    [0.8 * N, N, '#f2b8d2', "proche du neuf", `${r(0.8 * N).toLocaleString('fr-FR')} à ${eu(r(N), D)}`],
+    [N, hi, '#d62c7c', "plus cher que le neuf", `au-delà de ${eu(r(N), D)}`],
   ], vals, P, D, 0, hi);
 }
 
